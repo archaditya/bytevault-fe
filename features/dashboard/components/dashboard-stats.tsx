@@ -3,12 +3,14 @@
 import { HardDrive, Files, ArrowLeftRight, Activity } from "lucide-react";
 import { StatCard } from "@/components/shared/stat-card";
 import { formatBytes } from "@/lib/utils";
-import { files } from "@/lib/mock";
-import { storageProviders } from "@/lib/mock";
-import { transferStats } from "@/lib/mock";
+import { useFiles, useQuota } from "@/services";
 
 export function DashboardStats() {
-  const totalUsed = storageProviders.reduce((sum, p) => sum + p.usedBytes, 0);
+  const { data: quota } = useQuota();
+  const { data: filesResponse } = useFiles({});
+  
+  const totalUsed = quota?.used_bytes || 0;
+  const fileCount = filesResponse?.files?.length || 0;
 
   return (
     <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
@@ -20,19 +22,19 @@ export function DashboardStats() {
       />
       <StatCard
         label="Total files"
-        value={files.length.toLocaleString()}
+        value={fileCount.toLocaleString()}
         icon={Files}
         trend={{ value: "+12 today", direction: "up" }}
       />
       <StatCard
         label="Transfers"
-        value={String(transferStats.active + transferStats.completed + transferStats.failed + transferStats.queued + transferStats.paused)}
+        value="0"
         icon={ArrowLeftRight}
         trend={{ value: "+38 today", direction: "up" }}
       />
       <StatCard
         label="Active sessions"
-        value={String(transferStats.active)}
+        value="0"
         icon={Activity}
         accent="text-live"
       />

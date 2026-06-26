@@ -1,9 +1,10 @@
 "use client";
 
-import { useRef } from "react";
-import { Grid3x3, List, Search, Upload, Loader2 } from "lucide-react";
+import { useRef, useState } from "react";
+import { Grid3x3, List, Search, Upload, FolderPlus, Loader2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import {
   Select,
   SelectTrigger,
@@ -13,7 +14,7 @@ import {
 } from "@/components/ui/select";
 import { useFilesStore } from "@/store";
 import { cn } from "@/lib/utils";
-import { useUploadFileMutation } from "@/services";
+import { useUploadFileMutation, useCreateFolderMutation } from "@/services";
 
 const kindOptions = [
   { value: "all", label: "All types" },
@@ -36,6 +37,11 @@ const providerOptions = [
 export function FilesToolbar() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const uploadMutation = useUploadFileMutation();
+  const { currentFolderId } = useFilesStore();
+  const createFolderMutation = useCreateFolderMutation(currentFolderId);
+
+  const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [newFolderName, setNewFolderName] = useState("");
 
   const {
     viewMode,
@@ -57,9 +63,9 @@ export function FilesToolbar() {
     if (!selectedFile) return;
 
     try {
-      await uploadMutation.mutateAsync(selectedFile);
-    } catch (err) {
-      console.error("Upload failed:", err);
+      await uploadMutation.mutateAsync({ file: selectedFile, folderId: currentFolderId });
+    } catch (err: any) {
+      alert(err.message || "Upload failed");
     } finally {
       if (fileInputRef.current) {
         fileInputRef.current.value = "";
@@ -67,9 +73,21 @@ export function FilesToolbar() {
     }
   };
 
+  const handleCreateFolderSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (newFolderName.trim() === "") return;
+
+    try {
+      await createFolderMutation.mutateAsync({ name: newFolderName.trim(), parentId: currentFolderId });
+      setNewFolderName("");
+      setIsCreateOpen(false);
+    } catch (err: any) {
+      alert(err.message || "Failed to create folder");
+    }
+  };
+
   return (
     <div className="flex flex-wrap items-center gap-2.5">
-      {/* Invisible File Input */}
       <input
         type="file"
         ref={fileInputRef}
@@ -136,6 +154,12 @@ export function FilesToolbar() {
             <List className="h-3.5 w-3.5" />
           </button>
         </div>
+
+        <Button size="sm" variant="secondary" onClick={() => setIsCreateOpen(true)}>
+          <FolderPlus className="h-3.5 w-3.5 mr-1.5" />
+          New Folder
+        </Button>
+
         <Button
           size="sm"
           onClick={handleUploadClick}
@@ -149,6 +173,36 @@ export function FilesToolbar() {
           {uploadMutation.isPending ? "Uploading..." : "Upload"}
         </Button>
       </div>
+
+      {isCreateOpen && (
+        <Dialog open onOpenChange={setIsCreateOpen}>
+          <DialogContent className="sm:max-w-md bg-bg-surface border-border-strong text-ink">
+            <DialogHeader>
+              <DialogTitle>Create New Folder</DialogTitle>
+            </DialogHeader>
+            <form onSubmit={handleCreateFolderSubmit} className="flex flex-col gap-4 py-2">
+              <div className="flex flex-col gap-1.5">
+                <label htmlFor="folderName" className="text-xs font-semibold text-ink-muted">Folder Name</label>
+                <Input
+                  id="folderName"
+                  placeholder="Enter name..."
+                  value={newFolderName}
+                  onChange={(e) => setNewFolderName(e.target.value)}
+                  autoFocus
+                />
+              </div>
+              <div className="flex justify-end gap-2 pt-2">
+                <Button type="button" variant="secondary" onClick={() => setIsCreateOpen(false)} size="sm">
+                  Cancel
+                </Button>
+                <Button type="submit" disabled={createFolderMutation.isPending} size="sm">
+                  {createFolderMutation.isPending ? "Creating..." : "Create"}
+                </Button>
+              </div>
+            </form>
+          </DialogContent>
+        </Dialog>
+      )}
     </div>
   );
 }

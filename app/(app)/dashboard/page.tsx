@@ -2,9 +2,7 @@ import { Metadata } from "next";
 import { DashboardStats } from "@/features/dashboard/components/dashboard-stats";
 import { DashboardCharts } from "@/features/dashboard/components/dashboard-charts";
 import { RecentTransfersWidget } from "@/features/dashboard/components/recent-transfers-widget";
-import { UsageWidget } from "@/features/storage/components/usage-widget";
-import { Card, CardHeader, CardTitle } from "@/components/ui/card";
-import { storageProviders } from "@/lib/mock";
+import { StorageProviderWidget } from "@/features/dashboard/components/storage-providers";
 
 export const metadata: Metadata = {
   title: "Dashboard — ByteVault",
@@ -19,14 +17,7 @@ export default function DashboardPage() {
         <div className="lg:col-span-2">
           <RecentTransfersWidget />
         </div>
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle>Storage usage</CardTitle>
-          </CardHeader>
-          <div className="p-4 pt-0">
-            <UsageWidget providers={storageProviders} />
-          </div>
-        </Card>
+        <StorageProviderWidget />
       </div>
     </div>
   );

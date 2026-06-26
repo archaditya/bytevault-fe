@@ -15,9 +15,11 @@ export function RouteGuard({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     if (!isLoading) {
+      const isLandingPage = pathname === "/";
       const isAuthPage = pathname.startsWith("/login") || pathname.startsWith("/register");
+      const isPublicSharePage = pathname.startsWith("/s/") || pathname.startsWith("/shared/");
       
-      if (!isAuthenticated && !isAuthPage) {
+      if (!isAuthenticated && !isAuthPage && !isLandingPage && !isPublicSharePage) {
         router.push("/login");
       } else if (isAuthenticated && isAuthPage) {
         router.push("/dashboard");
