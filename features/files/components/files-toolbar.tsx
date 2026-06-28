@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useState } from "react";
 import { Grid3x3, List, Search, Upload, FolderPlus, Loader2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -15,6 +15,7 @@ import {
 import { useFilesStore } from "@/store";
 import { cn } from "@/lib/utils";
 import { useUploadFileMutation, useCreateFolderMutation } from "@/services";
+import { UploadModal } from "@/components/shared/upload-modal";
 
 const kindOptions = [
   { value: "all", label: "All types" },
@@ -35,13 +36,13 @@ const providerOptions = [
 ];
 
 export function FilesToolbar() {
-  const fileInputRef = useRef<HTMLInputElement>(null);
   const uploadMutation = useUploadFileMutation();
   const { currentFolderId } = useFilesStore();
   const createFolderMutation = useCreateFolderMutation(currentFolderId);
 
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [newFolderName, setNewFolderName] = useState("");
+  const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
 
   const {
     viewMode,
@@ -53,25 +54,6 @@ export function FilesToolbar() {
     providerFilter,
     setProviderFilter,
   } = useFilesStore();
-
-  const handleUploadClick = () => {
-    fileInputRef.current?.click();
-  };
-
-  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const selectedFile = e.target.files?.[0];
-    if (!selectedFile) return;
-
-    try {
-      await uploadMutation.mutateAsync({ file: selectedFile, folderId: currentFolderId });
-    } catch (err: any) {
-      alert(err.message || "Upload failed");
-    } finally {
-      if (fileInputRef.current) {
-        fileInputRef.current.value = "";
-      }
-    }
-  };
 
   const handleCreateFolderSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -88,12 +70,7 @@ export function FilesToolbar() {
 
   return (
     <div className="flex flex-wrap items-center gap-2.5">
-      <input
-        type="file"
-        ref={fileInputRef}
-        onChange={handleFileChange}
-        className="hidden"
-      />
+      <UploadModal open={isUploadModalOpen} onOpenChange={setIsUploadModalOpen} />
 
       <div className="relative min-w-[220px] flex-1 sm:max-w-xs">
         <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-ink-faint" />
@@ -162,7 +139,7 @@ export function FilesToolbar() {
 
         <Button
           size="sm"
-          onClick={handleUploadClick}
+          onClick={() => setIsUploadModalOpen(true)}
           disabled={uploadMutation.isPending}
         >
           {uploadMutation.isPending ? (
