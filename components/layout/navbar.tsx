@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef } from "react";
+import { useState } from "react";
 import { Search, Upload, Bell, Loader2 } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { Input } from "@/components/ui/input";
@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { useAuthStore } from "@/store";
 import { useUploadFileMutation } from "@/services";
+import { UploadModal } from "@/components/shared/upload-modal";
 
 const titleMap: Record<string, string> = {
   "/dashboard": "Dashboard",
@@ -21,7 +22,7 @@ const titleMap: Record<string, string> = {
 };
 
 export function Navbar() {
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
   const uploadMutation = useUploadFileMutation();
   const pathname = usePathname();
   const user = useAuthStore((s) => s.user);
@@ -29,34 +30,9 @@ export function Navbar() {
   const title =
     Object.entries(titleMap).find(([path]) => pathname.startsWith(path))?.[1] ?? "ByteVault";
 
-  const handleUploadClick = () => {
-    fileInputRef.current?.click();
-  };
-
-  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const selectedFile = e.target.files?.[0];
-    if (!selectedFile) return;
-
-    try {
-      await uploadMutation.mutateAsync(selectedFile);
-    } catch (err) {
-      console.error("Upload failed:", err);
-    } finally {
-      if (fileInputRef.current) {
-        fileInputRef.current.value = "";
-      }
-    }
-  };
-
   return (
     <header className="sticky top-0 z-30 flex h-14 items-center gap-4 border-b border-border bg-bg/95 px-4 backdrop-blur-sm md:px-6">
-      {/* Invisible File Input */}
-      <input
-        type="file"
-        ref={fileInputRef}
-        onChange={handleFileChange}
-        className="hidden"
-      />
+      <UploadModal open={isUploadModalOpen} onOpenChange={setIsUploadModalOpen} />
 
       <h1 className="text-[15px] font-semibold text-ink whitespace-nowrap">{title}</h1>
 
@@ -72,7 +48,7 @@ export function Navbar() {
           size="sm"
           variant="primary"
           className="hidden sm:inline-flex"
-          onClick={handleUploadClick}
+          onClick={() => setIsUploadModalOpen(true)}
           disabled={uploadMutation.isPending}
         >
           {uploadMutation.isPending ? (

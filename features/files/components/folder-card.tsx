@@ -2,6 +2,7 @@
 
 import { Folder, MoreVertical, Edit2, Move, Trash2 } from "lucide-react";
 import { FolderRecord } from "@/types";
+import { Card } from "@/components/ui/card";
 import { useFilesStore } from "@/store";
 import { useDeleteFolderMutation, useRenameFolderMutation } from "@/services";
 import {
@@ -11,15 +12,14 @@ import {
   DropdownMenuItem,
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
-import { formatRelativeTime } from "@/lib/utils";
 import { useState } from "react";
 import { MoveItemModal } from "./move-item-modal";
 
-export function FolderListRow({ folder }: { folder: FolderRecord }) {
+export function FolderCard({ folder }: { folder: FolderRecord }) {
   const { pushFolder } = useFilesStore();
   const deleteMutation = useDeleteFolderMutation(folder.parent_id);
   const renameMutation = useRenameFolderMutation(folder.parent_id);
-
+  
   const [isMoveModalOpen, setIsMoveModalOpen] = useState(false);
 
   const handleOpenFolder = () => {
@@ -41,30 +41,29 @@ export function FolderListRow({ folder }: { folder: FolderRecord }) {
 
   return (
     <>
-      <div
-        className="grid grid-cols-[1fr_110px_140px_110px_40px] gap-4 items-center border-b border-border/60 px-4 py-3 text-[13px] transition-colors hover:bg-bg-overlay/40 select-none cursor-pointer"
+      <Card
+        className="group relative flex flex-col items-center justify-center p-4 cursor-pointer transition-colors hover:border-border-strong bg-bg-surface select-none h-28"
         onClick={handleOpenFolder}
       >
-        <span className="flex items-center gap-2.5 font-medium text-ink truncate">
-          <Folder className="h-4.5 w-4.5 text-accent-bright shrink-0" />
-          <span className="truncate" title={folder.name}>
-            {folder.name}
-          </span>
-        </span>
-        <span className="font-mono text-ink-muted">—</span>
-        <span>—</span>
-        <span className="text-ink-muted">{formatRelativeTime(folder.created_at)}</span>
-        <span className="flex justify-end" onClick={(e) => e.stopPropagation()}>
+        <div className="text-accent-bright mb-2">
+          <Folder className="h-10 w-10 fill-accent/20" />
+        </div>
+        <p className="truncate text-[13px] font-medium text-ink w-full text-center" title={folder.name}>
+          {folder.name}
+        </p>
+
+        <div className="absolute right-2 top-2 opacity-0 transition-opacity group-hover:opacity-100">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <button
-                className="flex h-6 w-6 items-center justify-center rounded-sm text-ink-muted hover:text-ink hover:bg-bg-overlay border border-transparent hover:border-border"
+                className="flex h-5 w-5 items-center justify-center rounded-sm bg-bg-raised/90 text-ink-muted hover:text-ink border border-border"
                 aria-label="Folder actions"
+                onClick={(e) => e.stopPropagation()}
               >
-                <MoreVertical className="h-3.5 w-3.5" />
+                <MoreVertical className="h-3 w-3" />
               </button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="bg-bg-surface border-border-strong">
+            <DropdownMenuContent align="end" className="bg-bg-surface border-border-strong" onClick={(e) => e.stopPropagation()}>
               <DropdownMenuItem onClick={handleRename} className="cursor-pointer hover:bg-bg-overlay">
                 <Edit2 className="h-3.5 w-3.5 mr-2" /> Rename
               </DropdownMenuItem>
@@ -77,8 +76,8 @@ export function FolderListRow({ folder }: { folder: FolderRecord }) {
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
-        </span>
-      </div>
+        </div>
+      </Card>
 
       {isMoveModalOpen && (
         <MoveItemModal

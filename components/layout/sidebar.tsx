@@ -8,24 +8,34 @@ import {
   ArrowUpDown,
   Database,
   Share2,
-  BarChart3,
   Settings,
   Box,
+  Shield,
+  LogOut,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useAuthStore } from "@/store";
 import { transferStats } from "@/lib/mock";
-
-const navItems = [
-  { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/files", label: "Files", icon: FolderClosed },
-  { href: "/transfers", label: "Transfers", icon: ArrowUpDown, badge: transferStats.active },
-  { href: "/storage", label: "Storage", icon: Database },
-  { href: "/shared", label: "Shared links", icon: Share2 },
-  { href: "/analytics", label: "Analytics", icon: BarChart3 },
-];
 
 export function Sidebar() {
   const pathname = usePathname();
+  const { user, logout } = useAuthStore();
+
+  const isAdmin = user?.role === "super_admin" || user?.role === "admin";
+
+  const activeNavItems = isAdmin
+    ? [
+        { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
+        { href: "/admin", label: "Users", icon: Shield },
+        { href: "/transfers", label: "Transfers", icon: ArrowUpDown, badge: transferStats.active },
+        { href: "/storage", label: "Storage", icon: Database },
+        { href: "/shared", label: "Shared links", icon: Share2 },
+      ]
+    : [
+        { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
+        { href: "/files", label: "Files", icon: FolderClosed },
+        { href: "/shared", label: "Shared links", icon: Share2 },
+      ];
 
   return (
     <aside className="fixed inset-y-0 left-0 z-40 hidden w-60 flex-col border-r border-border bg-bg-surface md:flex">
@@ -39,7 +49,7 @@ export function Sidebar() {
       <nav className="flex-1 overflow-y-auto px-3 py-4">
         <p className="label-eyebrow px-2 pb-2">Workspace</p>
         <ul className="flex flex-col gap-0.5">
-          {navItems.map((item) => {
+          {activeNavItems.map((item) => {
             const isActive = pathname.startsWith(item.href);
             const Icon = item.icon;
             return (
@@ -83,6 +93,15 @@ export function Sidebar() {
               <Settings className="h-[15px] w-[15px]" strokeWidth={2} />
               Settings
             </Link>
+          </li>
+          <li>
+            <button
+              onClick={() => logout()}
+              className="flex w-full items-center gap-2.5 rounded-sm px-2.5 py-1.5 text-[13px] font-medium text-ink-muted hover:bg-danger/10 hover:text-danger transition-colors text-left"
+            >
+              <LogOut className="h-[15px] w-[15px]" strokeWidth={2} />
+              Logout
+            </button>
           </li>
         </ul>
       </nav>

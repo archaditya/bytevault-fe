@@ -22,7 +22,7 @@ export function FolderListRow({ folder }: { folder: FolderRecord }) {
 
   const [isMoveModalOpen, setIsMoveModalOpen] = useState(false);
 
-  const handleOpenFolder = () => {
+  const handleDoubleClick = () => {
     pushFolder(folder.id, folder.name);
   };
 
@@ -43,7 +43,7 @@ export function FolderListRow({ folder }: { folder: FolderRecord }) {
     <>
       <div
         className="grid grid-cols-[1fr_110px_140px_110px_40px] gap-4 items-center border-b border-border/60 px-4 py-3 text-[13px] transition-colors hover:bg-bg-overlay/40 select-none cursor-pointer"
-        onClick={handleOpenFolder}
+        onDoubleClick={handleDoubleClick}
       >
         <span className="flex items-center gap-2.5 font-medium text-ink truncate">
           <Folder className="h-4.5 w-4.5 text-accent-bright shrink-0" />
