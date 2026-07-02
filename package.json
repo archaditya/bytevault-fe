@@ -44,7 +44,7 @@
     "zustand": "^5.0.1"
   },
   "devDependencies": {
-    "eslint": "^8.57.1",
+    "eslint": "^9.39.4",
     "eslint-config-next": "^16.2.10"
   }
 }
