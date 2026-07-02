@@ -1,3 +1,4 @@
+import { use } from "react";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { ChevronLeft, Lock, Calendar, Download, Eye, Link2 } from "lucide-react";
@@ -8,13 +9,15 @@ import { Button } from "@/components/ui/button";
 import { formatDate, formatBytes } from "@/lib/utils";
 import { getFileById } from "@/lib/mock";
 
-export function generateMetadata({ params }: { params: { id: string } }) {
-  const link = sharedLinks.find((l) => l.id === params.id);
+export async function generateMetadata({ params }: { params: Promise<{ id: string }> }) {
+  const resolvedParams = await params;
+  const link = sharedLinks.find((l) => l.id === resolvedParams.id);
   return { title: link ? `${link.fileName} share — ByteVault` : "Share not found — ByteVault" };
 }
 
-export default function ShareDetailsPage({ params }: { params: { id: string } }) {
-  const link = sharedLinks.find((l) => l.id === params.id);
+export default function ShareDetailsPage({ params }: { params: Promise<{ id: string }> }) {
+  const resolvedParams = use(params);
+  const link = sharedLinks.find((l) => l.id === resolvedParams.id);
   if (!link) return notFound();
   const file = getFileById(link.fileId);
 

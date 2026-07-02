@@ -37,7 +37,7 @@ export function SecuritySection() {
               Require a verification code in addition to your password.
             </p>
           </div>
-          <Switch defaultChecked={user.twoFactorEnabled} />
+          <Switch defaultChecked={user?.twoFactorEnabled ?? false} />
         </CardContent>
       </Card>
     </div>
