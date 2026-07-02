@@ -1,3 +1,4 @@
+import { use } from "react";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { ChevronLeft, ArrowUp, ArrowDown, RotateCcw, Pause, Play, X } from "lucide-react";
@@ -12,13 +13,15 @@ import { TransferTimeline } from "@/features/transfers/components/transfer-timel
 import { SpeedGraph } from "@/features/transfers/components/speed-graph";
 import { formatBytes, formatDateTime, truncateMiddle } from "@/lib/utils";
 
-export function generateMetadata({ params }: { params: { id: string } }) {
-  const transfer = getTransferById(params.id);
+export async function generateMetadata({ params }: { params: Promise<{ id: string }> }) {
+  const resolvedParams = await params;
+  const transfer = getTransferById(resolvedParams.id);
   return { title: transfer ? `${transfer.fileName} transfer — ByteVault` : "Transfer not found — ByteVault" };
 }
 
-export default function TransferDetailsPage({ params }: { params: { id: string } }) {
-  const transfer = getTransferById(params.id);
+export default function TransferDetailsPage({ params }: { params: Promise<{ id: string }> }) {
+  const resolvedParams = use(params);
+  const transfer = getTransferById(resolvedParams.id);
   if (!transfer) return notFound();
 
   const DirectionIcon = transfer.direction === "upload" ? ArrowUp : ArrowDown;

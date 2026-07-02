@@ -30,9 +30,9 @@ const actionLabel: Record<string, string> = {
   replicated: "Replicated",
 };
 
-export default function FileDetailsPage({ params }: { params: Promise<{ id: string }> | { id: string } }) {
+export default function FileDetailsPage({ params }: { params: Promise<{ id: string }> }) {
   // Safe resolution of Next.js 15 params promise
-  const resolvedParams = params instanceof Promise ? use(params) : params;
+  const resolvedParams = use(params);
   const id = resolvedParams.id;
   const router = useRouter();
 

@@ -8,7 +8,7 @@ const nextConfig = {
   },
   async rewrites() {
     // Vercel deployment: reads API URL from .env or Vercel Environment Variables
-    const apiUrl = process.env.API_URL || "http://localhost:8080";
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
 
     return [
       {
