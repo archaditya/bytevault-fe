@@ -86,6 +86,17 @@ export function FileCard({ file }: { file: FileRecord }) {
               <DropdownMenuItem onClick={handleDownload} className="cursor-pointer hover:bg-bg-overlay">
                 <Download className="h-3.5 w-3.5 mr-2" /> Download
               </DropdownMenuItem>
+              {file.shared && (
+                <DropdownMenuItem 
+                  onClick={() => {
+                    navigator.clipboard.writeText(`${window.location.origin}/share/${file.id}`);
+                    alert("Link copied to clipboard!");
+                  }} 
+                  className="cursor-pointer hover:bg-bg-overlay"
+                >
+                  <Share2 className="h-3.5 w-3.5 mr-2" /> Copy Link
+                </DropdownMenuItem>
+              )}
               <DropdownMenuItem onClick={handleToggleShare} className="cursor-pointer hover:bg-bg-overlay">
                 <Share2 className="h-3.5 w-3.5 mr-2" /> {file.shared ? "Make Private" : "Share Link"}
               </DropdownMenuItem>

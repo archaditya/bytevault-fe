@@ -106,6 +106,18 @@ export default function FileDetailsPage({ params }: { params: Promise<{ id: stri
           </div>
         </div>
         <div className="flex gap-2">
+          {file.shared && (
+            <Button 
+              size="sm" 
+              variant="secondary" 
+              onClick={() => {
+                navigator.clipboard.writeText(`${window.location.origin}/share/${file.id}`);
+                alert("Link copied to clipboard!");
+              }}
+            >
+              <Share2 className="h-3.5 w-3.5" /> Copy Link
+            </Button>
+          )}
           <Button size="sm" variant="secondary" onClick={handleToggleShare} disabled={toggleShareMutation.isPending}>
             <Share2 className="h-3.5 w-3.5" /> {file.shared ? "Make Private" : "Share Link"}
           </Button>
@@ -155,6 +167,29 @@ export default function FileDetailsPage({ params }: { params: Promise<{ id: stri
               <span className="text-ink-muted">Total downloads</span>
               <span className="font-mono text-ink">{file.downloads}</span>
             </div>
+            {file.shared && (
+              <div className="mt-2 flex flex-col gap-1.5">
+                <span className="text-[12px] text-ink-muted">Shareable Link</span>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="text"
+                    readOnly
+                    value={`${typeof window !== 'undefined' ? window.location.origin : ''}/share/${file.id}`}
+                    className="flex-1 rounded-md border border-border bg-bg px-2.5 py-1.5 text-[13px] text-ink outline-none"
+                  />
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    onClick={() => {
+                      navigator.clipboard.writeText(`${window.location.origin}/share/${file.id}`);
+                      alert("Link copied to clipboard!");
+                    }}
+                  >
+                    Copy
+                  </Button>
+                </div>
+              </div>
+            )}
             <Button size="sm" variant="secondary" className="mt-1" onClick={handleToggleShare} disabled={toggleShareMutation.isPending}>
               Toggle Sharing
             </Button>
