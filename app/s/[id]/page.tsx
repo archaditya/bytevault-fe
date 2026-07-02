@@ -3,17 +3,14 @@
 import { use } from "react";
 import { Download, File as FileIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useFile } from "@/services";
-import { formatBytes, truncateMiddle } from "@/lib/utils";
+
 
 export default function PublicSharePage({ params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = use(params);
   const id = resolvedParams.id;
-  
-  const { data: file, isLoading } = useFile(id);
 
   const handleDownload = () => {
-    window.open(`/api/v1/files/${id}/download`, "_blank");
+    window.open(`/api/v1/files/public/${id}`, "_blank");
   };
 
   return (
@@ -25,21 +22,14 @@ export default function PublicSharePage({ params }: { params: Promise<{ id: stri
         
         <div className="flex flex-col items-center">
           <h1 className="text-xl font-bold text-ink">
-            {isLoading ? "Loading file details..." : file ? truncateMiddle(file.name, 40) : "Shared File"}
+            Shared File
           </h1>
-          {file && (
-            <p className="mt-1 font-mono text-[12px] text-ink-muted">
-              {formatBytes(file.sizeBytes)} • {file.mimeType || "Unknown type"}
-            </p>
-          )}
-          {!file && !isLoading && (
-             <p className="mt-2 text-[14px] text-ink-muted">
-               Ready to download your securely shared file.
-             </p>
-          )}
+          <p className="mt-2 text-[14px] text-ink-muted">
+            Ready to download your securely shared file.
+          </p>
         </div>
 
-        <Button onClick={handleDownload} className="w-full" size="lg" disabled={isLoading && !file}>
+        <Button onClick={handleDownload} className="w-full" size="lg">
           <Download className="mr-2 h-4 w-4" />
           Download File
         </Button>
