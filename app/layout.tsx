@@ -4,6 +4,7 @@ import "./globals.css";
 import { QueryProvider } from "@/lib/query-provider";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { RouteGuard } from "@/components/shared/route-guard";
+import { GoogleAnalytics } from "@next/third-parties/google";
 
 const fontSans = Inter({
   subsets: ["latin"],
@@ -38,6 +39,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <RouteGuard>{children}</RouteGuard>
           </TooltipProvider>
         </QueryProvider>
+        <GoogleAnalytics gaId="G-N90NFD2TX9" />
       </body>
     </html>
   );
