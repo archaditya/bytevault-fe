@@ -89,7 +89,7 @@ export function FileCard({ file }: { file: FileRecord }) {
               {file.shared && (
                 <DropdownMenuItem 
                   onClick={() => {
-                    navigator.clipboard.writeText(`${window.location.origin}/share/${file.id}`);
+                    navigator.clipboard.writeText(`${window.location.origin}/s/${file.id}`);
                     alert("Link copied to clipboard!");
                   }} 
                   className="cursor-pointer hover:bg-bg-overlay"

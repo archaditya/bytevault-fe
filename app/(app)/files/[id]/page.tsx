@@ -111,7 +111,7 @@ export default function FileDetailsPage({ params }: { params: Promise<{ id: stri
               size="sm" 
               variant="secondary" 
               onClick={() => {
-                navigator.clipboard.writeText(`${window.location.origin}/share/${file.id}`);
+                navigator.clipboard.writeText(`${window.location.origin}/s/${file.id}`);
                 alert("Link copied to clipboard!");
               }}
             >
@@ -174,14 +174,14 @@ export default function FileDetailsPage({ params }: { params: Promise<{ id: stri
                   <input
                     type="text"
                     readOnly
-                    value={`${typeof window !== 'undefined' ? window.location.origin : ''}/share/${file.id}`}
+                    value={`${typeof window !== 'undefined' ? window.location.origin : ''}/s/${file.id}`}
                     className="flex-1 rounded-md border border-border bg-bg px-2.5 py-1.5 text-[13px] text-ink outline-none"
                   />
                   <Button
                     size="sm"
                     variant="secondary"
                     onClick={() => {
-                      navigator.clipboard.writeText(`${window.location.origin}/share/${file.id}`);
+                      navigator.clipboard.writeText(`${window.location.origin}/s/${file.id}`);
                       alert("Link copied to clipboard!");
                     }}
                   >
