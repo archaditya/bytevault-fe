@@ -293,53 +293,55 @@ export default function AdminPage() {
               </div>
             ) : !usersData?.users || usersData.users.length === 0 ? (
               <div className="p-6 text-sm text-ink-muted text-center">No users registered on the platform.</div>
-            ) : (
-              <div className="flex flex-col">
-                <div className="grid grid-cols-[2fr_1.5fr_1fr_1fr_1.2fr_1.2fr] gap-4 items-center bg-bg-raised border-y border-border px-4 py-2.5 text-[11px] font-semibold uppercase tracking-wider text-ink-faint">
-                  <span>Name</span>
-                  <span>Email</span>
-                  <span>Role</span>
-                  <span>Status</span>
-                  <span>Joined Date</span>
-                  <span className="text-right">Actions</span>
-                </div>
-                {usersData.users.map((u) => {
-                  const name = [u.first_name, u.last_name].filter(Boolean).join(" ") || "No Name Provided";
-                  return (
-                    <div
-                      key={u.id}
-                      className="grid grid-cols-[2fr_1.5fr_1fr_1fr_1.2fr_1.2fr] gap-4 items-center border-b border-border px-4 py-3 text-[13px] hover:bg-bg-overlay/20 transition-colors"
-                    >
-                      <span className="font-medium text-ink truncate">{name}</span>
-                      <span className="text-ink-muted truncate font-mono">{u.email}</span>
-                      <span>
-                        <Badge variant="muted" className="text-[10px] capitalize px-1.5 py-0.2">
-                          {u.role || "user"}
-                        </Badge>
-                      </span>
-                      <span>
-                        <Badge variant={u.status === "active" ? "success" : "info"} className="text-[10px] px-1.5 py-0.2">
-                          {u.status}
-                        </Badge>
-                      </span>
-                      <span className="text-ink-muted font-mono">{formatRelativeTime(u.created_at)}</span>
-                      <div className="flex items-center justify-end gap-1.5">
-                        <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => handleOpenDetails(u.id)} title="View Details">
-                          <Eye className="h-3.5 w-3.5" />
-                        </Button>
-                        <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => handleOpenEdit(u)} title="Edit User">
-                          <Edit2 className="h-3.5 w-3.5" />
-                        </Button>
-                        <Button size="icon" variant="ghost" className="h-7 w-7 text-danger hover:bg-danger/10 hover:text-danger" onClick={() => handleDeleteUser(u.id, u.email)} title="Delete User">
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </Button>
+                        ) : (
+              <div className="w-full overflow-x-auto">
+                <div className="flex flex-col min-w-[800px]">
+                  <div className="grid grid-cols-[2fr_1.5fr_1fr_1fr_1.2fr_1.2fr] gap-4 items-center bg-bg-raised border-y border-border px-4 py-2.5 text-[11px] font-semibold uppercase tracking-wider text-ink-faint">
+                    <span>Name</span>
+                    <span>Email</span>
+                    <span>Role</span>
+                    <span>Status</span>
+                    <span>Joined Date</span>
+                    <span className="text-right">Actions</span>
+                  </div>
+                  {usersData.users.map((u) => {
+                    const name = [u.first_name, u.last_name].filter(Boolean).join(" ") || "No Name Provided";
+                    return (
+                      <div
+                        key={u.id}
+                        className="grid grid-cols-[2fr_1.5fr_1fr_1fr_1.2fr_1.2fr] gap-4 items-center border-b border-border px-4 py-3 text-[13px] hover:bg-bg-overlay/20 transition-colors"
+                      >
+                        <span className="font-medium text-ink truncate">{name}</span>
+                        <span className="text-ink-muted truncate font-mono">{u.email}</span>
+                        <span>
+                          <Badge variant="muted" className="text-[10px] capitalize px-1.5 py-0.2">
+                            {u.role || "user"}
+                          </Badge>
+                        </span>
+                        <span>
+                          <Badge variant={u.status === "active" ? "success" : "info"} className="text-[10px] px-1.5 py-0.2">
+                            {u.status}
+                          </Badge>
+                        </span>
+                        <span className="text-ink-muted font-mono">{formatRelativeTime(u.created_at)}</span>
+                        <div className="flex items-center justify-end gap-1.5">
+                          <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => handleOpenDetails(u.id)} title="View Details">
+                            <Eye className="h-3.5 w-3.5" />
+                          </Button>
+                          <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => handleOpenEdit(u)} title="Edit User">
+                            <Edit2 className="h-3.5 w-3.5" />
+                          </Button>
+                          <Button size="icon" variant="ghost" className="h-7 w-7 text-danger hover:bg-danger/10 hover:text-danger" onClick={() => handleDeleteUser(u.id, u.email)} title="Delete User">
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </Button>
+                        </div>
                       </div>
-                    </div>
-                  );
-                })}
+                    );
+                  })}
+                </div>
 
                 {/* Pagination */}
-                <div className="flex items-center justify-between px-4 py-3.5 border-t border-border">
+                <div className="flex items-center justify-between px-4 py-3.5 border-t border-border mt-auto w-full">
                   <span className="text-xs text-ink-muted">
                     Total {usersData.total} users
                   </span>
@@ -386,6 +388,8 @@ export default function AdminPage() {
               <div className="p-6 text-sm text-ink-muted text-center">No system events logged.</div>
             ) : (
               <div className="flex flex-col">
+                <div className="overflow-x-auto">
+                <div className="min-w-[700px]">
                 <div className="grid grid-cols-[1.5fr_1.5fr_1fr_1.5fr_1fr_1.5fr] gap-4 items-center bg-bg-raised border-y border-border px-4 py-2.5 text-[11px] font-semibold uppercase tracking-wider text-ink-faint">
                   <span>Timestamp</span>
                   <span>User ID</span>
@@ -422,6 +426,8 @@ export default function AdminPage() {
                     </span>
                   </div>
                 ))}
+                </div>
+                </div>
 
                 {/* Pagination */}
                 <div className="flex items-center justify-between px-4 py-3.5 border-t border-border">

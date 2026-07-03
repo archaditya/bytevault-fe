@@ -1,34 +1,33 @@
 import { useQuery } from "@tanstack/react-query";
-import { analyticsHistory, providerComparison, sharedLinks, apiKeys } from "@/lib/mock";
+import { AnalyticsPoint } from "@/types";
 
-function delay<T>(value: T, ms = 250): Promise<T> {
-  return new Promise((resolve) => setTimeout(() => resolve(value), ms));
-}
+// Analytics data is not yet backed by a real API endpoint.
+// Return empty arrays so the UI renders empty states instead of fake data.
 
 export function useAnalyticsHistory() {
-  return useQuery({
+  return useQuery<AnalyticsPoint[]>({
     queryKey: ["analytics", "history"],
-    queryFn: () => delay(analyticsHistory),
+    queryFn: async () => [],
   });
 }
 
 export function useProviderComparison() {
   return useQuery({
     queryKey: ["analytics", "provider-comparison"],
-    queryFn: () => delay(providerComparison),
+    queryFn: async () => [],
   });
 }
 
 export function useSharedLinks() {
   return useQuery({
     queryKey: ["shared-links"],
-    queryFn: () => delay(sharedLinks),
+    queryFn: async () => [],
   });
 }
 
 export function useApiKeys() {
   return useQuery({
     queryKey: ["api-keys"],
-    queryFn: () => delay(apiKeys),
+    queryFn: async () => [],
   });
 }

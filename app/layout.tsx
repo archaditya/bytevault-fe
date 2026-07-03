@@ -5,6 +5,7 @@ import { QueryProvider } from "@/lib/query-provider";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { RouteGuard } from "@/components/shared/route-guard";
 import { GoogleAnalytics } from "@next/third-parties/google";
+import { Toaster } from "react-hot-toast";
 
 const fontSans = Inter({
   subsets: ["latin"],
@@ -21,13 +22,8 @@ const fontMono = JetBrains_Mono({
 export const metadata: Metadata = {
   title: "ByteVault — Resumable file transfer, down to the chunk",
   description:
-    "ByteVault is a high-performance file transfer and storage platform with resumable uploads, chunk-level retries, and multi-provider storage routing across Cloudflare R2, AWS S3, and local disk.",
+    "ByteVault is a high-performance file transfer and storage platform.",
   keywords: ["file transfer", "resumable upload", "storage", "Cloudflare R2", "AWS S3"],
-  openGraph: {
-    title: "ByteVault",
-    description: "Resumable file transfer, down to the chunk.",
-    type: "website",
-  },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
@@ -39,6 +35,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <RouteGuard>{children}</RouteGuard>
           </TooltipProvider>
         </QueryProvider>
+        <Toaster position="bottom-right" toastOptions={{ duration: 4000 }} />
         <GoogleAnalytics gaId="G-N90NFD2TX9" />
       </body>
     </html>

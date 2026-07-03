@@ -27,6 +27,7 @@ function mapBackendUserToFrontend(backendUser: any): User {
     name: fullName,
     email: backendUser.email,
     avatar: initials,
+    avatarUrl: backendUser.avatar_url,
     role: backendUser.role || "user",
     plan: "free",
     joinedAt: backendUser.created_at || new Date().toISOString(),

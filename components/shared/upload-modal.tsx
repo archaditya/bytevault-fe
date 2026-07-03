@@ -17,6 +17,7 @@ import { Input } from "@/components/ui/input";
 import { useFoldersFlat, useUploadFileMutation, useCreateFolderMutation } from "@/services";
 import { FolderRecord } from "@/types";
 import { cn } from "@/lib/utils";
+import toast from "react-hot-toast";
 
 interface UploadModalProps {
   open: boolean;
@@ -148,7 +149,6 @@ export function UploadModal({ open, onOpenChange }: UploadModalProps) {
     e.preventDefault();
     const trimmed = newFolderName.trim();
     if (!trimmed) return;
-
     try {
       await createFolderMutation.mutateAsync({
         name: trimmed,
@@ -156,8 +156,9 @@ export function UploadModal({ open, onOpenChange }: UploadModalProps) {
       });
       setNewFolderName("");
       setIsCreatingFolder(false);
+      toast.success("Folder created");
     } catch (err: any) {
-      alert(err.message || "Failed to create folder");
+      toast.error(err.message || "Failed to create folder");
     }
   };
 
@@ -168,13 +169,13 @@ export function UploadModal({ open, onOpenChange }: UploadModalProps) {
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0];
     if (!selectedFile) return;
-
     try {
       await uploadMutation.mutateAsync({ file: selectedFile, folderId: selectedFolderId });
+      toast.success("File uploaded successfully");
       onOpenChange(false);
       resetState();
     } catch (err: any) {
-      alert(err.message || "Upload failed");
+      toast.error(err.message || "Upload failed");
     } finally {
       if (fileInputRef.current) {
         fileInputRef.current.value = "";

@@ -1,9 +1,6 @@
 import { Metadata } from "next";
-import Link from "next/link";
-import { storageProviders } from "@/lib/mock";
-import { ProviderCard } from "@/features/storage/components/provider-card";
-import { Button } from "@/components/ui/button";
-import { ArrowRight, Settings2 } from "lucide-react";
+import { Card, CardContent } from "@/components/ui/card";
+import { HardDrive } from "lucide-react";
 
 export const metadata: Metadata = {
   title: "Storage providers — ByteVault",
@@ -12,30 +9,15 @@ export const metadata: Metadata = {
 export default function StoragePage() {
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <p className="max-w-lg text-[13px] text-ink-muted">
-          ByteVault routes uploads across these providers based on latency, cost, and
-          your storage preferences.
-        </p>
-        <div className="flex gap-2">
-          <Button size="sm" variant="secondary" asChild>
-            <Link href="/storage/usage">
-              Usage breakdown <ArrowRight className="h-3.5 w-3.5" />
-            </Link>
-          </Button>
-          <Button size="sm" variant="secondary" asChild>
-            <Link href="/storage/providers">
-              <Settings2 className="h-3.5 w-3.5" /> Manage providers
-            </Link>
-          </Button>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-        {storageProviders.map((provider) => (
-          <ProviderCard key={provider.id} provider={provider} />
-        ))}
-      </div>
+      <Card className="bg-bg-surface border-border-strong">
+        <CardContent className="flex flex-col items-center justify-center py-16 text-center">
+          <HardDrive className="h-12 w-12 text-ink-faint mb-4" />
+          <h2 className="text-lg font-semibold text-ink">Storage management coming soon</h2>
+          <p className="mt-2 max-w-sm text-[13px] text-ink-muted">
+            Multi-provider storage management, routing preferences, and usage breakdowns will be available here in a future release.
+          </p>
+        </CardContent>
+      </Card>
     </div>
   );
 }

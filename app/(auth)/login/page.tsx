@@ -9,28 +9,29 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Box } from "lucide-react";
+import toast from "react-hot-toast";
 
 export default function LoginPage() {
   const router = useRouter();
   const login = useAuthStore((s) => s.login);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email || !password) {
-      setError("Please fill in all fields.");
+      toast.error("Please fill in all fields.");
       return;
     }
-    setError(null);
+    
     setLoading(true);
     try {
       await login(email, password);
+      toast.success("Successfully logged in!");
       router.push("/dashboard");
     } catch (err: any) {
-      setError(err.message || "Invalid email or password");
+      toast.error(err.message || "Invalid email or password");
     } finally {
       setLoading(false);
     }
@@ -47,11 +48,6 @@ export default function LoginPage() {
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-4">
-          {error && (
-            <div className="rounded-sm border border-danger/20 bg-danger/10 p-3 text-[13px] text-danger animate-fade-up">
-              {error}
-            </div>
-          )}
           <div className="space-y-1.5">
             <Label htmlFor="email">Email address</Label>
             <Input

@@ -36,6 +36,7 @@ export interface User {
   name: string;
   email: string;
   avatar: string;
+  avatarUrl?: string | null;
   role: string;
   plan: "free" | "pro" | "enterprise";
   joinedAt: string;

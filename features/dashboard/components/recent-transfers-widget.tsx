@@ -1,30 +1,23 @@
 "use client";
 
 import Link from "next/link";
-import { useTransfers } from "@/services";
+import { useFiles } from "@/services";
 import { Card, CardHeader, CardTitle } from "@/components/ui/card";
-import { TransferStatusBadge } from "@/components/shared/status-badge";
-import { ProviderTag } from "@/components/shared/provider-tag";
-import { formatRelativeTime, truncateMiddle } from "@/lib/utils";
+import { FileKindIcon } from "@/components/shared/file-kind-icon";
+import { formatRelativeTime, formatBytes } from "@/lib/utils";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ArrowRight } from "lucide-react";
-import { useAuthStore } from "@/store";
 
 export function RecentTransfersWidget() {
-  const { data: transfers, isLoading } = useTransfers();
-  const recent = transfers?.slice(0, 6) ?? [];
-
-  const { user } = useAuthStore();
-  const isAdmin = user?.role === "super_admin" || user?.role === "admin";
-
-  if (!isAdmin) return null;
+  const { data: filesResponse, isLoading } = useFiles({ sortBy: "date", sortDirection: "desc", limit: 6 });
+  const recent = filesResponse?.files?.slice(0, 6) ?? [];
 
   return (
-    <Card>
+    <Card className="bg-bg-surface border-border-strong">
       <CardHeader className="pb-3">
-        <CardTitle>Recent transfers</CardTitle>
+        <CardTitle>Recent activity</CardTitle>
         <Link
-          href="/transfers"
+          href="/files"
           className="flex items-center gap-1 text-[12px] text-accent-bright hover:underline"
         >
           View all <ArrowRight className="h-3 w-3" />
@@ -35,23 +28,26 @@ export function RecentTransfersWidget() {
           ? Array.from({ length: 5 }).map((_, i) => (
               <Skeleton key={i} className="m-3 h-12" />
             ))
-          : recent.map((t) => (
+          : recent.length === 0
+            ? <div className="p-6 text-center text-sm text-ink-muted">No recent activity.</div>
+            : recent.map((f) => (
               <Link
-                key={t.id}
-                href={`/transfers/${t.id}`}
+                key={f.id}
+                href={`/files/${f.id}`}
                 className="flex items-center justify-between gap-3 border-t border-border px-4 py-3 text-[13px] transition-colors hover:bg-bg-overlay/60"
               >
-                <div className="min-w-0">
-                  <p className="truncate font-medium text-ink">
-                    {truncateMiddle(t.fileName, 32)}
-                  </p>
-                  <div className="mt-0.5 flex items-center gap-2 text-[11px] text-ink-muted">
-                    <ProviderTag providerId={t.providerId} />
-                    <span>·</span>
-                    <span>{formatRelativeTime(t.updatedAt)}</span>
+                <div className="flex items-center gap-3 min-w-0">
+                  <div
+                    className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md"
+                    style={{ backgroundColor: `${f.thumbnailColor}1A`, color: f.thumbnailColor }}
+                  >
+                    <FileKindIcon kind={f.kind} className="h-4 w-4" />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="truncate font-medium text-ink">{f.name}</p>
+                    <span className="text-[11px] text-ink-muted">{formatBytes(f.sizeBytes)} · {formatRelativeTime(f.uploadedAt)}</span>
                   </div>
                 </div>
-                <TransferStatusBadge status={t.status} />
               </Link>
             ))}
       </div>
