@@ -1,33 +1,26 @@
 import { useQuery } from "@tanstack/react-query";
-import { transferSessions, getTransferById, transferStats } from "@/lib/mock";
 
-const FAKE_LATENCY = 250;
-
-function delay<T>(value: T, ms = FAKE_LATENCY): Promise<T> {
-  return new Promise((resolve) => setTimeout(() => resolve(value), ms));
-}
+// Transfer tracking is not yet implemented in the backend.
+// Return empty arrays so the UI renders empty states instead of fake data.
 
 export function useTransfers() {
-  return useQuery({
+  return useQuery<any[]>({
     queryKey: ["transfers"],
-    queryFn: () => delay(transferSessions),
-    refetchInterval: 4000,
+    queryFn: async () => [],
   });
 }
 
 export function useTransfer(id: string) {
   return useQuery({
     queryKey: ["transfers", id],
-    queryFn: () => delay(getTransferById(id) ?? null),
+    queryFn: async () => null,
     enabled: !!id,
-    refetchInterval: 4000,
   });
 }
 
 export function useTransferStats() {
   return useQuery({
     queryKey: ["transfers", "stats"],
-    queryFn: () => delay(transferStats),
-    refetchInterval: 4000,
+    queryFn: async () => ({ active: 0, completed: 0, failed: 0 }),
   });
 }

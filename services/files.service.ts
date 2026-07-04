@@ -315,6 +315,12 @@ export function useUploadFileMutation() {
       if (file.size > MAX_UPLOAD_LIMIT_BYTES) {
         throw new Error("File exceeds maximum allowed size of 100MB");
       }
+      
+      // Prevent unsupported / executable files
+      const unsupportedExtensions = /\.(exe|bat|sh|dll|com|cmd)$/i;
+      if (unsupportedExtensions.test(file.name)) {
+        throw new Error("Unsupported file type. Executables are not allowed.");
+      }
 
       // 2. Create upload session
       const session = await apiClient("/api/v1/files/upload-session", {

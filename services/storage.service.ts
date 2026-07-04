@@ -1,21 +1,20 @@
 import { useQuery } from "@tanstack/react-query";
-import { storageProviders, getProviderById } from "@/lib/mock";
+import { StorageProvider } from "@/types";
 
-function delay<T>(value: T, ms = 250): Promise<T> {
-  return new Promise((resolve) => setTimeout(() => resolve(value), ms));
-}
+// Storage provider management is not yet implemented in the backend.
+// Return empty arrays so the UI renders empty states instead of fake data.
 
 export function useStorageProviders() {
-  return useQuery({
+  return useQuery<StorageProvider[]>({
     queryKey: ["storage-providers"],
-    queryFn: () => delay(storageProviders),
+    queryFn: async () => [],
   });
 }
 
 export function useStorageProvider(id: string) {
-  return useQuery({
+  return useQuery<StorageProvider | null>({
     queryKey: ["storage-providers", id],
-    queryFn: () => delay(getProviderById(id) ?? null),
+    queryFn: async () => null,
     enabled: !!id,
   });
 }

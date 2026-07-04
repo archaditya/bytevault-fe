@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Box } from "lucide-react";
+import toast from "react-hot-toast";
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -17,22 +18,22 @@ export default function RegisterPage() {
   const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email || !password || !firstName || !lastName) {
-      setError("Please fill in all fields.");
+      toast.error("Please fill in all fields.");
       return;
     }
-    setError(null);
+    
     setLoading(true);
     try {
       await register(email, password, firstName, lastName);
+      toast.success("Account created successfully!");
       router.push("/dashboard");
     } catch (err: any) {
-      setError(err.message || "Registration failed. Try again.");
+      toast.error(err.message || "Registration failed. Try again.");
     } finally {
       setLoading(false);
     }
@@ -49,11 +50,6 @@ export default function RegisterPage() {
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-4">
-          {error && (
-            <div className="rounded-sm border border-danger/20 bg-danger/10 p-3 text-[13px] text-danger animate-fade-up">
-              {error}
-            </div>
-          )}
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
               <Label htmlFor="firstName">First name</Label>
