@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
@@ -13,6 +13,13 @@ export function SecuritySection() {
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [saving, setSaving] = useState(false);
+  const [isGoogleLogin, setIsGoogleLogin] = useState(false);
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      setIsGoogleLogin(localStorage.getItem("login_provider") === "google");
+    }
+  }, []);
 
   const handleChangePassword = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -49,6 +56,22 @@ export function SecuritySection() {
       setSaving(false);
     }
   };
+
+  if (isGoogleLogin) {
+    return (
+      <div className="flex max-w-xl flex-col gap-4">
+        <Card>
+          <CardContent className="pt-6">
+            <h3 className="text-[14px] font-medium text-ink mb-2">Change password</h3>
+            <p className="text-[13px] text-ink-muted leading-relaxed">
+              Your account is authenticated via Google. Password changes are managed through Google.
+              If you wish to set a local password, please log out and use the "Forgot Password" option on the login page.
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="flex max-w-xl flex-col gap-4">

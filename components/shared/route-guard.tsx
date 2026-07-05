@@ -7,7 +7,7 @@ import { useAuthStore } from "@/store";
 export function RouteGuard({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
-  const { isAuthenticated, isLoading, checkSession } = useAuthStore();
+  const { isAuthenticated, isLoading, user, checkSession } = useAuthStore();
 
   useEffect(() => {
     checkSession();
@@ -16,16 +16,34 @@ export function RouteGuard({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (!isLoading) {
       const isLandingPage = pathname === "/";
-      const isAuthPage = pathname.startsWith("/login") || pathname.startsWith("/register");
+      const isAuthPage = pathname.startsWith("/login") || 
+                         pathname.startsWith("/register") || 
+                         pathname.startsWith("/forgot-password") || 
+                         pathname.startsWith("/reset-password") ||
+                         pathname.startsWith("/verify-email");
       const isPublicSharePage = pathname.startsWith("/s/");
       
-      if (!isAuthenticated && !isAuthPage && !isLandingPage && !isPublicSharePage) {
-        router.push("/login");
-      } else if (isAuthenticated && isAuthPage) {
-        router.push("/dashboard");
+      if (!isAuthenticated) {
+        // If not authenticated, restrict access to auth pages, landing page, and public shares only
+        if (!isAuthPage && !isLandingPage && !isPublicSharePage) {
+          router.push("/login");
+        }
+      } else {
+        // If authenticated
+        if (!user?.isVerified) {
+          // If not verified, they must verify their email first (unless they are on the verify page already)
+          if (!pathname.startsWith("/verify-email")) {
+            router.push(`/verify-email?email=${encodeURIComponent(user?.email || "")}`);
+          }
+        } else {
+          // If verified, prevent accessing auth pages (including verify-email) and redirect to dashboard
+          if (isAuthPage) {
+            router.push("/dashboard");
+          }
+        }
       }
     }
-  }, [isAuthenticated, isLoading, pathname, router]);
+  }, [isAuthenticated, isLoading, user, pathname, router]);
 
   if (isLoading) {
     return (

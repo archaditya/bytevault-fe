@@ -8,32 +8,89 @@ interface AuthState {
   isLoading: boolean;
   error: string | null;
   login: (email: string, password: string) => Promise<void>;
-  register: (email: string, password: string, firstName: string, lastName: string) => Promise<void>;
+  register: (
+    email: string,
+    password: string,
+    firstName: string,
+    lastName: string,
+  ) => Promise<void>;
   logout: () => Promise<void>;
   checkSession: () => Promise<void>;
   setUser: (user: User | null) => void;
 }
 
-function mapBackendUserToFrontend(backendUser: any): User {
+export function mapBackendUserToFrontend(backendUser: any): User {
   const firstName = backendUser.first_name || "";
   const lastName = backendUser.last_name || "";
-  const fullName = [firstName, lastName].filter(Boolean).join(" ") || backendUser.email;
-  
-  const initials = [firstName[0], lastName[0]].filter(Boolean).join("").toUpperCase() || 
-                   backendUser.email.slice(0, 2).toUpperCase();
+  const fullName =
+    [firstName, lastName].filter(Boolean).join(" ") || backendUser.email;
+
+  const initials =
+    [firstName[0], lastName[0]].filter(Boolean).join("").toUpperCase() ||
+    backendUser.email.slice(0, 2).toUpperCase();
 
   return {
     id: backendUser.id,
     name: fullName,
     email: backendUser.email,
     avatar: initials,
-    avatarUrl: backendUser.avatar_url,
+    avatarUrl: backendUser.avatar_url
+      ? backendUser.avatar_url.startsWith("http")
+        ? backendUser.avatar_url
+        : `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080"}/api/v1/users/${backendUser.id}/avatar?t=${new Date(backendUser.updated_at || "").getTime()}`
+      : null,
     role: backendUser.role || "user",
     plan: "free",
     joinedAt: backendUser.created_at || new Date().toISOString(),
     apiKeysCount: 0,
     twoFactorEnabled: false,
+    hasPassword: backendUser.has_password,
+    isVerified: backendUser.is_verified,
   };
+}
+
+async function registerPushTokenIfAvailable() {
+  try {
+    if (typeof window === "undefined" || !("Notification" in window)) return;
+
+    // Skip if VAPID key is not configured in .env to prevent browser exceptions
+    const vapidKey = process.env.NEXT_PUBLIC_FIREBASE_VAPID_KEY;
+    if (!vapidKey) {
+      console.warn(
+        "FCM token registration skipped: NEXT_PUBLIC_FIREBASE_VAPID_KEY is not defined in .env",
+      );
+      return;
+    }
+
+    const permission = await Notification.requestPermission();
+    if (permission !== "granted") return;
+
+    // Load Firebase messaging dynamically
+    const { getToken } = await import("firebase/messaging");
+    const { messaging } = await import("../lib/firebase");
+
+    if (!messaging) return;
+
+    // Register Service Worker explicitly for robust token fetching in Next.js
+    const registration = await navigator.serviceWorker.register(
+      "/firebase-messaging-sw.js",
+    );
+
+    const token = await getToken(messaging, {
+      serviceWorkerRegistration: registration,
+      vapidKey: vapidKey,
+    });
+
+    if (token) {
+      await apiClient("/api/v1/push-tokens", {
+        method: "POST",
+        body: JSON.stringify({ token, device_type: "web" }),
+      });
+    }
+  } catch (err) {
+    // Silent fail — FCM is optional, don't block auth flow
+    console.warn("FCM token registration skipped:", err);
+  }
 }
 
 export const useAuthStore = create<AuthState>((set) => ({
@@ -52,8 +109,14 @@ export const useAuthStore = create<AuthState>((set) => ({
         body: JSON.stringify({ email, password }),
       });
       setTokens(data.tokens);
+      if (typeof window !== "undefined") {
+        localStorage.setItem("login_provider", "email");
+      }
       const frontendUser = mapBackendUserToFrontend(data.user);
       set({ user: frontendUser, isAuthenticated: true, isLoading: false });
+
+      // Auto-register FCM push token if available
+      registerPushTokenIfAvailable();
     } catch (err: any) {
       set({ error: err.message || "Login failed", isLoading: false });
       throw err;
@@ -65,11 +128,21 @@ export const useAuthStore = create<AuthState>((set) => ({
     try {
       const data = await apiClient("/api/v1/auth/register", {
         method: "POST",
-        body: JSON.stringify({ email, password, first_name: firstName, last_name: lastName }),
+        body: JSON.stringify({
+          email,
+          password,
+          first_name: firstName,
+          last_name: lastName,
+        }),
       });
       setTokens(data.tokens);
+      if (typeof window !== "undefined") {
+        localStorage.setItem("login_provider", "email");
+      }
       const frontendUser = mapBackendUserToFrontend(data.user);
       set({ user: frontendUser, isAuthenticated: true, isLoading: false });
+
+      registerPushTokenIfAvailable();
     } catch (err: any) {
       set({ error: err.message || "Registration failed", isLoading: false });
       throw err;
@@ -90,6 +163,9 @@ export const useAuthStore = create<AuthState>((set) => ({
       console.error("Logout request failed:", err);
     } finally {
       setTokens(null);
+      if (typeof window !== "undefined") {
+        localStorage.removeItem("login_provider");
+      }
       set({ user: null, isAuthenticated: false, isLoading: false });
       if (typeof window !== "undefined") {
         window.location.href = "/login";
@@ -107,6 +183,7 @@ export const useAuthStore = create<AuthState>((set) => ({
       const data = await apiClient("/api/v1/me");
       const frontendUser = mapBackendUserToFrontend(data.user);
       set({ user: frontendUser, isAuthenticated: true, isLoading: false });
+      registerPushTokenIfAvailable();
     } catch (err) {
       console.error("Session verification failed:", err);
       setTokens(null);

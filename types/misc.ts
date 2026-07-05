@@ -42,6 +42,8 @@ export interface User {
   joinedAt: string;
   apiKeysCount: number;
   twoFactorEnabled: boolean;
+  hasPassword?: boolean;
+  isVerified?: boolean;
 }
 
 export interface ApiKey {
