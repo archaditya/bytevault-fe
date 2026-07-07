@@ -55,12 +55,65 @@ export interface AdminFile {
   updated_at: string;
 }
 
-export function useAdminStats() {
+export interface AdminNotification {
+  id: string;
+  user_id: string;
+  type: string;
+  title: string;
+  body: string;
+  channel: string;
+  is_read: boolean;
+  read_at: string | null;
+  created_at: string;
+}
+
+export function useSendAdminNotificationMutation() {
+  return useMutation({
+    mutationFn: async (params: {
+      target_type: "global" | "role" | "single";
+      user_id?: string;
+      role?: string;
+      title: string;
+      body: string;
+      channels: string[];
+      priority: string;
+    }) => {
+      const qs = new URLSearchParams();
+      qs.set("target_type", params.target_type);
+      if (params.user_id) qs.set("user_id", params.user_id);
+      if (params.role) qs.set("role", params.role);
+      qs.set("title", params.title);
+      qs.set("body", params.body);
+      params.channels.forEach((ch) => qs.append("channels", ch));
+      qs.set("priority", params.priority);
+
+      return apiClient(`/api/v1/notifications/admin/send?${qs.toString()}`, {
+        method: "POST",
+      });
+    },
+  });
+}
+
+export function useAdminNotifications(page = 1, limit = 20) {
+  return useQuery<{ notifications: AdminNotification[]; total: number }>({
+    queryKey: ["admin", "notifications", page, limit],
+    queryFn: async () => {
+      const data = await apiClient(`/api/v1/admin/notifications?offset=${(page - 1) * limit}&limit=${limit}`);
+      return {
+        notifications: data.notifications || [],
+        total: data.total || 0,
+      };
+    },
+  });
+}
+
+export function useAdminStats(options?: { enabled?: boolean }) {
   return useQuery<AdminStats>({
     queryKey: ["admin", "stats"],
     queryFn: async () => {
       return apiClient("/api/v1/admin/stats");
     },
+    ...options,
   });
 }
 

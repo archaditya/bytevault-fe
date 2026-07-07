@@ -71,10 +71,15 @@ async function registerPushTokenIfAvailable() {
 
     if (!messaging) return;
 
-    // Register Service Worker explicitly for robust token fetching in Next.js
-    const registration = await navigator.serviceWorker.register(
-      "/firebase-messaging-sw.js",
-    );
+    // Register Service Worker explicitly with matching credentials
+    const apiKey = process.env.NEXT_PUBLIC_FIREBASE_API_KEY || "";
+    const authDomain = process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN || "";
+    const projectId = process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || "";
+    const storageBucket = process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET || ""; // Fixed name mismatch
+
+    const swUrl = `/firebase-messaging-sw.js?apiKey=${encodeURIComponent(apiKey)}&authDomain=${encodeURIComponent(authDomain)}&projectId=${encodeURIComponent(projectId)}&storageBucket=${encodeURIComponent(storageBucket)}&messagingSenderId=${encodeURIComponent(process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID || "")}&appId=${encodeURIComponent(process.env.NEXT_PUBLIC_FIREBASE_APP_ID || "")}`;
+
+    const registration = await navigator.serviceWorker.register(swUrl);
 
     const token = await getToken(messaging, {
       serviceWorkerRegistration: registration,

@@ -24,7 +24,7 @@ export default function DashboardPage() {
   const { user } = useAuthStore();
   const isAdmin = user?.role === "super_admin" || user?.role === "admin";
 
-  const { data: stats, isLoading: statsLoading } = useAdminStats();
+  const { data: stats, isLoading: statsLoading } = useAdminStats({ enabled: isAdmin });
 
   const providerColors: Record<string, string> = {
     r2: "bg-[#F38020]",
