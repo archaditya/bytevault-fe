@@ -11,6 +11,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Box } from "lucide-react";
 import toast from "react-hot-toast";
 import { apiClient, setTokens } from "@/lib/api-client";
+import { PasswordInput } from "@/components/ui/password-input";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -29,7 +30,7 @@ export default function LoginPage() {
     setLoading(true);
     try {
       await login(email, password);
-      
+
       const currentUser = useAuthStore.getState().user;
       if (currentUser && !currentUser.isVerified) {
         toast.success("Please verify your email address.");
@@ -82,9 +83,8 @@ export default function LoginPage() {
                 Forgot password?
               </Link>
             </div>
-            <Input
+            <PasswordInput
               id="password"
-              type="password"
               placeholder="••••••••"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
@@ -143,7 +143,7 @@ export default function LoginPage() {
 
                 const data = await apiClient("/api/v1/auth/google", {
                   method: "POST",
-                  body: JSON.stringify({ 
+                  body: JSON.stringify({
                     id_token: idToken,
                     first_name: firstName,
                     last_name: lastName,

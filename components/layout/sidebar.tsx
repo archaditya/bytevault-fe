@@ -10,7 +10,11 @@ import {
   Box,
   Shield,
   LogOut,
-  X
+  X,
+  Users,
+  Files,
+  BellRing,
+  ScrollText,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuthStore } from "@/store";
@@ -20,27 +24,38 @@ interface SidebarProps {
   setMobileOpen?: (open: boolean) => void;
 }
 
+const userNavItems = [
+  { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
+  { href: "/files", label: "Files", icon: FolderClosed },
+  { href: "/shared", label: "Shared links", icon: Share2 },
+];
+
+const adminNavItems = [
+  { href: "/admin", label: "Dashboard", icon: LayoutDashboard, exact: true },
+  { href: "/admin/users", label: "Users", icon: Users },
+  { href: "/admin/files", label: "Files", icon: Files },
+  { href: "/admin/shared", label: "Shared Links", icon: Share2 },
+  { href: "/admin/notifications", label: "Notifications", icon: BellRing },
+  { href: "/admin/settings", label: "Settings", icon: Settings },
+  { href: "/admin/audit-logs", label: "Audit Logs", icon: ScrollText },
+];
+
 export function Sidebar({ mobileOpen, setMobileOpen }: SidebarProps) {
   const pathname = usePathname();
   const { user, logout } = useAuthStore();
 
   const isAdmin = user?.role === "super_admin" || user?.role === "admin";
 
-  const activeNavItems = isAdmin
-    ? [
-        { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-        { href: "/files", label: "Files", icon: FolderClosed },
-        { href: "/admin", label: "Admin Console", icon: Shield },
-        { href: "/shared", label: "Shared links", icon: Share2 },
-      ]
-    : [
-        { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-        { href: "/files", label: "Files", icon: FolderClosed },
-        { href: "/shared", label: "Shared links", icon: Share2 },
-      ];
+  const navItems = isAdmin ? adminNavItems : userNavItems;
+  const sectionLabel = isAdmin ? "Administration" : "Workspace";
 
   const handleNavClick = () => {
     if (setMobileOpen) setMobileOpen(false);
+  };
+
+  const isActive = (item: { href: string; exact?: boolean }) => {
+    if (item.exact) return pathname === item.href;
+    return pathname.startsWith(item.href);
   };
 
   return (
@@ -75,10 +90,10 @@ export function Sidebar({ mobileOpen, setMobileOpen }: SidebarProps) {
         </div>
 
         <nav className="flex-1 overflow-y-auto px-3 py-4">
-          <p className="label-eyebrow px-2 pb-2">Workspace</p>
+          <p className="label-eyebrow px-2 pb-2">{sectionLabel}</p>
           <ul className="flex flex-col gap-0.5">
-            {activeNavItems.map((item) => {
-              const isActive = pathname.startsWith(item.href);
+            {navItems.map((item) => {
+              const active = isActive(item);
               const Icon = item.icon;
               return (
                 <li key={item.href}>
@@ -87,7 +102,7 @@ export function Sidebar({ mobileOpen, setMobileOpen }: SidebarProps) {
                     onClick={handleNavClick}
                     className={cn(
                       "flex items-center justify-between gap-2.5 rounded-sm px-2.5 py-1.5 text-[13px] font-medium transition-colors",
-                      isActive
+                      active
                         ? "bg-accent/10 text-accent-bright"
                         : "text-ink-muted hover:bg-bg-overlay hover:text-ink"
                     )}
@@ -104,21 +119,23 @@ export function Sidebar({ mobileOpen, setMobileOpen }: SidebarProps) {
 
           <p className="label-eyebrow px-2 pb-2 pt-6">Account</p>
           <ul className="flex flex-col gap-0.5">
-            <li>
-              <Link
-                href="/settings"
-                onClick={handleNavClick}
-                className={cn(
-                  "flex items-center gap-2.5 rounded-sm px-2.5 py-1.5 text-[13px] font-medium transition-colors",
-                  pathname.startsWith("/settings")
-                    ? "bg-accent/10 text-accent-bright"
-                    : "text-ink-muted hover:bg-bg-overlay hover:text-ink"
-                )}
-              >
-                <Settings className="h-[15px] w-[15px]" strokeWidth={2} />
-                Settings
-              </Link>
-            </li>
+            {!isAdmin && (
+              <li>
+                <Link
+                  href="/settings"
+                  onClick={handleNavClick}
+                  className={cn(
+                    "flex items-center gap-2.5 rounded-sm px-2.5 py-1.5 text-[13px] font-medium transition-colors",
+                    pathname.startsWith("/settings")
+                      ? "bg-accent/10 text-accent-bright"
+                      : "text-ink-muted hover:bg-bg-overlay hover:text-ink"
+                  )}
+                >
+                  <Settings className="h-[15px] w-[15px]" strokeWidth={2} />
+                  Settings
+                </Link>
+              </li>
+            )}
             <li>
               <button
                 onClick={() => logout()}

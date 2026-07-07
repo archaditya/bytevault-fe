@@ -10,6 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Box, ArrowLeft } from "lucide-react";
 import toast from "react-hot-toast";
 import { apiClient } from "@/lib/api-client";
+import { PasswordInput } from "@/components/ui/password-input";
 
 function ResetPasswordForm() {
   const router = useRouter();
@@ -58,7 +59,10 @@ function ResetPasswordForm() {
       toast.success("Password reset successfully! Please sign in.");
       router.push("/login");
     } catch (err: any) {
-      toast.error(err.message || "Failed to reset password. Please verify the code and try again.");
+      toast.error(
+        err.message ||
+          "Failed to reset password. Please verify the code and try again.",
+      );
     } finally {
       setLoading(false);
     }
@@ -74,7 +78,8 @@ function ResetPasswordForm() {
           Choose a new password
         </CardTitle>
         <p className="text-[13px] text-ink-muted text-center max-w-sm">
-          Enter the verification code sent to your email and choose a strong new password.
+          Enter the verification code sent to your email and choose a strong new
+          password.
         </p>
       </CardHeader>
       <CardContent>
@@ -108,9 +113,8 @@ function ResetPasswordForm() {
 
           <div className="space-y-1.5">
             <Label htmlFor="password">New Password</Label>
-            <Input
+            <PasswordInput
               id="password"
-              type="password"
               placeholder="Min. 8 characters"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
@@ -121,9 +125,8 @@ function ResetPasswordForm() {
 
           <div className="space-y-1.5">
             <Label htmlFor="confirmPassword">Confirm Password</Label>
-            <Input
+            <PasswordInput
               id="confirmPassword"
-              type="password"
               placeholder="Confirm new password"
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
@@ -159,11 +162,13 @@ function ResetPasswordForm() {
 
 export default function ResetPasswordPage() {
   return (
-    <Suspense fallback={
-      <Card className="border border-border-strong bg-bg-surface p-8 text-center text-sm text-ink-muted">
-        Loading reset form...
-      </Card>
-    }>
+    <Suspense
+      fallback={
+        <Card className="border border-border-strong bg-bg-surface p-8 text-center text-sm text-ink-muted">
+          Loading reset form...
+        </Card>
+      }
+    >
       <ResetPasswordForm />
     </Suspense>
   );

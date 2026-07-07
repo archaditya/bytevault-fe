@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { Search, Upload, Loader2, Menu, Settings, LogOut, User } from "lucide-react";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -16,6 +16,7 @@ import {
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
 import { useAuthStore } from "@/store";
+import { useFilesStore } from "@/store";
 import { useUploadFileMutation } from "@/services";
 import { UploadModal } from "@/components/shared/upload-modal";
 
@@ -32,11 +33,25 @@ const titleMap: Record<string, string> = {
 
 export function Navbar({ onMenuClick }: { onMenuClick?: () => void }) {
   const pathname = usePathname();
+  const router = useRouter();
   const { user, logout } = useAuthStore();
+  const { setSearchQuery } = useFilesStore();
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
+  const [globalSearch, setGlobalSearch] = useState("");
   const uploadMutation = useUploadFileMutation();
 
-  const title = titleMap[pathname] || "Admin Console";
+  const title = titleMap[pathname] || (pathname.startsWith("/admin") ? "Admin Console" : "ByteVault");
+  const isAdmin = user?.role === "super_admin" || user?.role === "admin";
+
+  const handleGlobalSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    const trimmed = globalSearch.trim();
+    if (!trimmed) return;
+    setSearchQuery(trimmed);
+    if (pathname !== "/files") {
+      router.push("/files");
+    }
+  };
 
   return (
     <header className="sticky top-0 z-30 flex h-14 items-center justify-between border-b border-border bg-bg-surface px-4 md:px-6">
@@ -51,38 +66,53 @@ export function Navbar({ onMenuClick }: { onMenuClick?: () => void }) {
         <h1 className="text-[14px] font-semibold text-ink">{title}</h1>
       </div>
 
+      {/* Global Search Bar */}
+      <form onSubmit={handleGlobalSearch} className="hidden sm:flex relative max-w-xs flex-1 mx-4">
+        <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-ink-faint" />
+        <Input
+          placeholder="Search files..."
+          className="pl-8 h-8 text-[13px]"
+          value={globalSearch}
+          onChange={(e) => setGlobalSearch(e.target.value)}
+        />
+      </form>
+
       <div className="flex items-center gap-2">
         {/* Desktop upload button */}
-        <Button
-          size="sm"
-          variant="primary"
-          className="hidden sm:flex gap-1.5 items-center"
-          onClick={() => setIsUploadModalOpen(true)}
-          disabled={uploadMutation.isPending}
-        >
-          {uploadMutation.isPending ? (
-            <Loader2 className="h-3.5 w-3.5 animate-spin" />
-          ) : (
-            <Upload className="h-3.5 w-3.5" />
-          )}
-          Upload File
-        </Button>
+        {!isAdmin && (
+          <Button
+            size="sm"
+            variant="primary"
+            className="hidden sm:flex gap-1.5 items-center"
+            onClick={() => setIsUploadModalOpen(true)}
+            disabled={uploadMutation.isPending}
+          >
+            {uploadMutation.isPending ? (
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+            ) : (
+              <Upload className="h-3.5 w-3.5" />
+            )}
+            Upload File
+          </Button>
+        )}
 
         {/* Mobile upload button */}
-        <Button
-          size="icon"
-          variant="primary"
-          className="sm:hidden"
-          onClick={() => setIsUploadModalOpen(true)}
-          disabled={uploadMutation.isPending}
-          aria-label="Upload file"
-        >
-          {uploadMutation.isPending ? (
-            <Loader2 className="h-4 w-4 animate-spin" />
-          ) : (
-            <Upload className="h-4 w-4" />
-          )}
-        </Button>
+        {!isAdmin && (
+          <Button
+            size="icon"
+            variant="primary"
+            className="sm:hidden"
+            onClick={() => setIsUploadModalOpen(true)}
+            disabled={uploadMutation.isPending}
+            aria-label="Upload file"
+          >
+            {uploadMutation.isPending ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Upload className="h-4 w-4" />
+            )}
+          </Button>
+        )}
 
         {/* Dynamic Notification Bell */}
         <NotificationBell />
@@ -124,10 +154,12 @@ export function Navbar({ onMenuClick }: { onMenuClick?: () => void }) {
         </DropdownMenu>
       </div>
 
-      <UploadModal 
-        open={isUploadModalOpen} 
-        onOpenChange={() => setIsUploadModalOpen(false)} 
-      />
+      {!isAdmin && (
+        <UploadModal 
+          open={isUploadModalOpen} 
+          onOpenChange={() => setIsUploadModalOpen(false)} 
+        />
+      )}
     </header>
   );
 }
