@@ -117,11 +117,25 @@ export function useAdminStats(options?: { enabled?: boolean }) {
   });
 }
 
-export function useAdminUsers(page = 1, limit = 10) {
+export function useAdminUsers(params: {
+  page?: number;
+  limit?: number;
+  search?: string;
+  status?: string;
+  role?: string;
+}) {
+  const page = params.page || 1;
+  const limit = params.limit || 10;
   return useQuery<{ users: AdminUser[]; total: number }>({
-    queryKey: ["admin", "users", page, limit],
+    queryKey: ["admin", "users", params],
     queryFn: async () => {
-      const data = await apiClient(`/api/v1/admin/users?page=${page}&limit=${limit}`);
+      const queryParts = [`page=${page}`, `limit=${limit}`];
+      if (params.search) queryParts.push(`q=${encodeURIComponent(params.search)}`);
+      if (params.status) queryParts.push(`status=${encodeURIComponent(params.status)}`);
+      if (params.role) queryParts.push(`role=${encodeURIComponent(params.role)}`);
+      const queryString = queryParts.join("&");
+
+      const data = await apiClient(`/api/v1/admin/users?${queryString}`);
       return {
         users: data.users || [],
         total: data.pagination?.total || 0,
@@ -208,9 +222,13 @@ export function useAdminActivity(page = 1, limit = 20) {
   });
 }
 
-export function useAdminFiles(page = 1, limit = 20) {
-  return useQuery<{ files: AdminFile[]; total: number }>({
-    queryKey: ["admin", "files", page, limit],
+export function useAdminFiles(params: {
+  search?: string;
+  cursor?: string;
+  limit?: number;
+}) {
+  return useQuery<{ files: AdminFile[]; next_cursor?: string }>({
+    queryKey: ["admin", "files", params],
     queryFn: async () => {
       const token = getAccessToken();
       const headers: Record<string, string> = {
@@ -219,22 +237,32 @@ export function useAdminFiles(page = 1, limit = 20) {
       if (token) {
         headers["Authorization"] = `Bearer ${token}`;
       }
-      const res = await fetch(`/api/v1/admin/files?page=${page}&limit=${limit}`, { headers });
+      const queryParts = [];
+      if (params.search) queryParts.push(`q=${encodeURIComponent(params.search)}`);
+      if (params.cursor) queryParts.push(`cursor=${params.cursor}`);
+      if (params.limit) queryParts.push(`limit=${params.limit}`);
+      const queryString = queryParts.length > 0 ? `?${queryParts.join("&")}` : "";
+
+      const res = await fetch(`/api/v1/admin/files${queryString}`, { headers });
       if (!res.ok) {
         throw new Error(`HTTP error! status: ${res.status}`);
       }
       const json = await res.json();
       return {
         files: json.data?.files || [],
-        total: json.pagination?.total || 0,
+        next_cursor: json.pagination?.next_cursor || undefined,
       };
     },
   });
 }
 
-export function useAdminSharedFiles(page = 1, limit = 20) {
-  return useQuery<{ files: AdminFile[]; total: number }>({
-    queryKey: ["admin", "files", "shared", page, limit],
+export function useAdminSharedFiles(params: {
+  search?: string;
+  cursor?: string;
+  limit?: number;
+}) {
+  return useQuery<{ files: AdminFile[]; next_cursor?: string }>({
+    queryKey: ["admin", "files", "shared", params],
     queryFn: async () => {
       const token = getAccessToken();
       const headers: Record<string, string> = {
@@ -243,14 +271,20 @@ export function useAdminSharedFiles(page = 1, limit = 20) {
       if (token) {
         headers["Authorization"] = `Bearer ${token}`;
       }
-      const res = await fetch(`/api/v1/admin/files/shared?page=${page}&limit=${limit}`, { headers });
+      const queryParts = [];
+      if (params.search) queryParts.push(`q=${encodeURIComponent(params.search)}`);
+      if (params.cursor) queryParts.push(`cursor=${params.cursor}`);
+      if (params.limit) queryParts.push(`limit=${params.limit}`);
+      const queryString = queryParts.length > 0 ? `?${queryParts.join("&")}` : "";
+
+      const res = await fetch(`/api/v1/admin/files/shared${queryString}`, { headers });
       if (!res.ok) {
         throw new Error(`HTTP error! status: ${res.status}`);
       }
       const json = await res.json();
       return {
         files: json.data?.files || [],
-        total: json.pagination?.total || 0,
+        next_cursor: json.pagination?.next_cursor || undefined,
       };
     },
   });
