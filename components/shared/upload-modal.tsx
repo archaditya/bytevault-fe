@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useMemo } from "react";
+import { useState, useRef, useMemo, useEffect, useCallback } from "react";
 import {
   Folder,
   FolderOpen,
@@ -146,6 +146,9 @@ export function UploadModal({ open, onOpenChange }: UploadModalProps) {
   const [queue, setQueue] = useState<QueuedFile[]>([]);
   const [isDragging, setIsDragging] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
+  const [isWindowDragging, setIsWindowDragging] = useState(false);
+
+  const dragCounter = useRef(0);
 
   const folderTree = useMemo(() => {
     if (!allFolders) return [];
@@ -179,19 +182,29 @@ export function UploadModal({ open, onOpenChange }: UploadModalProps) {
     }
   };
 
-  const handleDragOver = (e: React.DragEvent) => {
+  const handleDragEnter = (e: React.DragEvent) => {
     e.preventDefault();
+    e.stopPropagation();
     setIsDragging(true);
   };
 
-  const handleDragLeave = () => {
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
     setIsDragging(false);
   };
 
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
+    e.stopPropagation();
     setIsDragging(false);
-    if (e.dataTransfer.files) {
+    if (e.dataTransfer && e.dataTransfer.files) {
       addFilesToQueue(Array.from(e.dataTransfer.files));
     }
   };
@@ -206,7 +219,7 @@ export function UploadModal({ open, onOpenChange }: UploadModalProps) {
     }
   };
 
-  const addFilesToQueue = (files: File[]) => {
+  const addFilesToQueue = useCallback((files: File[]) => {
     const validFiles: QueuedFile[] = [];
     let oversizedCount = 0;
 
@@ -227,7 +240,61 @@ export function UploadModal({ open, onOpenChange }: UploadModalProps) {
     }
 
     setQueue((prev) => [...prev, ...validFiles]);
-  };
+  }, []);
+
+  // Global window drag and drop listener
+  useEffect(() => {
+    const handleWindowDragEnter = (e: DragEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+
+      if (e.dataTransfer && e.dataTransfer.types.includes("Files")) {
+        dragCounter.current++;
+        setIsWindowDragging(true);
+      }
+    };
+
+    const handleWindowDragLeave = (e: DragEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+
+      if (e.dataTransfer && e.dataTransfer.types.includes("Files")) {
+        dragCounter.current--;
+        if (dragCounter.current === 0) {
+          setIsWindowDragging(false);
+        }
+      }
+    };
+
+    const handleWindowDragOver = (e: DragEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+    };
+
+    const handleWindowDrop = (e: DragEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      setIsWindowDragging(false);
+      dragCounter.current = 0;
+
+      if (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+        onOpenChange(true);
+        addFilesToQueue(Array.from(e.dataTransfer.files));
+      }
+    };
+
+    window.addEventListener("dragenter", handleWindowDragEnter);
+    window.addEventListener("dragleave", handleWindowDragLeave);
+    window.addEventListener("dragover", handleWindowDragOver);
+    window.addEventListener("drop", handleWindowDrop);
+
+    return () => {
+      window.removeEventListener("dragenter", handleWindowDragEnter);
+      window.removeEventListener("dragleave", handleWindowDragLeave);
+      window.removeEventListener("dragover", handleWindowDragOver);
+      window.removeEventListener("drop", handleWindowDrop);
+    };
+  }, [onOpenChange, addFilesToQueue]);
 
   const removeFileFromQueue = (id: string) => {
     setQueue((prev) => prev.filter((item) => item.id !== id));
@@ -283,7 +350,8 @@ export function UploadModal({ open, onOpenChange }: UploadModalProps) {
   };
 
   return (
-    <Dialog open={open} onOpenChange={handleOpenChange}>
+    <>
+      <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="sm:max-w-lg bg-bg-surface border-border-strong text-ink font-sans flex flex-col max-h-[90vh]">
         <DialogHeader>
           <DialogTitle>Upload Files</DialogTitle>
@@ -396,6 +464,7 @@ export function UploadModal({ open, onOpenChange }: UploadModalProps) {
 
           {/* Drag & Drop Area */}
           <div
+            onDragEnter={handleDragEnter}
             onDragOver={handleDragOver}
             onDragLeave={handleDragLeave}
             onDrop={handleDrop}
@@ -494,5 +563,22 @@ export function UploadModal({ open, onOpenChange }: UploadModalProps) {
         </div>
       </DialogContent>
     </Dialog>
-  );
+
+    {isWindowDragging && (
+      <div className="fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-bg-surface/85 backdrop-blur-md border-4 border-dashed border-accent m-4 rounded-xl transition-all duration-300 animate-in fade-in pointer-events-none">
+        <div className="flex flex-col items-center justify-center p-8 text-center max-w-md">
+          <div className="h-16 w-16 rounded-full bg-accent/10 flex items-center justify-center mb-6 text-accent animate-bounce">
+            <Upload className="h-8 w-8" />
+          </div>
+          <h2 className="text-2xl font-bold tracking-tight text-ink mb-2">
+            Drop files to upload to ByteVault
+          </h2>
+          <p className="text-sm text-ink-muted">
+            You can drop your files anywhere on the screen. Supports files up to 100MB.
+          </p>
+        </div>
+      </div>
+    )}
+  </>
+);
 }

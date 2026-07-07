@@ -117,11 +117,25 @@ export function useAdminStats(options?: { enabled?: boolean }) {
   });
 }
 
-export function useAdminUsers(page = 1, limit = 10) {
+export function useAdminUsers(params: {
+  page?: number;
+  limit?: number;
+  search?: string;
+  status?: string;
+  role?: string;
+}) {
+  const page = params.page || 1;
+  const limit = params.limit || 10;
   return useQuery<{ users: AdminUser[]; total: number }>({
-    queryKey: ["admin", "users", page, limit],
+    queryKey: ["admin", "users", params],
     queryFn: async () => {
-      const data = await apiClient(`/api/v1/admin/users?page=${page}&limit=${limit}`);
+      const queryParts = [`page=${page}`, `limit=${limit}`];
+      if (params.search) queryParts.push(`q=${encodeURIComponent(params.search)}`);
+      if (params.status) queryParts.push(`status=${encodeURIComponent(params.status)}`);
+      if (params.role) queryParts.push(`role=${encodeURIComponent(params.role)}`);
+      const queryString = queryParts.join("&");
+
+      const data = await apiClient(`/api/v1/admin/users?${queryString}`);
       return {
         users: data.users || [],
         total: data.pagination?.total || 0,

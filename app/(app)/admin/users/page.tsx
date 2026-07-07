@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuthStore } from "@/store";
 import {
   useAdminUsers,
@@ -28,6 +28,19 @@ import {
 export default function AdminUsersPage() {
   const { user: currentUser } = useAuthStore();
   const [usersPage, setUsersPage] = useState(1);
+  const [search, setSearch] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState("");
+  const [roleFilter, setRoleFilter] = useState("");
+
+  // Debounce search query to prevent DB query storm
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedSearch(search);
+      setUsersPage(1);
+    }, 450);
+    return () => clearTimeout(handler);
+  }, [search]);
 
   // Modal control state
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
@@ -47,7 +60,13 @@ export default function AdminUsersPage() {
 
   const isAdmin = currentUser?.role === "super_admin" || currentUser?.role === "admin";
 
-  const { data: usersData, isLoading: usersLoading } = useAdminUsers(usersPage, 10);
+  const { data: usersData, isLoading: usersLoading } = useAdminUsers({
+    page: usersPage,
+    limit: 10,
+    search: debouncedSearch,
+    status: statusFilter,
+    role: roleFilter,
+  });
   const { data: detailsData, isLoading: detailsLoading } = useAdminUser(selectedUserId || "");
   const { data: roles = [] } = useRoles();
   const updateUserMutation = useUpdateUserMutation();
@@ -121,8 +140,42 @@ export default function AdminUsersPage() {
       </div>
 
       <Card className="bg-bg-surface border-border-strong">
-        <CardHeader>
+        <CardHeader className="pb-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <CardTitle className="text-sm font-semibold font-sans">Registered Users</CardTitle>
+          <div className="flex flex-wrap items-center gap-2">
+            <Input
+              placeholder="Search by name or email..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="max-w-xs h-8 text-[13px]"
+            />
+            <select
+              value={roleFilter}
+              onChange={(e) => {
+                setRoleFilter(e.target.value);
+                setUsersPage(1);
+              }}
+              className="h-8 rounded-md border border-border bg-bg-raised px-2.5 text-[13px] text-ink outline-none focus:border-accent"
+            >
+              <option value="">All Roles</option>
+              <option value="super_admin">Super Admin</option>
+              <option value="admin">Admin</option>
+              <option value="user">User</option>
+            </select>
+            <select
+              value={statusFilter}
+              onChange={(e) => {
+                setStatusFilter(e.target.value);
+                setUsersPage(1);
+              }}
+              className="h-8 rounded-md border border-border bg-bg-raised px-2.5 text-[13px] text-ink outline-none focus:border-accent"
+            >
+              <option value="">All Statuses</option>
+              <option value="active">Active</option>
+              <option value="suspended">Suspended</option>
+              <option value="inactive">Inactive</option>
+            </select>
+          </div>
         </CardHeader>
         <CardContent className="p-0">
           {usersLoading ? (
