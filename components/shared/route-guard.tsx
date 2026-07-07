@@ -1,51 +1,64 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { useAuthStore } from "@/store";
+
+function isPublicPath(pathname: string): boolean {
+  return (
+    pathname === "/" ||
+    pathname.startsWith("/login") ||
+    pathname.startsWith("/register") ||
+    pathname.startsWith("/forgot-password") ||
+    pathname.startsWith("/reset-password") ||
+    pathname.startsWith("/verify-email") ||
+    pathname.startsWith("/s/")
+  );
+}
 
 export function RouteGuard({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
-  const { isAuthenticated, isLoading, user, checkSession } = useAuthStore();
+  const { isAuthenticated, user, checkSession } = useAuthStore();
+  const [sessionChecked, setSessionChecked] = useState(false);
 
   useEffect(() => {
-    checkSession();
+    checkSession().finally(() => setSessionChecked(true));
   }, [checkSession]);
 
   useEffect(() => {
-    if (!isLoading) {
-      const isLandingPage = pathname === "/";
-      const isAuthPage = pathname.startsWith("/login") || 
-                         pathname.startsWith("/register") || 
-                         pathname.startsWith("/forgot-password") || 
-                         pathname.startsWith("/reset-password") ||
-                         pathname.startsWith("/verify-email");
-      const isPublicSharePage = pathname.startsWith("/s/");
-      
-      if (!isAuthenticated) {
-        // If not authenticated, restrict access to auth pages, landing page, and public shares only
-        if (!isAuthPage && !isLandingPage && !isPublicSharePage) {
-          router.push("/login");
-        }
-      } else {
-        // If authenticated
-        if (!user?.isVerified) {
-          // If not verified, they must verify their email first (unless they are on the verify page already)
-          if (!pathname.startsWith("/verify-email")) {
-            router.push(`/verify-email?email=${encodeURIComponent(user?.email || "")}`);
-          }
-        } else {
-          // If verified, prevent accessing auth pages (including verify-email) and redirect to dashboard
-          if (isAuthPage) {
-            router.push("/dashboard");
-          }
-        }
+    if (!sessionChecked) return;
+
+    const isAuthPage =
+      pathname.startsWith("/login") ||
+      pathname.startsWith("/register") ||
+      pathname.startsWith("/forgot-password") ||
+      pathname.startsWith("/reset-password") ||
+      pathname.startsWith("/verify-email");
+
+    if (!isAuthenticated) {
+      if (!isPublicPath(pathname)) {
+        router.push("/login");
+      }
+    } else {
+      // Verified user hitting any auth page → dashboard
+      if (isAuthPage && !pathname.startsWith("/verify-email")) {
+        router.push("/dashboard");
+      }
+      // Verified user on verify-email → dashboard
+      if (pathname.startsWith("/verify-email") && user?.isVerified) {
+        router.push("/dashboard");
       }
     }
-  }, [isAuthenticated, isLoading, user, pathname, router]);
+  }, [isAuthenticated, sessionChecked, user, pathname, router]);
 
-  if (isLoading) {
+  // Public pages render immediately — no spinner
+  if (!sessionChecked && isPublicPath(pathname)) {
+    return <>{children}</>;
+  }
+
+  // Protected pages wait for session check
+  if (!sessionChecked) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-bg">
         <div className="flex flex-col items-center gap-2">

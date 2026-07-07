@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { apiClient } from "@/lib/api-client";
+import { apiClient, getAccessToken } from "@/lib/api-client";
 
 export interface AdminStats {
   total_users: number;
@@ -38,6 +38,21 @@ export interface AdminActivityLog {
   ip_address: string | null;
   user_agent: string | null;
   created_at: string;
+}
+
+export interface AdminFile {
+  id: string;
+  user_id: string;
+  filename: string;
+  storage_provider: string;
+  bucket: string;
+  storage_key: string;
+  file_size: string | number;
+  content_type: string;
+  is_public: boolean;
+  status: string;
+  created_at: string;
+  updated_at: string;
 }
 
 export function useAdminStats() {
@@ -135,6 +150,54 @@ export function useAdminActivity(page = 1, limit = 20) {
       return {
         logs: data.logs || [],
         total: data.pagination?.total || 0,
+      };
+    },
+  });
+}
+
+export function useAdminFiles(page = 1, limit = 20) {
+  return useQuery<{ files: AdminFile[]; total: number }>({
+    queryKey: ["admin", "files", page, limit],
+    queryFn: async () => {
+      const token = getAccessToken();
+      const headers: Record<string, string> = {
+        "Content-Type": "application/json",
+      };
+      if (token) {
+        headers["Authorization"] = `Bearer ${token}`;
+      }
+      const res = await fetch(`/api/v1/admin/files?page=${page}&limit=${limit}`, { headers });
+      if (!res.ok) {
+        throw new Error(`HTTP error! status: ${res.status}`);
+      }
+      const json = await res.json();
+      return {
+        files: json.data?.files || [],
+        total: json.pagination?.total || 0,
+      };
+    },
+  });
+}
+
+export function useAdminSharedFiles(page = 1, limit = 20) {
+  return useQuery<{ files: AdminFile[]; total: number }>({
+    queryKey: ["admin", "files", "shared", page, limit],
+    queryFn: async () => {
+      const token = getAccessToken();
+      const headers: Record<string, string> = {
+        "Content-Type": "application/json",
+      };
+      if (token) {
+        headers["Authorization"] = `Bearer ${token}`;
+      }
+      const res = await fetch(`/api/v1/admin/files/shared?page=${page}&limit=${limit}`, { headers });
+      if (!res.ok) {
+        throw new Error(`HTTP error! status: ${res.status}`);
+      }
+      const json = await res.json();
+      return {
+        files: json.data?.files || [],
+        total: json.pagination?.total || 0,
       };
     },
   });
