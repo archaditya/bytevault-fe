@@ -84,13 +84,31 @@ export async function apiClient(path: string, options: RequestInit = {}): Promis
   if (response.status === 401 && refreshToken) {
     if (!isRefreshing) {
       isRefreshing = true;
-      const newToken = await runTokenRefresh();
-      isRefreshing = false;
-      if (newToken) {
-        onRefreshed(newToken);
+      try {
+        const newToken = await runTokenRefresh();
+        isRefreshing = false;
+        if (newToken) {
+          onRefreshed(newToken);
+          // Directly retry this primary request with the fresh token
+          headers.set("Authorization", `Bearer ${newToken}`);
+          const retryResponse = await fetch(path, { ...options, headers });
+          if (!retryResponse.ok) {
+            const errorData = await retryResponse.json().catch(() => ({}));
+            const message = errorData.detail || errorData.message || errorData.error || `HTTP error! status: ${retryResponse.status}`;
+            throw new Error(message);
+          }
+          const json = await retryResponse.json();
+          return json && json.status === "success" ? json.data : json;
+        } else {
+          throw new Error("Token refresh failed");
+        }
+      } catch (refreshErr) {
+        isRefreshing = false;
+        throw refreshErr;
       }
     }
 
+    // Concurrent API requests wait for the active refresh lock to resolve
     return new Promise((resolve, reject) => {
       subscribeTokenRefresh((newToken) => {
         headers.set("Authorization", `Bearer ${newToken}`);

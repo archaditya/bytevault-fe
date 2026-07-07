@@ -1,12 +1,13 @@
 "use client";
 
 import { useState } from "react";
-import { Search, Upload, Bell, Loader2, Menu, Settings, LogOut, User } from "lucide-react";
+import { Search, Upload, Loader2, Menu, Settings, LogOut, User } from "lucide-react";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import { NotificationBell } from "@/components/shared/notification-bell";
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -29,45 +30,33 @@ const titleMap: Record<string, string> = {
   "/profile": "Profile",
 };
 
-interface NavbarProps {
-  onMenuClick?: () => void;
-}
-
-export function Navbar({ onMenuClick }: NavbarProps) {
-  const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
-  const uploadMutation = useUploadFileMutation();
+export function Navbar({ onMenuClick }: { onMenuClick?: () => void }) {
   const pathname = usePathname();
   const { user, logout } = useAuthStore();
+  const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
+  const uploadMutation = useUploadFileMutation();
 
-  const title =
-    Object.entries(titleMap).find(([path]) => pathname.startsWith(path))?.[1] ?? "ByteVault";
+  const title = titleMap[pathname] || "Admin Console";
 
   return (
-    <header className="sticky top-0 z-30 flex h-14 items-center gap-4 border-b border-border bg-bg/95 px-4 backdrop-blur-sm md:px-6">
-      <UploadModal open={isUploadModalOpen} onOpenChange={setIsUploadModalOpen} />
-      
-      {/* Mobile Menu Toggle */}
-      <div className="flex items-center md:hidden">
-        <Button size="icon" variant="ghost" onClick={onMenuClick} aria-label="Open Menu">
+    <header className="sticky top-0 z-30 flex h-14 items-center justify-between border-b border-border bg-bg-surface px-4 md:px-6">
+      <div className="flex items-center gap-3">
+        <button 
+          onClick={onMenuClick}
+          className="md:hidden text-ink-muted hover:text-ink transition-colors"
+          aria-label="Toggle Navigation menu"
+        >
           <Menu className="h-5 w-5" />
-        </Button>
+        </button>
+        <h1 className="text-[14px] font-semibold text-ink">{title}</h1>
       </div>
 
-      <h1 className="text-[15px] font-semibold text-ink whitespace-nowrap">{title}</h1>
-
-      <div className="hidden flex-1 items-center lg:flex">
-        <div className="relative w-full max-w-xs">
-          <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-ink-faint" />
-          <Input placeholder="Search files, transfers..." className="pl-8 bg-bg-surface" />
-        </div>
-      </div>
-
-      <div className="ml-auto flex items-center gap-2">
+      <div className="flex items-center gap-2">
         {/* Desktop upload button */}
         <Button
           size="sm"
           variant="primary"
-          className="hidden sm:inline-flex"
+          className="hidden sm:flex gap-1.5 items-center"
           onClick={() => setIsUploadModalOpen(true)}
           disabled={uploadMutation.isPending}
         >
@@ -76,10 +65,10 @@ export function Navbar({ onMenuClick }: NavbarProps) {
           ) : (
             <Upload className="h-3.5 w-3.5" />
           )}
-          {uploadMutation.isPending ? "Uploading..." : "Upload"}
+          Upload File
         </Button>
 
-        {/* Mobile upload button — visible only on small screens */}
+        {/* Mobile upload button */}
         <Button
           size="icon"
           variant="primary"
@@ -95,9 +84,8 @@ export function Navbar({ onMenuClick }: NavbarProps) {
           )}
         </Button>
 
-        <Button size="icon" variant="ghost" aria-label="Notifications">
-          <Bell className="h-4 w-4" />
-        </Button>
+        {/* Dynamic Notification Bell */}
+        <NotificationBell />
 
         {/* Profile dropdown */}
         <DropdownMenu>
@@ -109,31 +97,37 @@ export function Navbar({ onMenuClick }: NavbarProps) {
               </Avatar>
             </button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-48 bg-bg-surface border-border-strong">
-            <div className="px-3 py-2 border-b border-border">
-              <p className="text-sm font-medium text-ink truncate">{user?.name || "User"}</p>
-              <p className="text-xs text-ink-muted truncate">{user?.email || ""}</p>
+          <DropdownMenuContent align="end" className="w-56 bg-bg-surface border-border-strong text-ink">
+            <div className="px-2 py-1.5">
+              <p className="text-[13px] font-semibold text-ink">{user?.name}</p>
+              <p className="text-[11px] text-ink-muted truncate">{user?.email}</p>
             </div>
-            <DropdownMenuItem asChild className="cursor-pointer hover:bg-bg-overlay">
-              <Link href="/settings" className="flex items-center gap-2">
-                <User className="h-3.5 w-3.5" /> Profile
+            <DropdownMenuSeparator />
+            <DropdownMenuItem asChild>
+              <Link href="/profile" className="flex w-full items-center gap-2 text-[13px]">
+                <User className="h-4 w-4 text-ink-muted" /> Profile settings
               </Link>
             </DropdownMenuItem>
-            <DropdownMenuItem asChild className="cursor-pointer hover:bg-bg-overlay">
-              <Link href="/settings" className="flex items-center gap-2">
-                <Settings className="h-3.5 w-3.5" /> Settings
+            <DropdownMenuItem asChild>
+              <Link href="/settings" className="flex w-full items-center gap-2 text-[13px]">
+                <Settings className="h-4 w-4 text-ink-muted" /> System Settings
               </Link>
             </DropdownMenuItem>
-            <DropdownMenuSeparator className="bg-border" />
-            <DropdownMenuItem
+            <DropdownMenuSeparator />
+            <DropdownMenuItem 
               onClick={() => logout()}
-              className="cursor-pointer text-danger hover:bg-danger/10 flex items-center gap-2"
+              className="text-danger focus:bg-danger/10 focus:text-danger flex items-center gap-2 text-[13px] cursor-pointer"
             >
-              <LogOut className="h-3.5 w-3.5" /> Logout
+              <LogOut className="h-4 w-4" /> Log out
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
+
+      <UploadModal 
+        open={isUploadModalOpen} 
+        onOpenChange={() => setIsUploadModalOpen(false)} 
+      />
     </header>
   );
 }

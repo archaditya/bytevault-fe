@@ -26,12 +26,14 @@ export default function RegisterPage() {
       toast.error("Please fill in all fields.");
       return;
     }
-    
+
     setLoading(true);
     try {
       await register(email, password, firstName, lastName);
-      toast.success("Account created successfully!");
-      router.push("/dashboard");
+      toast.success(
+        "Account created! Please check your email for the verification code.",
+      );
+      router.push(`/verify-email?email=${encodeURIComponent(email)}`);
     } catch (err: any) {
       toast.error(err.message || "Registration failed. Try again.");
     } finally {
@@ -45,8 +47,12 @@ export default function RegisterPage() {
         <div className="flex h-10 w-10 items-center justify-center rounded-sm bg-accent mb-2">
           <Box className="h-6 w-6 text-white" />
         </div>
-        <CardTitle className="text-xl font-bold tracking-tight text-ink">Create an account</CardTitle>
-        <p className="text-[13px] text-ink-muted">Get started with secure cloud storage</p>
+        <CardTitle className="text-xl font-bold tracking-tight text-ink">
+          Create an account
+        </CardTitle>
+        <p className="text-[13px] text-ink-muted">
+          Get started with secure cloud storage
+        </p>
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -110,7 +116,10 @@ export default function RegisterPage() {
         </form>
         <div className="mt-4 text-center text-[12px] text-ink-muted">
           Already have an account?{" "}
-          <Link href="/login" className="text-accent hover:underline hover:text-accent-bright">
+          <Link
+            href="/login"
+            className="text-accent hover:underline hover:text-accent-bright"
+          >
             Sign in
           </Link>
         </div>

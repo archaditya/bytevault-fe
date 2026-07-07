@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { apiClient } from "@/lib/api-client";
+import { apiClient, getAccessToken } from "@/lib/api-client";
 
 export interface AdminStats {
   total_users: number;
@@ -40,12 +40,80 @@ export interface AdminActivityLog {
   created_at: string;
 }
 
-export function useAdminStats() {
+export interface AdminFile {
+  id: string;
+  user_id: string;
+  filename: string;
+  storage_provider: string;
+  bucket: string;
+  storage_key: string;
+  file_size: string | number;
+  content_type: string;
+  is_public: boolean;
+  status: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface AdminNotification {
+  id: string;
+  user_id: string;
+  type: string;
+  title: string;
+  body: string;
+  channel: string;
+  is_read: boolean;
+  read_at: string | null;
+  created_at: string;
+}
+
+export function useSendAdminNotificationMutation() {
+  return useMutation({
+    mutationFn: async (params: {
+      target_type: "global" | "role" | "single";
+      user_id?: string;
+      role?: string;
+      title: string;
+      body: string;
+      channels: string[];
+      priority: string;
+    }) => {
+      const qs = new URLSearchParams();
+      qs.set("target_type", params.target_type);
+      if (params.user_id) qs.set("user_id", params.user_id);
+      if (params.role) qs.set("role", params.role);
+      qs.set("title", params.title);
+      qs.set("body", params.body);
+      params.channels.forEach((ch) => qs.append("channels", ch));
+      qs.set("priority", params.priority);
+
+      return apiClient(`/api/v1/notifications/admin/send?${qs.toString()}`, {
+        method: "POST",
+      });
+    },
+  });
+}
+
+export function useAdminNotifications(page = 1, limit = 20) {
+  return useQuery<{ notifications: AdminNotification[]; total: number }>({
+    queryKey: ["admin", "notifications", page, limit],
+    queryFn: async () => {
+      const data = await apiClient(`/api/v1/admin/notifications?offset=${(page - 1) * limit}&limit=${limit}`);
+      return {
+        notifications: data.notifications || [],
+        total: data.total || 0,
+      };
+    },
+  });
+}
+
+export function useAdminStats(options?: { enabled?: boolean }) {
   return useQuery<AdminStats>({
     queryKey: ["admin", "stats"],
     queryFn: async () => {
       return apiClient("/api/v1/admin/stats");
     },
+    ...options,
   });
 }
 
@@ -135,6 +203,54 @@ export function useAdminActivity(page = 1, limit = 20) {
       return {
         logs: data.logs || [],
         total: data.pagination?.total || 0,
+      };
+    },
+  });
+}
+
+export function useAdminFiles(page = 1, limit = 20) {
+  return useQuery<{ files: AdminFile[]; total: number }>({
+    queryKey: ["admin", "files", page, limit],
+    queryFn: async () => {
+      const token = getAccessToken();
+      const headers: Record<string, string> = {
+        "Content-Type": "application/json",
+      };
+      if (token) {
+        headers["Authorization"] = `Bearer ${token}`;
+      }
+      const res = await fetch(`/api/v1/admin/files?page=${page}&limit=${limit}`, { headers });
+      if (!res.ok) {
+        throw new Error(`HTTP error! status: ${res.status}`);
+      }
+      const json = await res.json();
+      return {
+        files: json.data?.files || [],
+        total: json.pagination?.total || 0,
+      };
+    },
+  });
+}
+
+export function useAdminSharedFiles(page = 1, limit = 20) {
+  return useQuery<{ files: AdminFile[]; total: number }>({
+    queryKey: ["admin", "files", "shared", page, limit],
+    queryFn: async () => {
+      const token = getAccessToken();
+      const headers: Record<string, string> = {
+        "Content-Type": "application/json",
+      };
+      if (token) {
+        headers["Authorization"] = `Bearer ${token}`;
+      }
+      const res = await fetch(`/api/v1/admin/files/shared?page=${page}&limit=${limit}`, { headers });
+      if (!res.ok) {
+        throw new Error(`HTTP error! status: ${res.status}`);
+      }
+      const json = await res.json();
+      return {
+        files: json.data?.files || [],
+        total: json.pagination?.total || 0,
       };
     },
   });

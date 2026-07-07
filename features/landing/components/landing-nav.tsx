@@ -1,8 +1,13 @@
+"use client";
+
 import Link from "next/link";
 import { Box } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useAuthStore } from "@/store";
 
 export function LandingNav() {
+  const { isAuthenticated } = useAuthStore();
+
   return (
     <header className="sticky top-0 z-40 border-b border-border bg-bg/90 backdrop-blur-md">
       <div className="container flex h-14 items-center justify-between">
@@ -18,12 +23,20 @@ export function LandingNav() {
           <Link href="#faq" className="hover:text-ink">FAQ</Link>
         </nav>
         <div className="flex items-center gap-2">
-          <Button size="sm" variant="ghost" asChild>
-            <Link href="/dashboard">Sign in</Link>
-          </Button>
-          <Button size="sm" asChild>
-            <Link href="/dashboard">Get started</Link>
-          </Button>
+          {isAuthenticated ? (
+            <Button size="sm" asChild>
+              <Link href="/dashboard">Dashboard</Link>
+            </Button>
+          ) : (
+            <>
+              <Button size="sm" variant="ghost" asChild>
+                <Link href="/login">Sign in</Link>
+              </Button>
+              <Button size="sm" asChild>
+                <Link href="/register">Get started</Link>
+              </Button>
+            </>
+          )}
         </div>
       </div>
     </header>
