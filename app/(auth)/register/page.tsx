@@ -118,10 +118,17 @@ export default function RegisterPage() {
           Already have an account?{" "}
           <Link
             href="/login"
-            className="text-accent hover:underline hover:text-accent-bright"
+            className="text-accent hover:underline hover:text-accent-bright font-medium"
           >
             Sign in
           </Link>
+          <div className="mt-3 flex justify-center text-[11px] text-ink-faint">
+            By Signing up, you agree to our
+            <Link href="/terms" className="hover:text-ink">Terms of Service</Link>
+            &
+            {/* <span>&middot;</span> */}
+            <Link href="/subscription-policy" className="hover:text-ink">Subscription Policy</Link>
+          </div>
         </div>
       </CardContent>
     </Card>

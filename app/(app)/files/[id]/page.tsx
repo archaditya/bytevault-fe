@@ -24,7 +24,6 @@ import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { FileKindIcon } from "@/components/shared/file-kind-icon";
-import { ProviderTag } from "@/components/shared/provider-tag";
 import {
   formatBytes,
   formatRelativeTime,
@@ -251,11 +250,6 @@ export default function FileDetailsPage({
               <Field
                 label="Type"
                 value={file.mimeType.split("/")[1]?.toUpperCase() || "Unknown"}
-                icon={Hash}
-              />
-              <Field
-                label="Provider"
-                value={<ProviderTag providerId={file.providerId} />}
                 icon={Hash}
               />
               <Field

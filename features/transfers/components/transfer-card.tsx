@@ -6,7 +6,6 @@ import { TransferSession } from "@/types";
 import { Card } from "@/components/ui/card";
 import { TransferStatusBadge } from "@/components/shared/status-badge";
 import { TransferProgress } from "@/components/shared/transfer-progress";
-import { ProviderTag } from "@/components/shared/provider-tag";
 import { ChunkVisualizer } from "@/components/shared/chunk-visualizer";
 import { formatRelativeTime, cn } from "@/lib/utils";
 
@@ -29,8 +28,6 @@ export function TransferCard({ transfer }: { transfer: TransferSession }) {
             <div className="min-w-0">
               <p className="truncate text-[13px] font-medium text-ink">{transfer.fileName}</p>
               <div className="mt-0.5 flex items-center gap-2 text-[12px] text-ink-muted">
-                <ProviderTag providerId={transfer.providerId} />
-                <span>·</span>
                 <span>{formatRelativeTime(transfer.updatedAt)}</span>
               </div>
             </div>

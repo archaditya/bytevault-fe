@@ -42,7 +42,7 @@ export function FolderListRow({ folder }: { folder: FolderRecord }) {
   return (
     <>
       <div
-        className="grid grid-cols-[1fr_110px_140px_110px_40px] gap-4 items-center border-b border-border/60 px-4 py-3 text-[13px] transition-colors hover:bg-bg-overlay/40 select-none cursor-pointer"
+        className="grid grid-cols-[1fr_110px_110px_40px] gap-4 items-center border-b border-border/60 px-4 py-3 text-[13px] transition-colors hover:bg-bg-overlay/40 select-none cursor-pointer"
         onDoubleClick={handleDoubleClick}
       >
         <span className="flex items-center gap-2.5 font-medium text-ink truncate">
@@ -52,7 +52,6 @@ export function FolderListRow({ folder }: { folder: FolderRecord }) {
           </span>
         </span>
         <span className="font-mono text-ink-muted">—</span>
-        <span>—</span>
         <span className="text-ink-muted">{formatRelativeTime(folder.created_at)}</span>
         <span className="flex justify-end" onClick={(e) => e.stopPropagation()}>
           <DropdownMenu>

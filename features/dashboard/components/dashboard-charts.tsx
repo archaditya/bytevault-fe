@@ -10,20 +10,21 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { ArrowRight, Globe } from "lucide-react";
 
 export function DashboardCharts() {
-  const { data: filesResponse, isLoading } = useFiles({ sortBy: "date", sortDirection: "desc", limit: 10 });
+  // Fetch up to 100 files to ensure we have enough shared files to display 10 rows
+  const { data: filesResponse, isLoading } = useFiles({ sortBy: "date", sortDirection: "desc", limit: 100 });
 
   if (isLoading) {
     return (
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-        <Skeleton className="h-[320px]" />
-        <Skeleton className="h-[320px]" />
+        <Skeleton className="h-[480px]" />
+        <Skeleton className="h-[480px]" />
       </div>
     );
   }
 
   const files = filesResponse?.files || [];
-  const recentFiles = files.slice(0, 6);
-  const sharedFiles = files.filter((f) => f.shared).slice(0, 6);
+  const recentFiles = files.slice(0, 10);
+  const sharedFiles = files.filter((f) => f.shared).slice(0, 10);
 
   return (
     <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">

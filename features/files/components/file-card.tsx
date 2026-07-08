@@ -6,9 +6,9 @@ import { FileRecord } from "@/types";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { FileKindIcon } from "@/components/shared/file-kind-icon";
-import { ProviderTag } from "@/components/shared/provider-tag";
 import { formatBytes, formatRelativeTime } from "@/lib/utils";
 import { useDeleteFileMutation, useToggleShareMutation } from "@/services";
+import { getAccessToken } from "@/lib/api-client";
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -16,7 +16,7 @@ import {
   DropdownMenuItem,
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { MoveItemModal } from "./move-item-modal";
 
 export function FileCard({ file }: { file: FileRecord }) {
@@ -24,6 +24,42 @@ export function FileCard({ file }: { file: FileRecord }) {
   const toggleShareMutation = useToggleShareMutation();
   
   const [isMoveModalOpen, setIsMoveModalOpen] = useState(false);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    let active = true;
+    let url: string | null = null;
+
+    if (file.kind === "image" && file.status === "READY") {
+      const token = getAccessToken();
+      const headers: Record<string, string> = {};
+      if (token) {
+        headers["Authorization"] = `Bearer ${token}`;
+      }
+
+      fetch(`/api/v1/files/${file.id}/download?inline=true`, { headers })
+        .then((res) => {
+          if (!res.ok) throw new Error();
+          return res.blob();
+        })
+        .then((blob) => {
+          if (active) {
+            url = URL.createObjectURL(blob);
+            setPreviewUrl(url);
+          }
+        })
+        .catch(() => {
+          // Fallback to showing kind icon
+        });
+    }
+
+    return () => {
+      active = false;
+      if (url) {
+        URL.revokeObjectURL(url);
+      }
+    };
+  }, [file.id, file.kind, file.status]);
 
   const handleDownload = () => {
     window.open(`/api/v1/files/${file.id}/download`, "_blank");
@@ -44,12 +80,21 @@ export function FileCard({ file }: { file: FileRecord }) {
       <Card className="group relative flex flex-col overflow-hidden p-0 transition-colors hover:border-border-strong bg-bg-surface">
         <Link href={`/files/${file.id}`} className="flex flex-col">
           <div
-            className="flex h-24 items-center justify-center"
+            className="flex h-24 items-center justify-center overflow-hidden"
             style={{ backgroundColor: `${file.thumbnailColor}14` }}
           >
-            <div style={{ color: file.thumbnailColor }}>
-              <FileKindIcon kind={file.kind} className="h-7 w-7" />
-            </div>
+            {previewUrl ? (
+              <img
+                src={previewUrl}
+                alt={file.name}
+                className="h-full w-full object-cover"
+                loading="lazy"
+              />
+            ) : (
+              <div style={{ color: file.thumbnailColor }}>
+                <FileKindIcon kind={file.kind} className="h-7 w-7" />
+              </div>
+            )}
           </div>
           <div className="flex flex-col gap-2 p-3.5">
             <p className="truncate text-[13px] font-medium text-ink" title={file.name}>
@@ -59,8 +104,7 @@ export function FileCard({ file }: { file: FileRecord }) {
               <span className="font-mono">{formatBytes(file.sizeBytes)}</span>
               <span>{formatRelativeTime(file.uploadedAt)}</span>
             </div>
-            <div className="flex items-center justify-between">
-              <ProviderTag providerId={file.providerId} />
+            <div className="flex items-center justify-end h-5">
               {file.shared && (
                 <Badge variant="info" className="px-1.5 flex items-center gap-1">
                   <Globe className="h-2.5 w-2.5" />

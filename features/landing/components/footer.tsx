@@ -65,8 +65,8 @@ export function Footer() {
         <div className="mt-12 flex flex-col items-center justify-between gap-3 border-t border-border pt-6 text-[12px] text-ink-faint sm:flex-row">
           <span>&copy; {new Date().getFullYear()} ByteVault, Inc.</span>
           <div className="flex gap-5">
-            <Link href="#" className="hover:text-ink">Privacy</Link>
-            <Link href="#" className="hover:text-ink">Terms</Link>
+            <Link href="/terms" className="hover:text-ink">Terms &amp; Conditions</Link>
+            <Link href="/subscription-policy" className="hover:text-ink">Subscription Policy</Link>
           </div>
         </div>
       </div>

@@ -28,13 +28,6 @@ const kindOptions = [
   { value: "dataset", label: "Datasets" },
 ];
 
-const providerOptions = [
-  { value: "all", label: "All providers" },
-  { value: "r2", label: "Cloudflare R2" },
-  { value: "s3", label: "AWS S3" },
-  { value: "local", label: "Local Storage" },
-];
-
 export function FilesToolbar() {
   const uploadMutation = useUploadFileMutation();
   const { currentFolderId } = useFilesStore();
@@ -51,8 +44,6 @@ export function FilesToolbar() {
     setSearchQuery,
     kindFilter,
     setKindFilter,
-    providerFilter,
-    setProviderFilter,
   } = useFilesStore();
 
   const handleCreateFolderSubmit = async (e: React.FormEvent) => {
@@ -88,19 +79,6 @@ export function FilesToolbar() {
         </SelectTrigger>
         <SelectContent>
           {kindOptions.map((opt) => (
-            <SelectItem key={opt.value} value={opt.value}>
-              {opt.label}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
-
-      <Select value={providerFilter} onValueChange={(v) => setProviderFilter(v)}>
-        <SelectTrigger className="w-[160px]">
-          <SelectValue />
-        </SelectTrigger>
-        <SelectContent>
-          {providerOptions.map((opt) => (
             <SelectItem key={opt.value} value={opt.value}>
               {opt.label}
             </SelectItem>
