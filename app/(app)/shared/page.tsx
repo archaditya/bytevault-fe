@@ -8,11 +8,11 @@ import { Plus } from "lucide-react";
 import { SharedLink } from "@/types";
 
 export default function SharedLinksPage() {
-  const { data: userData, isLoading: userLoading } = useFiles({ limit: 100 });
+  const { data: userData, isLoading: userLoading } = useFiles({ limit: 100, isPublic: true });
 
   // Standard User Workspace Shared links view
   if (userLoading) {
-    return <div className="text-[13px] text-ink-muted">Loading shared links...</div>;
+    return <div className="text-[13px] text-ink-muted font-sans">Loading shared links...</div>;
   }
 
   const sharedFiles = userData?.files?.filter(f => f.shared) || [];

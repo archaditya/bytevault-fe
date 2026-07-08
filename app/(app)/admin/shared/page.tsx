@@ -123,7 +123,7 @@ export default function AdminSharedLinksPage() {
               <div className="flex flex-col min-w-[800px]">
                 <div className="grid grid-cols-[2fr_1.5fr_1fr_1.2fr_1fr] gap-4 items-center bg-bg-raised border-y border-border px-4 py-2.5 text-[11px] font-semibold uppercase tracking-wider text-ink-faint">
                   <span>File Name</span>
-                  <span>Owner ID</span>
+                  <span>Owner</span>
                   <span>Size</span>
                   <span>Shared Date</span>
                   <span className="text-right">Actions</span>
@@ -146,9 +146,14 @@ export default function AdminSharedLinksPage() {
                         </span>
                       </div>
 
-                      <span className="text-ink-muted font-mono truncate" title={file.user_id}>
-                        {file.user_id.slice(0, 8)}...
-                      </span>
+                      <div className="flex flex-col min-w-0">
+                        <span className="font-medium text-ink truncate" title={file.owner_name}>
+                          {file.owner_name || "Unknown User"}
+                        </span>
+                        <span className="text-[11px] text-ink-muted truncate" title={file.owner_email}>
+                          {file.owner_email || "No Email"}
+                        </span>
+                      </div>
 
                       <span className="font-mono text-ink-muted">{formatBytes(Number(file.file_size))}</span>
 
