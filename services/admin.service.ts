@@ -53,6 +53,8 @@ export interface AdminFile {
   status: string;
   created_at: string;
   updated_at: string;
+  owner_name?: string;
+  owner_email?: string;
 }
 
 export interface AdminNotification {

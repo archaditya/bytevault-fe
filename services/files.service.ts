@@ -85,7 +85,7 @@ export function mapBackendFileToFrontend(f: any): FileRecord {
     ownerName: "Me",
     ownerAvatar: "ME",
     checksum: f.storage_key || "",
-    downloads: 0,
+    downloads: f.downloads || 0,
     shared: !!f.is_public,
     starred: false,
     tags: [],
@@ -108,6 +108,7 @@ export function useFiles(params: {
   sortDirection?: "asc" | "desc";
   cursor?: string;
   limit?: number;
+  isPublic?: boolean;
 }) {
   return useQuery<FilesResponse>({
     queryKey: ["files", params],
@@ -115,6 +116,7 @@ export function useFiles(params: {
       const queryParts = [];
       if (params.folderId) queryParts.push(`folder_id=${params.folderId}`);
       if (params.search) queryParts.push(`q=${encodeURIComponent(params.search)}`);
+      if (params.isPublic !== undefined) queryParts.push(`is_public=${params.isPublic}`);
       if (params.sortBy) {
         let sort = "date";
         if (params.sortBy === "name") sort = "name";

@@ -18,9 +18,9 @@ export function LandingNav() {
           <span className="text-[14px] font-semibold tracking-tight text-ink">ByteVault</span>
         </Link>
         <nav className="hidden items-center gap-7 text-[13px] text-ink-muted md:flex">
-          <Link href="#features" className="hover:text-ink">Features</Link>
-          <Link href="#architecture" className="hover:text-ink">Architecture</Link>
-          <Link href="#faq" className="hover:text-ink">FAQ</Link>
+          <Link href="/#features" className="hover:text-ink">Features</Link>
+          <Link href="/#architecture" className="hover:text-ink">Architecture</Link>
+          <Link href="/#faq" className="hover:text-ink">FAQ</Link>
         </nav>
         <div className="flex items-center gap-2">
           {isAuthenticated ? (

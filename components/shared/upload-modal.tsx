@@ -303,6 +303,7 @@ export function UploadModal({ open, onOpenChange }: UploadModalProps) {
   const handleUploadAll = async () => {
     if (queue.length === 0) return;
     setIsUploading(true);
+    let allSuccessful = true;
 
     // Process files sequentially to avoid rate-limits or concurrency issues
     for (let i = 0; i < queue.length; i++) {
@@ -323,6 +324,7 @@ export function UploadModal({ open, onOpenChange }: UploadModalProps) {
           prev.map((q) => (q.id === item.id ? { ...q, status: "success" } : q))
         );
       } catch (err: any) {
+        allSuccessful = false;
         setQueue((prev) =>
           prev.map((q) => (q.id === item.id ? { ...q, status: "error", error: err.message || "Failed" } : q))
         );
@@ -330,7 +332,16 @@ export function UploadModal({ open, onOpenChange }: UploadModalProps) {
     }
 
     setIsUploading(false);
-    toast.success("Batch upload complete!");
+
+    if (allSuccessful) {
+      toast.success("Batch upload complete!");
+      // Automatically close modal after 800ms so user can see success checks
+      setTimeout(() => {
+        handleOpenChange(false);
+      }, 800);
+    } else {
+      toast.error("Some uploads failed. Please review the errors.");
+    }
   };
 
   const resetState = () => {
@@ -352,233 +363,233 @@ export function UploadModal({ open, onOpenChange }: UploadModalProps) {
   return (
     <>
       <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="sm:max-w-lg bg-bg-surface border-border-strong text-ink font-sans flex flex-col max-h-[90vh]">
-        <DialogHeader>
-          <DialogTitle>Upload Files</DialogTitle>
-        </DialogHeader>
+        <DialogContent className="sm:max-w-lg bg-bg-surface border-border-strong text-ink font-sans flex flex-col max-h-[90vh]">
+          <DialogHeader>
+            <DialogTitle>Upload Files</DialogTitle>
+          </DialogHeader>
 
-        <input
-          type="file"
-          ref={fileInputRef}
-          onChange={handleFileChange}
-          className="hidden"
-          multiple
-        />
+          <input
+            type="file"
+            ref={fileInputRef}
+            onChange={handleFileChange}
+            className="hidden"
+            multiple
+          />
 
-        <p className="text-[13px] text-ink-muted -mt-1">
-          Select destination folder and queue files to upload. Max 100MB per file.
-        </p>
+          <p className="text-[13px] text-ink-muted -mt-1">
+            Select destination folder and queue files to upload. Max 100MB per file.
+          </p>
 
-        {/* Scrollable container for Content */}
-        <div className="flex-1 overflow-y-auto pr-1 flex flex-col gap-4">
-          {/* Destination Folder Selection */}
-          <div className="flex flex-col gap-1.5">
-            <span className="text-xs font-semibold text-ink-muted">Destination Folder</span>
-            <div className="rounded-md border border-border bg-bg-raised max-h-36 overflow-y-auto py-1 px-1">
-              {foldersLoading ? (
-                <div className="flex items-center justify-center py-4 text-xs text-ink-faint">
-                  <Loader2 className="h-3.5 w-3.5 animate-spin mr-2" />
-                  Loading folders…
-                </div>
-              ) : (
-                <>
-                  <button
-                    type="button"
-                    className={cn(
-                      "flex w-full items-center gap-2 rounded-md px-2 py-1 text-[13px] font-medium transition-colors text-left",
-                      isRootSelected
-                        ? "bg-accent/15 text-accent-bright border border-accent/30"
-                        : "text-ink-muted hover:bg-bg-overlay hover:text-ink border border-transparent"
-                    )}
-                    onClick={handleSelectRoot}
+          {/* Scrollable container for Content */}
+          <div className="flex-1 overflow-y-auto pr-1 flex flex-col gap-4">
+            {/* Destination Folder Selection */}
+            <div className="flex flex-col gap-1.5">
+              <span className="text-xs font-semibold text-ink-muted">Destination Folder</span>
+              <div className="rounded-md border border-border bg-bg-raised max-h-36 overflow-y-auto py-1 px-1">
+                {foldersLoading ? (
+                  <div className="flex items-center justify-center py-4 text-xs text-ink-faint">
+                    <Loader2 className="h-3.5 w-3.5 animate-spin mr-2" />
+                    Loading folders…
+                  </div>
+                ) : (
+                  <>
+                    <button
+                      type="button"
+                      className={cn(
+                        "flex w-full items-center gap-2 rounded-md px-2 py-1 text-[13px] font-medium transition-colors text-left",
+                        isRootSelected
+                          ? "bg-accent/15 text-accent-bright border border-accent/30"
+                          : "text-ink-muted hover:bg-bg-overlay hover:text-ink border border-transparent"
+                      )}
+                      onClick={handleSelectRoot}
+                    >
+                      <span className="w-3.5 flex-shrink-0" />
+                      {isRootSelected ? (
+                        <FolderOpen className="h-4 w-4 flex-shrink-0 text-accent" />
+                      ) : (
+                        <Folder className="h-4 w-4 flex-shrink-0 text-ink-faint" />
+                      )}
+                      <span>Root (/)</span>
+                      {isRootSelected && <Check className="ml-auto h-3.5 w-3.5 text-accent flex-shrink-0" />}
+                    </button>
+
+                    {folderTree.map((node) => (
+                      <FolderTreeItem
+                        key={node.folder.id}
+                        node={node}
+                        depth={1}
+                        selectedId={selectedFolderId}
+                        onSelect={handleSelectFolder}
+                      />
+                    ))}
+                  </>
+                )}
+              </div>
+
+              {/* Create Folder inline */}
+              {isCreatingFolder ? (
+                <form onSubmit={handleCreateFolder} className="flex items-center gap-2 mt-1">
+                  <Input
+                    placeholder="New folder name…"
+                    value={newFolderName}
+                    onChange={(e) => setNewFolderName(e.target.value)}
+                    autoFocus
+                    className="flex-1 h-8 text-xs"
+                  />
+                  <Button
+                    type="submit"
+                    size="sm"
+                    className="h-8"
+                    disabled={createFolderMutation.isPending || !newFolderName.trim()}
                   >
-                    <span className="w-3.5 flex-shrink-0" />
-                    {isRootSelected ? (
-                      <FolderOpen className="h-4 w-4 flex-shrink-0 text-accent" />
+                    {createFolderMutation.isPending ? (
+                      <Loader2 className="h-3 w-3 animate-spin" />
                     ) : (
-                      <Folder className="h-4 w-4 flex-shrink-0 text-ink-faint" />
+                      "Create"
                     )}
-                    <span>Root (/)</span>
-                    {isRootSelected && <Check className="ml-auto h-3.5 w-3.5 text-accent flex-shrink-0" />}
-                  </button>
-
-                  {folderTree.map((node) => (
-                    <FolderTreeItem
-                      key={node.folder.id}
-                      node={node}
-                      depth={1}
-                      selectedId={selectedFolderId}
-                      onSelect={handleSelectFolder}
-                    />
-                  ))}
-                </>
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="h-8"
+                    onClick={() => {
+                      setIsCreatingFolder(false);
+                      setNewFolderName("");
+                    }}
+                  >
+                    Cancel
+                  </Button>
+                </form>
+              ) : (
+                <button
+                  type="button"
+                  className="flex items-center gap-1 text-[11px] font-semibold text-accent hover:text-accent-bright transition-colors mt-0.5 self-start"
+                  onClick={() => setIsCreatingFolder(true)}
+                >
+                  <FolderPlus className="h-3 w-3" />
+                  New Folder
+                </button>
               )}
             </div>
 
-            {/* Create Folder inline */}
-            {isCreatingFolder ? (
-              <form onSubmit={handleCreateFolder} className="flex items-center gap-2 mt-1">
-                <Input
-                  placeholder="New folder name…"
-                  value={newFolderName}
-                  onChange={(e) => setNewFolderName(e.target.value)}
-                  autoFocus
-                  className="flex-1 h-8 text-xs"
-                />
-                <Button
-                  type="submit"
-                  size="sm"
-                  className="h-8"
-                  disabled={createFolderMutation.isPending || !newFolderName.trim()}
-                >
-                  {createFolderMutation.isPending ? (
-                    <Loader2 className="h-3 w-3 animate-spin" />
-                  ) : (
-                    "Create"
-                  )}
-                </Button>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  className="h-8"
-                  onClick={() => {
-                    setIsCreatingFolder(false);
-                    setNewFolderName("");
-                  }}
-                >
-                  Cancel
-                </Button>
-              </form>
-            ) : (
-              <button
-                type="button"
-                className="flex items-center gap-1 text-[11px] font-semibold text-accent hover:text-accent-bright transition-colors mt-0.5 self-start"
-                onClick={() => setIsCreatingFolder(true)}
-              >
-                <FolderPlus className="h-3 w-3" />
-                New Folder
-              </button>
-            )}
-          </div>
+            {/* Drag & Drop Area */}
+            <div
+              onDragEnter={handleDragEnter}
+              onDragOver={handleDragOver}
+              onDragLeave={handleDragLeave}
+              onDrop={handleDrop}
+              onClick={handleFileSelectClick}
+              className={cn(
+                "flex flex-col items-center justify-center border-2 border-dashed rounded-lg p-5 cursor-pointer transition-all",
+                isDragging
+                  ? "border-accent bg-accent/5"
+                  : "border-border-strong bg-bg-raised hover:border-accent/40"
+              )}
+            >
+              <Upload className={cn("h-8 w-8 text-ink-faint mb-2", isDragging && "text-accent animate-bounce")} />
+              <span className="text-xs font-semibold text-ink">
+                Drag & drop files here, or <span className="text-accent hover:underline">browse</span>
+              </span>
+              <span className="text-[10px] text-ink-faint mt-1">
+                Supports any file type up to 100MB
+              </span>
+            </div>
 
-          {/* Drag & Drop Area */}
-          <div
-            onDragEnter={handleDragEnter}
-            onDragOver={handleDragOver}
-            onDragLeave={handleDragLeave}
-            onDrop={handleDrop}
-            onClick={handleFileSelectClick}
-            className={cn(
-              "flex flex-col items-center justify-center border-2 border-dashed rounded-lg p-5 cursor-pointer transition-all",
-              isDragging
-                ? "border-accent bg-accent/5"
-                : "border-border-strong bg-bg-raised hover:border-accent/40"
-            )}
-          >
-            <Upload className={cn("h-8 w-8 text-ink-faint mb-2", isDragging && "text-accent animate-bounce")} />
-            <span className="text-xs font-semibold text-ink">
-              Drag & drop files here, or <span className="text-accent hover:underline">browse</span>
-            </span>
-            <span className="text-[10px] text-ink-faint mt-1">
-              Supports any file type up to 100MB
-            </span>
-          </div>
+            {/* File Queue List */}
+            {queue.length > 0 && (
+              <div className="flex flex-col gap-1.5">
+                <span className="text-xs font-semibold text-ink-muted">Queue ({queue.length} files)</span>
+                <div className="flex flex-col gap-1 max-h-48 overflow-y-auto border border-border rounded-md p-1 bg-bg-surface">
+                  {queue.map((item) => (
+                    <div
+                      key={item.id}
+                      className="flex items-center justify-between p-1.5 rounded-sm bg-bg-raised/50 border border-border/50 text-[12px]"
+                    >
+                      <div className="flex items-center gap-2 min-w-0 flex-1">
+                        <FileIcon className="h-4 w-4 text-ink-faint flex-shrink-0" />
+                        <div className="flex flex-col min-w-0">
+                          <span className="font-semibold text-ink truncate" title={item.file.name}>
+                            {item.file.name}
+                          </span>
+                          <span className="text-[10px] text-ink-faint font-mono">
+                            {formatBytes(item.file.size)}
+                          </span>
+                        </div>
+                      </div>
 
-          {/* File Queue List */}
-          {queue.length > 0 && (
-            <div className="flex flex-col gap-1.5">
-              <span className="text-xs font-semibold text-ink-muted">Queue ({queue.length} files)</span>
-              <div className="flex flex-col gap-1 max-h-48 overflow-y-auto border border-border rounded-md p-1 bg-bg-surface">
-                {queue.map((item) => (
-                  <div
-                    key={item.id}
-                    className="flex items-center justify-between p-1.5 rounded-sm bg-bg-raised/50 border border-border/50 text-[12px]"
-                  >
-                    <div className="flex items-center gap-2 min-w-0 flex-1">
-                      <FileIcon className="h-4 w-4 text-ink-faint flex-shrink-0" />
-                      <div className="flex flex-col min-w-0">
-                        <span className="font-semibold text-ink truncate" title={item.file.name}>
-                          {item.file.name}
-                        </span>
-                        <span className="text-[10px] text-ink-faint font-mono">
-                          {formatBytes(item.file.size)}
-                        </span>
+                      <div className="flex items-center gap-2 ml-4">
+                        {item.status === "idle" && (
+                          <button
+                            type="button"
+                            onClick={() => removeFileFromQueue(item.id)}
+                            disabled={isUploading}
+                            className="text-ink-faint hover:text-danger p-0.5 rounded transition-colors"
+                          >
+                            <X className="h-3.5 w-3.5" />
+                          </button>
+                        )}
+                        {item.status === "uploading" && (
+                          <Loader2 className="h-3.5 w-3.5 text-accent animate-spin" />
+                        )}
+                        {item.status === "success" && (
+                          <FileCheck className="h-3.5 w-3.5 text-success" />
+                        )}
+                        {item.status === "error" && (
+                          <div className="flex items-center gap-1 text-danger" title={item.error}>
+                            <AlertCircle className="h-3.5 w-3.5" />
+                            <span className="text-[10px]">Failed</span>
+                          </div>
+                        )}
                       </div>
                     </div>
-
-                    <div className="flex items-center gap-2 ml-4">
-                      {item.status === "idle" && (
-                        <button
-                          type="button"
-                          onClick={() => removeFileFromQueue(item.id)}
-                          disabled={isUploading}
-                          className="text-ink-faint hover:text-danger p-0.5 rounded transition-colors"
-                        >
-                          <X className="h-3.5 w-3.5" />
-                        </button>
-                      )}
-                      {item.status === "uploading" && (
-                        <Loader2 className="h-3.5 w-3.5 text-accent animate-spin" />
-                      )}
-                      {item.status === "success" && (
-                        <FileCheck className="h-3.5 w-3.5 text-success" />
-                      )}
-                      {item.status === "error" && (
-                        <div className="flex items-center gap-1 text-danger" title={item.error}>
-                          <AlertCircle className="h-3.5 w-3.5" />
-                          <span className="text-[10px]">Failed</span>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                ))}
+                  ))}
+                </div>
               </div>
-            </div>
-          )}
-        </div>
-
-        {/* Footer Actions */}
-        <div className="flex justify-end gap-2 pt-2 border-t border-border mt-auto">
-          <Button
-            variant="secondary"
-            size="sm"
-            onClick={() => handleOpenChange(false)}
-            disabled={isUploading}
-          >
-            Close
-          </Button>
-          <Button
-            size="sm"
-            onClick={handleUploadAll}
-            disabled={isUploading || queue.length === 0 || queue.every((item) => item.status === "success")}
-          >
-            {isUploading ? (
-              <Loader2 className="h-3.5 w-3.5 animate-spin" />
-            ) : (
-              <Upload className="h-3.5 w-3.5" />
             )}
-            {isUploading ? "Uploading Queue…" : "Start Upload"}
-          </Button>
-        </div>
-      </DialogContent>
-    </Dialog>
-
-    {isWindowDragging && (
-      <div className="fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-bg-surface/85 backdrop-blur-md border-4 border-dashed border-accent m-4 rounded-xl transition-all duration-300 animate-in fade-in pointer-events-none">
-        <div className="flex flex-col items-center justify-center p-8 text-center max-w-md">
-          <div className="h-16 w-16 rounded-full bg-accent/10 flex items-center justify-center mb-6 text-accent animate-bounce">
-            <Upload className="h-8 w-8" />
           </div>
-          <h2 className="text-2xl font-bold tracking-tight text-ink mb-2">
-            Drop files to upload to ByteVault
-          </h2>
-          <p className="text-sm text-ink-muted">
-            You can drop your files anywhere on the screen. Supports files up to 100MB.
-          </p>
+
+          {/* Footer Actions */}
+          <div className="flex justify-end gap-2 pt-2 border-t border-border mt-auto">
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => handleOpenChange(false)}
+              disabled={isUploading}
+            >
+              Close
+            </Button>
+            <Button
+              size="sm"
+              onClick={handleUploadAll}
+              disabled={isUploading || queue.length === 0 || queue.every((item) => item.status === "success")}
+            >
+              {isUploading ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              ) : (
+                <Upload className="h-3.5 w-3.5" />
+              )}
+              {isUploading ? "Uploading Queue…" : "Start Upload"}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {isWindowDragging && (
+        <div className="fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-bg-surface/85 backdrop-blur-md border-4 border-dashed border-accent m-4 rounded-xl transition-all duration-300 animate-in fade-in pointer-events-none">
+          <div className="flex flex-col items-center justify-center p-8 text-center max-w-md">
+            <div className="h-16 w-16 rounded-full bg-accent/10 flex items-center justify-center mb-6 text-accent animate-bounce">
+              <Upload className="h-8 w-8" />
+            </div>
+            <h2 className="text-2xl font-bold tracking-tight text-ink mb-2">
+              Drop files to upload to ByteVault
+            </h2>
+            <p className="text-sm text-ink-muted">
+              You can drop your files anywhere on the screen. Supports files up to 100MB.
+            </p>
+          </div>
         </div>
-      </div>
-    )}
-  </>
-);
+      )}
+    </>
+  );
 }

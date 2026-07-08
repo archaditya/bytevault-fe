@@ -188,10 +188,17 @@ export default function LoginPage() {
           Don&apos;t have an account?{" "}
           <Link
             href="/register"
-            className="text-accent hover:underline hover:text-accent-bright"
+            className="text-accent hover:underline hover:text-accent-bright font-medium"
           >
             Sign up
           </Link>
+          <div className="mt-3 flex justify-center gap-1 text-[11px] text-ink-faint">
+            By Signing in, you agree to our
+            <Link href="/terms" className="hover:text-ink">Terms of Service</Link>
+            &
+            {/* <span>&middot;</span> */}
+            <Link href="/subscription-policy" className="hover:text-ink">Subscription Policy</Link>
+          </div>
         </div>
       </CardContent>
     </Card>
