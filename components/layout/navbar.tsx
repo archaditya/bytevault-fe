@@ -157,7 +157,7 @@ export function Navbar({ onMenuClick }: { onMenuClick?: () => void }) {
       {!isAdmin && (
         <UploadModal 
           open={isUploadModalOpen} 
-          onOpenChange={() => setIsUploadModalOpen(false)} 
+          onOpenChange={setIsUploadModalOpen} 
         />
       )}
     </header>

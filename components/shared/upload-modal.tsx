@@ -507,14 +507,19 @@ export function UploadModal({ open, onOpenChange }: UploadModalProps) {
                       className="flex items-center justify-between p-1.5 rounded-sm bg-bg-raised/50 border border-border/50 text-[12px]"
                     >
                       <div className="flex items-center gap-2 min-w-0 flex-1">
-                        <FileIcon className="h-4 w-4 text-ink-faint flex-shrink-0" />
-                        <div className="flex flex-col min-w-0">
+                        <FileIcon className={cn("h-4 w-4 flex-shrink-0", item.status === "error" && "text-danger")} />
+                        <div className="flex flex-col min-w-0 flex-1">
                           <span className="font-semibold text-ink truncate" title={item.file.name}>
                             {item.file.name}
                           </span>
-                          <span className="text-[10px] text-ink-faint font-mono">
-                            {formatBytes(item.file.size)}
-                          </span>
+                          <div className="flex items-center gap-2 text-[10px] text-ink-faint font-mono">
+                            <span>{formatBytes(item.file.size)}</span>
+                            {item.status === "error" && item.error && (
+                              <span className="text-[10px] text-danger font-medium truncate max-w-[220px]" title={item.error}>
+                                • {item.error}
+                              </span>
+                            )}
+                          </div>
                         </div>
                       </div>
 
@@ -536,7 +541,7 @@ export function UploadModal({ open, onOpenChange }: UploadModalProps) {
                           <FileCheck className="h-3.5 w-3.5 text-success" />
                         )}
                         {item.status === "error" && (
-                          <div className="flex items-center gap-1 text-danger" title={item.error}>
+                          <div className="flex items-center gap-1 text-danger font-semibold" title={item.error}>
                             <AlertCircle className="h-3.5 w-3.5" />
                             <span className="text-[10px]">Failed</span>
                           </div>

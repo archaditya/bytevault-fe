@@ -1,8 +1,8 @@
 const layers = [
   { name: "Client SDK", detail: "Chunked uploads, 8MB segments, 4 parallel streams, exponential backoff" },
   { name: "Transfer Engine", detail: "Session orchestration, chunk scheduling, checksum verification" },
-  { name: "Provider Adapters", detail: "Unified interface across R2, S3, and local disk, swap without re-upload" },
-  { name: "Storage Layer", detail: "Cloudflare R2 · AWS S3 · On-prem NVMe cluster" },
+  { name: "Provider Adapters", detail: "Unified interface, swap without re-upload" },
+  { name: "Storage Layer", detail: "Object Storage" },
 ];
 
 export function ArchitectureOverview() {

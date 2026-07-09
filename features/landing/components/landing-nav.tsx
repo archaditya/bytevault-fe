@@ -9,7 +9,7 @@ export function LandingNav() {
   const { isAuthenticated } = useAuthStore();
 
   return (
-    <header className="sticky top-0 z-40 border-b border-border bg-bg/90 backdrop-blur-md">
+    <header className="sticky top-0 z-40 border-b border-border bg-bg/90 backdrop-blur-md font-sans">
       <div className="container flex h-14 items-center justify-between">
         <Link href="/" className="flex items-center gap-2">
           <div className="flex h-6 w-6 items-center justify-center rounded-sm bg-accent">
@@ -21,6 +21,7 @@ export function LandingNav() {
           <Link href="/#features" className="hover:text-ink">Features</Link>
           <Link href="/#architecture" className="hover:text-ink">Architecture</Link>
           <Link href="/#faq" className="hover:text-ink">FAQ</Link>
+          <Link href="/contact" className="hover:text-ink">Contact</Link>
         </nav>
         <div className="flex items-center gap-2">
           {isAuthenticated ? (

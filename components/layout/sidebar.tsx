@@ -8,13 +8,14 @@ import {
   Share2,
   Settings,
   Box,
-  Shield,
   LogOut,
   X,
   Users,
   Files,
   BellRing,
   ScrollText,
+  ArrowUpDown,
+  MessageSquare,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuthStore } from "@/store";
@@ -27,6 +28,7 @@ interface SidebarProps {
 const userNavItems = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/files", label: "Files", icon: FolderClosed },
+  { href: "/transfers", label: "Transfers", icon: ArrowUpDown },
   { href: "/shared", label: "Shared links", icon: Share2 },
 ];
 
@@ -35,6 +37,7 @@ const adminNavItems = [
   { href: "/admin/users", label: "Users", icon: Users },
   { href: "/admin/files", label: "Files", icon: Files },
   { href: "/admin/shared", label: "Shared Links", icon: Share2 },
+  { href: "/admin/contact-queries", label: "Contact Queries", icon: MessageSquare },
   { href: "/admin/notifications", label: "Notifications", icon: BellRing },
   { href: "/admin/settings", label: "Settings", icon: Settings },
   { href: "/admin/audit-logs", label: "Audit Logs", icon: ScrollText },
@@ -74,12 +77,12 @@ export function Sidebar({ mobileOpen, setMobileOpen }: SidebarProps) {
         mobileOpen ? "translate-x-0" : "-translate-x-full"
       )}>
         <div className="flex h-14 items-center justify-between border-b border-border px-5">
-          <div className="flex items-center gap-2">
-            <div className="flex h-6 w-6 items-center justify-center rounded-sm bg-accent">
+          <Link href={"/"} className="flex items-center gap-2">
+            <span className="flex h-6 w-6 items-center justify-center rounded-sm bg-accent">
               <Box className="h-3.5 w-3.5 text-white" />
-            </div>
+            </span>
             <span className="text-[14px] font-semibold tracking-tight text-ink">ByteVault</span>
-          </div>
+          </Link>
           
           <button 
             className="md:hidden text-ink-muted hover:text-ink"

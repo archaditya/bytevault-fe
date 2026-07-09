@@ -40,6 +40,68 @@ export interface AdminActivityLog {
   created_at: string;
 }
 
+export interface ContactQuery {
+  id: string;
+  name: string;
+  email: string;
+  subject: string;
+  message: string;
+  reply: string | null;
+  replied_at: string | null;
+  replied_by: string | null;
+  status: "pending" | "replied";
+  created_at: string;
+  updated_at: string;
+  replier_name?: string;
+  replier_email?: string;
+}
+
+export function useSubmitContactQueryMutation() {
+  return useMutation({
+    mutationFn: async (req: { name: string; email: string; subject: string; message: string }) => {
+      const response = await fetch("/api/v1/contact", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(req),
+      });
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.detail || "Failed to submit contact query.");
+      }
+      return response.json();
+    },
+  });
+}
+
+export function useAdminContactQueries(page = 1, limit = 20) {
+  return useQuery<{ queries: ContactQuery[]; total: number }>({
+    queryKey: ["admin", "contact-queries", page, limit],
+    queryFn: async () => {
+      const data = await apiClient(`/api/v1/admin/contact-queries?page=${page}&limit=${limit}`);
+      return {
+        queries: data.queries || [],
+        total: data.pagination?.total || 0,
+      };
+    },
+  });
+}
+
+export function useReplyContactQueryMutation() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, reply }: { id: string; reply: string }) => {
+      return apiClient(`/api/v1/admin/contact-queries/${id}/reply`, {
+        method: "POST",
+        body: JSON.stringify({ reply }),
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin", "contact-queries"] });
+    },
+  });
+}
+
+
 export interface AdminFile {
   id: string;
   user_id: string;
