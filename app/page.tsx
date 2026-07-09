@@ -21,7 +21,7 @@ export default function HomePage() {
         <ArchitectureOverview />
       </div>
       <TransferEngineShowcase />
-      <StorageProvidersShowcase />
+      {/* <StorageProvidersShowcase /> */}
       <Testimonials />
       <div id="faq">
         <FAQ />

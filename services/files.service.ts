@@ -71,6 +71,45 @@ function getThumbnailColor(kind: FileKind): string {
   }
 }
 
+// Client-side file signature (magic numbers) validator
+async function validateFileSignature(file: File): Promise<void> {
+  const chunk = file.slice(0, 262); // Read first 262 bytes for signatures
+  const buffer = await chunk.arrayBuffer();
+  const arr = new Uint8Array(buffer);
+  const ext = file.name.split('.').pop()?.toLowerCase() || '';
+
+  // 1. Strict executable blocking (MZ, ELF, Mach-O headers)
+  const isPE = arr[0] === 0x4D && arr[1] === 0x5A; // MZ header
+  const isELF = arr[0] === 0x7F && arr[1] === 0x45 && arr[2] === 0x4C && arr[3] === 0x46; // ELF header
+  const isMachO = (arr[0] === 0xCF && arr[1] === 0xFA && arr[2] === 0xED && arr[3] === 0xFE) ||
+                  (arr[0] === 0xCE && arr[1] === 0xFA && arr[2] === 0xED && arr[3] === 0xFE);
+
+  if (isPE || isELF || isMachO) {
+    throw new Error("Security Violation: Executable files are not allowed.");
+  }
+
+  // 2. Validate known headers if extension claims to be a specific type
+  if (ext === 'png') {
+    const isPng = arr[0] === 0x89 && arr[1] === 0x50 && arr[2] === 0x4E && arr[3] === 0x47;
+    if (!isPng) throw new Error("Security Violation: Spoofed file extension. Content is not a PNG image.");
+  }
+
+  if (ext === 'jpg' || ext === 'jpeg') {
+    const isJpeg = arr[0] === 0xFF && arr[1] === 0xD8 && arr[2] === 0xFF;
+    if (!isJpeg) throw new Error("Security Violation: Spoofed file extension. Content is not a JPEG image.");
+  }
+
+  if (ext === 'pdf') {
+    const isPdf = arr[0] === 0x25 && arr[1] === 0x50 && arr[2] === 0x44 && arr[3] === 0x46; // %PDF
+    if (!isPdf) throw new Error("Security Violation: Spoofed file extension. Content is not a PDF document.");
+  }
+
+  if (['zip', 'docx', 'xlsx', 'pptx'].includes(ext)) {
+    const isZip = arr[0] === 0x50 && arr[1] === 0x4B && arr[2] === 0x03 && arr[3] === 0x04; // PK..
+    if (!isZip) throw new Error("Security Violation: Spoofed file extension. Content is not a valid archive/document.");
+  }
+}
+
 export function mapBackendFileToFrontend(f: any): FileRecord {
   const kind = determineFileKind(f.content_type || "");
   return {
@@ -323,6 +362,9 @@ export function useUploadFileMutation() {
       if (unsupportedExtensions.test(file.name)) {
         throw new Error("Unsupported file type. Executables are not allowed.");
       }
+
+      // sniff file signature in the browser
+      await validateFileSignature(file);
 
       // 2. Create upload session
       const session = await apiClient("/api/v1/files/upload-session", {

@@ -11,15 +11,19 @@ const faqs = [
   },
   {
     q: "Can I move files between storage providers later?",
-    a: "Yes. Files can be replicated or moved between Cloudflare R2, AWS S3, and local storage without re-uploading from your machine — ByteVault transfers provider-to-provider directly.",
+    a: "Yes. Files can be replicated or moved across Object Storage without re-uploading from your machine — ByteVault transfers between storage targets directly.",
+  },
+  {
+    q: "Is there a limit on file size or storage quota?",
+    a: "Yes. There is a maximum file upload cap of 100MB per file and a total storage quota limit of 1GB per user to maintain high-performance and availability.",
+  },
+  {
+    q: "Does ByteVault rate limit requests?",
+    a: "Yes. To prevent abuse and ensure fair resource sharing, API endpoints are rate limited. If you exceed the rate limits, requests will temporarily return a 429 status code.",
   },
   {
     q: "How are failed chunks retried?",
     a: "Each chunk has its own retry counter and backoff schedule. A failure on one chunk never restarts the rest of the transfer; you can see retry counts per chunk in the transfer detail view.",
-  },
-  {
-    q: "Is there a limit on file size?",
-    a: "No hard limit from ByteVault. Practical limits come from your chosen storage provider's object size limits, which we surface before you start a transfer.",
   },
   {
     q: "How are shared links secured?",

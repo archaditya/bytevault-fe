@@ -19,7 +19,7 @@ const features = [
   {
     icon: ShieldCheck,
     title: "Provider-aware routing",
-    desc: "Send files to Cloudflare R2, AWS S3, or local disk based on latency, cost, or your own policy — switch providers without re-uploading.",
+    desc: "Send files to Object Storage based on latency, cost, or your own policy — switch providers without re-uploading.",
   },
   {
     icon: Share2,

@@ -7,35 +7,21 @@ const columns = [
     links: [
       { label: "Dashboard", href: "/dashboard" },
       { label: "Transfers", href: "/transfers" },
-      { label: "Storage", href: "/storage" },
-      { label: "Analytics", href: "/analytics" },
     ],
   },
   {
-    title: "Resources",
+    title: "Support",
     links: [
-      { label: "Documentation", href: "#" },
-      { label: "API reference", href: "#" },
-      { label: "Status", href: "#" },
-      { label: "Changelog", href: "#" },
-    ],
-  },
-  {
-    title: "Company",
-    links: [
-      { label: "About", href: "#" },
-      { label: "Blog", href: "#" },
-      { label: "Careers", href: "#" },
-      { label: "Contact", href: "#" },
+      { label: "Contact Us", href: "/contact" },
     ],
   },
 ];
 
 export function Footer() {
   return (
-    <footer className="py-16">
+    <footer className="py-16 font-sans">
       <div className="container">
-        <div className="grid grid-cols-2 gap-8 sm:grid-cols-4">
+        <div className="grid grid-cols-2 gap-8 sm:grid-cols-3">
           <div>
             <div className="flex items-center gap-2">
               <div className="flex h-6 w-6 items-center justify-center rounded-sm bg-accent">
@@ -44,7 +30,7 @@ export function Footer() {
               <span className="text-[14px] font-semibold text-ink">ByteVault</span>
             </div>
             <p className="mt-3 max-w-[180px] text-[12px] text-ink-muted">
-              Resumable file transfer for engineering teams.
+              Resumable file transfer with binary signature checks.
             </p>
           </div>
           {columns.map((col) => (
@@ -63,7 +49,7 @@ export function Footer() {
           ))}
         </div>
         <div className="mt-12 flex flex-col items-center justify-between gap-3 border-t border-border pt-6 text-[12px] text-ink-faint sm:flex-row">
-          <span>&copy; {new Date().getFullYear()} ByteVault, Inc.</span>
+          <span>&copy; {new Date().getFullYear()} ByteVault.</span>
           <div className="flex gap-5">
             <Link href="/terms" className="hover:text-ink">Terms &amp; Conditions</Link>
             <Link href="/subscription-policy" className="hover:text-ink">Subscription Policy</Link>
