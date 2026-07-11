@@ -15,10 +15,19 @@ import {
   AlertCircle,
   FileCheck,
 } from "lucide-react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { useFoldersFlat, useUploadFileMutation, useCreateFolderMutation } from "@/services";
+import {
+  useFoldersFlat,
+  useUploadFileMutation,
+  useCreateFolderMutation,
+} from "@/services";
 import { FolderRecord } from "@/types";
 import { cn, formatBytes } from "@/lib/utils";
 import toast from "react-hot-toast";
@@ -85,7 +94,7 @@ function FolderTreeItem({
           "flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-[13px] font-medium transition-colors text-left",
           isSelected
             ? "bg-accent/15 text-accent-bright border border-accent/30"
-            : "text-ink-muted hover:bg-bg-overlay hover:text-ink border border-transparent"
+            : "text-ink-muted hover:bg-bg-overlay hover:text-ink border border-transparent",
         )}
         style={{ paddingLeft: `${depth * 20 + 8}px` }}
         onClick={() => onSelect(node.folder.id)}
@@ -113,7 +122,9 @@ function FolderTreeItem({
           <Folder className="h-4 w-4 flex-shrink-0 text-ink-faint" />
         )}
         <span className="truncate">{node.folder.name}</span>
-        {isSelected && <Check className="ml-auto h-3.5 w-3.5 text-accent flex-shrink-0" />}
+        {isSelected && (
+          <Check className="ml-auto h-3.5 w-3.5 text-accent flex-shrink-0" />
+        )}
       </button>
       {expanded && hasChildren && (
         <div>
@@ -236,7 +247,9 @@ export function UploadModal({ open, onOpenChange }: UploadModalProps) {
     });
 
     if (oversizedCount > 0) {
-      toast.error(`${oversizedCount} file(s) exceeded the 100MB limit and were skipped.`);
+      toast.error(
+        `${oversizedCount} file(s) exceeded the 100MB limit and were skipped.`,
+      );
     }
 
     setQueue((prev) => [...prev, ...validFiles]);
@@ -277,7 +290,11 @@ export function UploadModal({ open, onOpenChange }: UploadModalProps) {
       setIsWindowDragging(false);
       dragCounter.current = 0;
 
-      if (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+      if (
+        e.dataTransfer &&
+        e.dataTransfer.files &&
+        e.dataTransfer.files.length > 0
+      ) {
         onOpenChange(true);
         addFilesToQueue(Array.from(e.dataTransfer.files));
       }
@@ -311,7 +328,7 @@ export function UploadModal({ open, onOpenChange }: UploadModalProps) {
       if (item.status === "success") continue; // Skip already completed uploads
 
       setQueue((prev) =>
-        prev.map((q) => (q.id === item.id ? { ...q, status: "uploading" } : q))
+        prev.map((q) => (q.id === item.id ? { ...q, status: "uploading" } : q)),
       );
 
       try {
@@ -321,12 +338,16 @@ export function UploadModal({ open, onOpenChange }: UploadModalProps) {
         });
 
         setQueue((prev) =>
-          prev.map((q) => (q.id === item.id ? { ...q, status: "success" } : q))
+          prev.map((q) => (q.id === item.id ? { ...q, status: "success" } : q)),
         );
       } catch (err: any) {
         allSuccessful = false;
         setQueue((prev) =>
-          prev.map((q) => (q.id === item.id ? { ...q, status: "error", error: err.message || "Failed" } : q))
+          prev.map((q) =>
+            q.id === item.id
+              ? { ...q, status: "error", error: err.message || "Failed" }
+              : q,
+          ),
         );
       }
     }
@@ -352,10 +373,15 @@ export function UploadModal({ open, onOpenChange }: UploadModalProps) {
     setIsUploading(false);
   };
 
-  const handleOpenChange = (nextOpen: boolean) => {
-    if (isUploading) return; // Prevent closing while upload is in progress
+    const handleOpenChange = (nextOpen: boolean) => {
     if (!nextOpen) {
-      resetState();
+      if (isUploading) {
+        toast("Upload will continue in the background. You can track progress on the Transfers page.", {
+          icon: "ℹ️",
+        });
+      } else {
+        resetState();
+      }
     }
     onOpenChange(nextOpen);
   };
@@ -377,14 +403,17 @@ export function UploadModal({ open, onOpenChange }: UploadModalProps) {
           />
 
           <p className="text-[13px] text-ink-muted -mt-1">
-            Select destination folder and queue files to upload. Max 100MB per file.
+            Select destination folder and queue files to upload. Max 100MB per
+            file.
           </p>
 
           {/* Scrollable container for Content */}
           <div className="flex-1 overflow-y-auto pr-1 flex flex-col gap-4">
             {/* Destination Folder Selection */}
             <div className="flex flex-col gap-1.5">
-              <span className="text-xs font-semibold text-ink-muted">Destination Folder</span>
+              <span className="text-xs font-semibold text-ink-muted">
+                Destination Folder
+              </span>
               <div className="rounded-md border border-border bg-bg-raised max-h-36 overflow-y-auto py-1 px-1">
                 {foldersLoading ? (
                   <div className="flex items-center justify-center py-4 text-xs text-ink-faint">
@@ -399,7 +428,7 @@ export function UploadModal({ open, onOpenChange }: UploadModalProps) {
                         "flex w-full items-center gap-2 rounded-md px-2 py-1 text-[13px] font-medium transition-colors text-left",
                         isRootSelected
                           ? "bg-accent/15 text-accent-bright border border-accent/30"
-                          : "text-ink-muted hover:bg-bg-overlay hover:text-ink border border-transparent"
+                          : "text-ink-muted hover:bg-bg-overlay hover:text-ink border border-transparent",
                       )}
                       onClick={handleSelectRoot}
                     >
@@ -410,7 +439,9 @@ export function UploadModal({ open, onOpenChange }: UploadModalProps) {
                         <Folder className="h-4 w-4 flex-shrink-0 text-ink-faint" />
                       )}
                       <span>Root (/)</span>
-                      {isRootSelected && <Check className="ml-auto h-3.5 w-3.5 text-accent flex-shrink-0" />}
+                      {isRootSelected && (
+                        <Check className="ml-auto h-3.5 w-3.5 text-accent flex-shrink-0" />
+                      )}
                     </button>
 
                     {folderTree.map((node) => (
@@ -428,7 +459,10 @@ export function UploadModal({ open, onOpenChange }: UploadModalProps) {
 
               {/* Create Folder inline */}
               {isCreatingFolder ? (
-                <form onSubmit={handleCreateFolder} className="flex items-center gap-2 mt-1">
+                <form
+                  onSubmit={handleCreateFolder}
+                  className="flex items-center gap-2 mt-1"
+                >
                   <Input
                     placeholder="New folder name…"
                     value={newFolderName}
@@ -440,7 +474,9 @@ export function UploadModal({ open, onOpenChange }: UploadModalProps) {
                     type="submit"
                     size="sm"
                     className="h-8"
-                    disabled={createFolderMutation.isPending || !newFolderName.trim()}
+                    disabled={
+                      createFolderMutation.isPending || !newFolderName.trim()
+                    }
                   >
                     {createFolderMutation.isPending ? (
                       <Loader2 className="h-3 w-3 animate-spin" />
@@ -484,12 +520,18 @@ export function UploadModal({ open, onOpenChange }: UploadModalProps) {
                 "flex flex-col items-center justify-center border-2 border-dashed rounded-lg p-5 cursor-pointer transition-all",
                 isDragging
                   ? "border-accent bg-accent/5"
-                  : "border-border-strong bg-bg-raised hover:border-accent/40"
+                  : "border-border-strong bg-bg-raised hover:border-accent/40",
               )}
             >
-              <Upload className={cn("h-8 w-8 text-ink-faint mb-2", isDragging && "text-accent animate-bounce")} />
+              <Upload
+                className={cn(
+                  "h-8 w-8 text-ink-faint mb-2",
+                  isDragging && "text-accent animate-bounce",
+                )}
+              />
               <span className="text-xs font-semibold text-ink">
-                Drag & drop files here, or <span className="text-accent hover:underline">browse</span>
+                Drag & drop files here, or{" "}
+                <span className="text-accent hover:underline">browse</span>
               </span>
               <span className="text-[10px] text-ink-faint mt-1">
                 Supports any file type up to 100MB
@@ -499,7 +541,9 @@ export function UploadModal({ open, onOpenChange }: UploadModalProps) {
             {/* File Queue List */}
             {queue.length > 0 && (
               <div className="flex flex-col gap-1.5">
-                <span className="text-xs font-semibold text-ink-muted">Queue ({queue.length} files)</span>
+                <span className="text-xs font-semibold text-ink-muted">
+                  Queue ({queue.length} files)
+                </span>
                 <div className="flex flex-col gap-1 max-h-48 overflow-y-auto border border-border rounded-md p-1 bg-bg-surface">
                   {queue.map((item) => (
                     <div
@@ -507,15 +551,26 @@ export function UploadModal({ open, onOpenChange }: UploadModalProps) {
                       className="flex items-center justify-between p-1.5 rounded-sm bg-bg-raised/50 border border-border/50 text-[12px]"
                     >
                       <div className="flex items-center gap-2 min-w-0 flex-1">
-                        <FileIcon className={cn("h-4 w-4 flex-shrink-0", item.status === "error" && "text-danger")} />
+                        <FileIcon
+                          className={cn(
+                            "h-4 w-4 flex-shrink-0",
+                            item.status === "error" && "text-danger",
+                          )}
+                        />
                         <div className="flex flex-col min-w-0 flex-1">
-                          <span className="font-semibold text-ink truncate" title={item.file.name}>
+                          <span
+                            className="font-semibold text-ink truncate"
+                            title={item.file.name}
+                          >
                             {item.file.name}
                           </span>
                           <div className="flex items-center gap-2 text-[10px] text-ink-faint font-mono">
                             <span>{formatBytes(item.file.size)}</span>
                             {item.status === "error" && item.error && (
-                              <span className="text-[10px] text-danger font-medium truncate max-w-[220px]" title={item.error}>
+                              <span
+                                className="text-[10px] text-danger font-medium truncate max-w-[220px]"
+                                title={item.error}
+                              >
                                 • {item.error}
                               </span>
                             )}
@@ -524,27 +579,55 @@ export function UploadModal({ open, onOpenChange }: UploadModalProps) {
                       </div>
 
                       <div className="flex items-center gap-2 ml-4">
+                        {item.status === "uploading" && (
+                          <Loader2 className="h-3.5 w-3.5 text-accent animate-spin" />
+                        )}
+                        {item.status === "success" && (
+                          <div className="flex items-center gap-1.5">
+                            <FileCheck className="h-3.5 w-3.5 text-success" />
+                            {!isUploading && (
+                              <button
+                                type="button"
+                                onClick={() => removeFileFromQueue(item.id)}
+                                className="text-ink-faint hover:text-danger p-0.5 rounded transition-colors ml-1"
+                                aria-label="Remove completed file"
+                              >
+                                <X className="h-3.5 w-3.5" />
+                              </button>
+                            )}
+                          </div>
+                        )}
+                        {item.status === "error" && (
+                          <div className="flex items-center gap-1.5">
+                            <div
+                              className="flex items-center gap-1 text-danger font-semibold"
+                              title={item.error}
+                            >
+                              <AlertCircle className="h-3.5 w-3.5" />
+                              <span className="text-[10px]">Failed</span>
+                            </div>
+                            {!isUploading && (
+                              <button
+                                type="button"
+                                onClick={() => removeFileFromQueue(item.id)}
+                                className="text-ink-faint hover:text-danger p-0.5 rounded transition-colors"
+                                aria-label="Remove failed file"
+                              >
+                                <X className="h-3.5 w-3.5" />
+                              </button>
+                            )}
+                          </div>
+                        )}
                         {item.status === "idle" && (
                           <button
                             type="button"
                             onClick={() => removeFileFromQueue(item.id)}
                             disabled={isUploading}
                             className="text-ink-faint hover:text-danger p-0.5 rounded transition-colors"
+                            aria-label="Remove queued file"
                           >
                             <X className="h-3.5 w-3.5" />
                           </button>
-                        )}
-                        {item.status === "uploading" && (
-                          <Loader2 className="h-3.5 w-3.5 text-accent animate-spin" />
-                        )}
-                        {item.status === "success" && (
-                          <FileCheck className="h-3.5 w-3.5 text-success" />
-                        )}
-                        {item.status === "error" && (
-                          <div className="flex items-center gap-1 text-danger font-semibold" title={item.error}>
-                            <AlertCircle className="h-3.5 w-3.5" />
-                            <span className="text-[10px]">Failed</span>
-                          </div>
                         )}
                       </div>
                     </div>
@@ -560,14 +643,17 @@ export function UploadModal({ open, onOpenChange }: UploadModalProps) {
               variant="secondary"
               size="sm"
               onClick={() => handleOpenChange(false)}
-              disabled={isUploading}
             >
               Close
             </Button>
             <Button
               size="sm"
               onClick={handleUploadAll}
-              disabled={isUploading || queue.length === 0 || queue.every((item) => item.status === "success")}
+              disabled={
+                isUploading ||
+                queue.length === 0 ||
+                queue.every((item) => item.status === "success")
+              }
             >
               {isUploading ? (
                 <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -590,7 +676,8 @@ export function UploadModal({ open, onOpenChange }: UploadModalProps) {
               Drop files to upload to ByteVault
             </h2>
             <p className="text-sm text-ink-muted">
-              You can drop your files anywhere on the screen. Supports files up to 100MB.
+              You can drop your files anywhere on the screen. Supports files up
+              to 100MB.
             </p>
           </div>
         </div>

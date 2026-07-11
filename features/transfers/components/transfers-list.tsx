@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useEffect } from "react";
 import { useTransfers, useTransferStats } from "@/services";
 import { useTransferStore } from "@/store";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -24,7 +24,11 @@ const tabs: { value: TransferTab; label: string }[] = [
 export function TransfersList() {
   const { data: transfers, isLoading } = useTransfers();
   const { data: stats } = useTransferStats();
-  const { activeTab, setActiveTab, directionFilter, setDirectionFilter } = useTransferStore();
+  const { activeTab, setActiveTab, directionFilter, setDirectionFilter, loadFromLocalStorage } = useTransferStore();
+
+  useEffect(() => {
+    loadFromLocalStorage();
+  }, [loadFromLocalStorage]);
 
   const filtered = useMemo(() => {
     if (!transfers) return [];

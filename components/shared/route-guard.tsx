@@ -40,16 +40,19 @@ export function RouteGuard({ children }: { children: React.ReactNode }) {
 
     if (!isAuthenticated) {
       if (!isPublicPath(pathname)) {
-        router.push("/login");
+        router.push(`/login?redirect=${encodeURIComponent(pathname)}`);
       }
     } else {
-      // Verified user hitting any auth page → dashboard
+      const searchParams = new URLSearchParams(window.location.search);
+      const redirectTo = searchParams.get("redirect") || "/dashboard";
+
+      // Verified user hitting any auth page → redirect target
       if (isAuthPage && !pathname.startsWith("/verify-email")) {
-        router.push("/dashboard");
+        router.push(redirectTo);
       }
-      // Verified user on verify-email → dashboard
+      // Verified user on verify-email → redirect target
       if (pathname.startsWith("/verify-email") && user?.isVerified) {
-        router.push("/dashboard");
+        router.push(redirectTo);
       }
     }
   }, [isAuthenticated, sessionChecked, user, pathname, router]);
@@ -65,7 +68,9 @@ export function RouteGuard({ children }: { children: React.ReactNode }) {
       <div className="flex min-h-screen items-center justify-center bg-bg">
         <div className="flex flex-col items-center gap-2">
           <div className="h-8 w-8 animate-spin rounded-full border-2 border-accent border-t-transparent" />
-          <span className="font-mono text-[12px] text-ink-muted">Verifying session...</span>
+          <span className="font-mono text-[12px] text-ink-muted">
+            Verifying session...
+          </span>
         </div>
       </div>
     );

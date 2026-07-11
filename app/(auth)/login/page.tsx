@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useAuthStore, mapBackendUserToFrontend } from "@/store";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,8 +13,12 @@ import toast from "react-hot-toast";
 import { apiClient, setTokens } from "@/lib/api-client";
 import { PasswordInput } from "@/components/ui/password-input";
 
-export default function LoginPage() {
+import { Suspense } from "react";
+
+function LoginPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const redirectTo = searchParams.get("redirect") || "/dashboard";
   const login = useAuthStore((s) => s.login);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -34,10 +38,10 @@ export default function LoginPage() {
       const currentUser = useAuthStore.getState().user;
       if (currentUser && !currentUser.isVerified) {
         toast.success("Please verify your email address.");
-        router.push(`/verify-email?email=${encodeURIComponent(email)}`);
+        router.push(`/verify-email?email=${encodeURIComponent(email)}&redirect=${encodeURIComponent(redirectTo)}`);
       } else {
         toast.success("Successfully logged in!");
-        router.push("/dashboard");
+        router.push(redirectTo);
       }
     } catch (err: any) {
       toast.error(err.message || "Invalid email or password");
@@ -157,7 +161,7 @@ export default function LoginPage() {
                 }
                 const frontendUser = mapBackendUserToFrontend(data.user);
                 useAuthStore.getState().setUser(frontendUser);
-                router.push("/dashboard");
+                router.push(redirectTo);
               } catch (err: any) {
                 toast.error(err.message || "Google login failed");
               }
@@ -202,5 +206,13 @@ export default function LoginPage() {
         </div>
       </CardContent>
     </Card>
+  );
+}
+
+export default function LoginPageWrapped() {
+  return (
+    <Suspense fallback={<div className="text-center text-sm text-ink-muted">Loading...</div>}>
+      <LoginPage />
+    </Suspense>
   );
 }
