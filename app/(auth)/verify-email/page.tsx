@@ -14,6 +14,7 @@ function VerifyEmailForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const email = searchParams.get("email") || "";
+  const redirectTo = searchParams.get("redirect") || "/dashboard";
   const { checkSession } = useAuthStore();
 
   const [otp, setOtp] = useState(["", "", "", "", "", ""]);
@@ -81,7 +82,7 @@ function VerifyEmailForm() {
       }
 
       await checkSession();
-      router.push("/dashboard");
+      router.push(redirectTo);
     } catch (err: any) {
       toast.error(err.message || "Invalid or expired OTP");
     } finally {
@@ -192,11 +193,13 @@ function VerifyEmailForm() {
 
 export default function VerifyEmailPage() {
   return (
-    <Suspense fallback={
-      <Card className="w-full max-w-md bg-bg-surface border-border-strong p-8 text-center text-sm text-ink-muted">
-        Loading verification form...
-      </Card>
-    }>
+    <Suspense
+      fallback={
+        <Card className="w-full max-w-md bg-bg-surface border-border-strong p-8 text-center text-sm text-ink-muted">
+          Loading verification form...
+        </Card>
+      }
+    >
       <VerifyEmailForm />
     </Suspense>
   );

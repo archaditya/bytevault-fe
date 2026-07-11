@@ -1,10 +1,23 @@
 "use client";
 
-import { useState } from "react";
-import { Grid3x3, List, Search, Upload, FolderPlus, Loader2 } from "lucide-react";
+import { useState, useEffect } from "react";
+import { useSearchParams } from "next/navigation";
+import {
+  Grid3x3,
+  List,
+  Search,
+  Upload,
+  FolderPlus,
+  Loader2,
+} from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import {
   Select,
   SelectTrigger,
@@ -37,6 +50,18 @@ export function FilesToolbar() {
   const [newFolderName, setNewFolderName] = useState("");
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
 
+  const searchParams = useSearchParams();
+
+  useEffect(() => {
+    if (searchParams.get("triggerUpload") === "true") {
+      setIsUploadModalOpen(true);
+      // Clean parameters from address bar silently
+      const url = new URL(window.location.href);
+      url.searchParams.delete("triggerUpload");
+      window.history.replaceState({}, "", url.toString());
+    }
+  }, [searchParams]);
+
   const {
     viewMode,
     setViewMode,
@@ -51,7 +76,10 @@ export function FilesToolbar() {
     if (newFolderName.trim() === "") return;
 
     try {
-      await createFolderMutation.mutateAsync({ name: newFolderName.trim(), parentId: currentFolderId });
+      await createFolderMutation.mutateAsync({
+        name: newFolderName.trim(),
+        parentId: currentFolderId,
+      });
       setNewFolderName("");
       setIsCreateOpen(false);
     } catch (err: any) {
@@ -61,7 +89,10 @@ export function FilesToolbar() {
 
   return (
     <div className="flex flex-wrap items-center gap-2.5">
-      <UploadModal open={isUploadModalOpen} onOpenChange={setIsUploadModalOpen} />
+      <UploadModal
+        open={isUploadModalOpen}
+        onOpenChange={setIsUploadModalOpen}
+      />
 
       <div className="relative min-w-[220px] flex-1 sm:max-w-xs">
         <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-ink-faint" />
@@ -92,7 +123,9 @@ export function FilesToolbar() {
             onClick={() => setViewMode("grid")}
             className={cn(
               "flex h-7 w-7 items-center justify-center rounded-sm transition-colors",
-              viewMode === "grid" ? "bg-bg-overlay text-ink" : "text-ink-faint hover:text-ink"
+              viewMode === "grid"
+                ? "bg-bg-overlay text-ink"
+                : "text-ink-faint hover:text-ink",
             )}
             aria-label="Grid view"
           >
@@ -102,7 +135,9 @@ export function FilesToolbar() {
             onClick={() => setViewMode("list")}
             className={cn(
               "flex h-7 w-7 items-center justify-center rounded-sm transition-colors",
-              viewMode === "list" ? "bg-bg-overlay text-ink" : "text-ink-faint hover:text-ink"
+              viewMode === "list"
+                ? "bg-bg-overlay text-ink"
+                : "text-ink-faint hover:text-ink",
             )}
             aria-label="List view"
           >
@@ -110,7 +145,11 @@ export function FilesToolbar() {
           </button>
         </div>
 
-        <Button size="sm" variant="secondary" onClick={() => setIsCreateOpen(true)}>
+        <Button
+          size="sm"
+          variant="secondary"
+          onClick={() => setIsCreateOpen(true)}
+        >
           <FolderPlus className="h-3.5 w-3.5 mr-1.5" />
           New Folder
         </Button>
@@ -135,9 +174,17 @@ export function FilesToolbar() {
             <DialogHeader>
               <DialogTitle>Create New Folder</DialogTitle>
             </DialogHeader>
-            <form onSubmit={handleCreateFolderSubmit} className="flex flex-col gap-4 py-2">
+            <form
+              onSubmit={handleCreateFolderSubmit}
+              className="flex flex-col gap-4 py-2"
+            >
               <div className="flex flex-col gap-1.5">
-                <label htmlFor="folderName" className="text-xs font-semibold text-ink-muted">Folder Name</label>
+                <label
+                  htmlFor="folderName"
+                  className="text-xs font-semibold text-ink-muted"
+                >
+                  Folder Name
+                </label>
                 <Input
                   id="folderName"
                   placeholder="Enter name..."
@@ -147,10 +194,19 @@ export function FilesToolbar() {
                 />
               </div>
               <div className="flex justify-end gap-2 pt-2">
-                <Button type="button" variant="secondary" onClick={() => setIsCreateOpen(false)} size="sm">
+                <Button
+                  type="button"
+                  variant="secondary"
+                  onClick={() => setIsCreateOpen(false)}
+                  size="sm"
+                >
                   Cancel
                 </Button>
-                <Button type="submit" disabled={createFolderMutation.isPending} size="sm">
+                <Button
+                  type="submit"
+                  disabled={createFolderMutation.isPending}
+                  size="sm"
+                >
                   {createFolderMutation.isPending ? "Creating..." : "Create"}
                 </Button>
               </div>

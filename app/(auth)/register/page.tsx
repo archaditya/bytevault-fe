@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useAuthStore } from "@/store";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,9 +12,14 @@ import { Box } from "lucide-react";
 import toast from "react-hot-toast";
 import { PasswordInput } from "@/components/ui/password-input";
 
-export default function RegisterPage() {
+import { Suspense } from "react";
+
+function RegisterPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const redirectTo = searchParams.get("redirect") || "/dashboard";
   const register = useAuthStore((s) => s.register);
+
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
@@ -34,7 +39,7 @@ export default function RegisterPage() {
       toast.success(
         "Account created! Please check your email for the verification code.",
       );
-      router.push(`/verify-email?email=${encodeURIComponent(email)}`);
+      router.push(`/verify-email?email=${encodeURIComponent(email)}&redirect=${encodeURIComponent(redirectTo)}`);
     } catch (err: any) {
       toast.error(err.message || "Registration failed. Try again.");
     } finally {
@@ -124,13 +129,24 @@ export default function RegisterPage() {
           </Link>
           <div className="mt-3 flex justify-center text-[11px] text-ink-faint">
             By Signing up, you agree to our
-            <Link href="/terms" className="hover:text-ink">Terms of Service</Link>
-            &
-            {/* <span>&middot;</span> */}
-            <Link href="/subscription-policy" className="hover:text-ink">Subscription Policy</Link>
+            <Link href="/terms" className="hover:text-ink">
+              Terms of Service
+            </Link>
+            &{/* <span>&middot;</span> */}
+            <Link href="/subscription-policy" className="hover:text-ink">
+              Subscription Policy
+            </Link>
           </div>
         </div>
       </CardContent>
     </Card>
+  );
+}
+
+export default function RegisterPageWrapped() {
+  return (
+    <Suspense fallback={<div className="text-center text-sm text-ink-muted">Loading...</div>}>
+      <RegisterPage />
+    </Suspense>
   );
 }

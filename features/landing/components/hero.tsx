@@ -299,10 +299,10 @@ export function Hero() {
             </p>
             <div className="flex flex-col gap-2 mt-6">
               <Button asChild className="w-full">
-                <Link href="/register">Create Free Account</Link>
+                <Link href="/register?redirect=/files?triggerUpload=true">Create Free Account</Link>
               </Button>
               <Button asChild variant="secondary" className="w-full">
-                <Link href="/login">Log In to Existing Account</Link>
+                <Link href="/login?redirect=/files?triggerUpload=true">Log In to Existing Account</Link>
               </Button>
             </div>
           </div>

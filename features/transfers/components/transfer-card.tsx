@@ -20,15 +20,39 @@ export function TransferCard({ transfer }: { transfer: TransferSession }) {
             <div
               className={cn(
                 "mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-sm",
-                transfer.direction === "upload" ? "bg-accent/10 text-accent-bright" : "bg-info/10 text-info"
+                transfer.direction === "upload"
+                  ? "bg-accent/10 text-accent-bright"
+                  : "bg-info/10 text-info",
               )}
             >
               <DirectionIcon className="h-3.5 w-3.5" />
             </div>
             <div className="min-w-0">
-              <p className="truncate text-[13px] font-medium text-ink">{transfer.fileName}</p>
-              <div className="mt-0.5 flex items-center gap-2 text-[12px] text-ink-muted">
+              <p className="truncate text-[13px] font-medium text-ink">
+                {transfer.fileName}
+              </p>
+              <div className="mt-0.5 flex flex-wrap items-center gap-1.5 text-[12px] text-ink-muted">
                 <span>{formatRelativeTime(transfer.updatedAt)}</span>
+                {transfer.status === "completed" && transfer.completedAt && (
+                  <>
+                    <span>•</span>
+                    <span className="font-medium text-success">
+                      Took{" "}
+                      {(() => {
+                        const start = new Date(transfer.startedAt).getTime();
+                        const end = new Date(transfer.completedAt).getTime();
+                        const durationSec = Math.max(
+                          1,
+                          Math.round((end - start) / 1000),
+                        );
+                        if (durationSec < 60) return `${durationSec}s`;
+                        const durationMin = Math.floor(durationSec / 60);
+                        const remainingSec = durationSec % 60;
+                        return `${durationMin}m ${remainingSec}s`;
+                      })()}
+                    </span>
+                  </>
+                )}
               </div>
             </div>
           </div>
@@ -43,12 +67,17 @@ export function TransferCard({ transfer }: { transfer: TransferSession }) {
           etaSeconds={transfer.etaSeconds}
         />
 
-        <ChunkVisualizer chunks={transfer.chunks} totalChunks={transfer.totalChunks} className="max-h-[22px] overflow-hidden" />
+        <ChunkVisualizer
+          chunks={transfer.chunks}
+          totalChunks={transfer.totalChunks}
+          className="max-h-[22px] overflow-hidden"
+        />
 
         {transfer.retryCount > 0 && (
           <div className="flex items-center gap-1.5 text-[11px] text-live">
             <RotateCcw className="h-3 w-3" />
-            {transfer.retryCount} retr{transfer.retryCount === 1 ? "y" : "ies"} on this transfer
+            {transfer.retryCount} retr{transfer.retryCount === 1 ? "y" : "ies"}{" "}
+            on this transfer
           </div>
         )}
       </Card>
