@@ -24,6 +24,8 @@ export interface AdminUser {
   is_verified: boolean;
   status: string;
   role?: string;
+  storage_limit_bytes?: number | null;
+  max_file_size_bytes?: number | null;
   created_at: string;
   updated_at: string;
 }
@@ -228,6 +230,8 @@ export function useUpdateUserMutation() {
       status,
       is_verified,
       role_id,
+      storage_limit_bytes,
+      max_file_size_bytes,
     }: {
       id: string;
       first_name?: string;
@@ -235,10 +239,12 @@ export function useUpdateUserMutation() {
       status?: string;
       is_verified?: boolean;
       role_id?: string;
+      storage_limit_bytes?: number;
+      max_file_size_bytes?: number;
     }) => {
       return apiClient(`/api/v1/admin/users/${id}`, {
         method: "PUT",
-        body: JSON.stringify({ first_name, last_name, status, is_verified, role_id }),
+        body: JSON.stringify({ first_name, last_name, status, is_verified, role_id, storage_limit_bytes, max_file_size_bytes }),
       });
     },
     onSuccess: () => {

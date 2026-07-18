@@ -40,24 +40,27 @@ export function TransfersList() {
   }, [transfers, activeTab, directionFilter]);
 
   return (
-    <div className="flex flex-col gap-4">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as TransferTab)}>
-          <TabsList>
-            {tabs.map((tab) => (
-              <TabsTrigger key={tab.value} value={tab.value}>
-                {tab.label}
-                {stats && tab.value !== "all" && tab.value in stats && (
-                  <span className="font-mono text-[10px] text-ink-faint">
-                    {(stats as Record<string, number>)[tab.value]}
-                  </span>
-                )}
-              </TabsTrigger>
-            ))}
-          </TabsList>
-        </Tabs>
+    <div className="flex flex-col gap-4 w-full">
+      <div className="flex flex-wrap items-center justify-between gap-3 w-full">
+        {/* Horizontal scroll container for mobile screens */}
+        <div className="w-full overflow-x-auto pb-1 scrollbar-none sm:w-auto">
+          <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as TransferTab)} className="w-full sm:w-auto">
+            <TabsList className="flex w-max min-w-full sm:min-w-0 sm:w-auto">
+              {tabs.map((tab) => (
+                <TabsTrigger key={tab.value} value={tab.value} className="shrink-0">
+                  {tab.label}
+                  {stats && tab.value !== "all" && tab.value in stats && (
+                    <span className="font-mono text-[10px] text-ink-faint ml-1">
+                      {(stats as Record<string, number>)[tab.value]}
+                    </span>
+                  )}
+                </TabsTrigger>
+              ))}
+            </TabsList>
+          </Tabs>
+        </div>
 
-        <div className="flex items-center rounded-md border border-border-strong bg-bg-surface p-0.5">
+        <div className="flex items-center rounded-md border border-border-strong bg-bg-surface p-0.5 shrink-0 ml-auto sm:ml-0">
           <Button
             size="sm"
             variant="ghost"

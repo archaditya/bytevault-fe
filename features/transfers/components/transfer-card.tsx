@@ -1,13 +1,15 @@
 "use client";
 
 import Link from "next/link";
-import { ArrowUp, ArrowDown, RotateCcw } from "lucide-react";
+import { ArrowUp, ArrowDown, RotateCcw, Play, Pause } from "lucide-react";
 import { TransferSession } from "@/types";
 import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { TransferStatusBadge } from "@/components/shared/status-badge";
 import { TransferProgress } from "@/components/shared/transfer-progress";
 import { ChunkVisualizer } from "@/components/shared/chunk-visualizer";
 import { formatRelativeTime, cn } from "@/lib/utils";
+import { pauseUpload, resumeUpload } from "@/services";
 
 export function TransferCard({ transfer }: { transfer: TransferSession }) {
   const DirectionIcon = transfer.direction === "upload" ? ArrowUp : ArrowDown;
@@ -56,7 +58,33 @@ export function TransferCard({ transfer }: { transfer: TransferSession }) {
               </div>
             </div>
           </div>
-          <TransferStatusBadge status={transfer.status} />
+          
+          <div className="flex items-center gap-2">
+            {/* Inline play/pause action buttons for upload transfers */}
+            {transfer.direction === "upload" && (transfer.status === "active" || transfer.status === "paused") && (
+              <Button
+                size="icon"
+                variant="ghost"
+                className="h-7 w-7 text-ink-muted hover:text-ink hover:bg-bg-overlay shrink-0"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  if (transfer.status === "active") {
+                    pauseUpload(transfer.id);
+                  } else {
+                    resumeUpload(transfer.id);
+                  }
+                }}
+              >
+                {transfer.status === "active" ? (
+                  <Pause className="h-3.5 w-3.5" />
+                ) : (
+                  <Play className="h-3.5 w-3.5 text-accent" />
+                )}
+              </Button>
+            )}
+            <TransferStatusBadge status={transfer.status} />
+          </div>
         </div>
 
         <TransferProgress
@@ -70,7 +98,7 @@ export function TransferCard({ transfer }: { transfer: TransferSession }) {
         <ChunkVisualizer
           chunks={transfer.chunks}
           totalChunks={transfer.totalChunks}
-          className="max-h-[22px] overflow-hidden"
+          className="max-h-[120px] overflow-hidden"
         />
 
         {transfer.retryCount > 0 && (

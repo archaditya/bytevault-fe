@@ -57,6 +57,8 @@ export default function AdminUsersPage() {
   const [editStatus, setEditStatus] = useState("");
   const [editIsVerified, setEditIsVerified] = useState(false);
   const [editRoleId, setEditRoleId] = useState("");
+  const [editStorageLimitGb, setEditStorageLimitGb] = useState<number>(1);
+  const [editMaxFileSizeMb, setEditMaxFileSizeMb] = useState<number>(100);
 
   const isAdmin = currentUser?.role === "super_admin" || currentUser?.role === "admin";
 
@@ -95,6 +97,12 @@ export default function AdminUsersPage() {
     setEditStatus(user.status || "active");
     setEditIsVerified(user.is_verified || false);
     setEditRoleId("");
+    setEditStorageLimitGb(
+      user.storage_limit_bytes ? Math.round(user.storage_limit_bytes / (1024 * 1024 * 1024)) : 1
+    );
+    setEditMaxFileSizeMb(
+      user.max_file_size_bytes ? Math.round(user.max_file_size_bytes / (1024 * 1024)) : 100
+    );
     setEditOpen(true);
   };
 
@@ -110,6 +118,8 @@ export default function AdminUsersPage() {
         status: editStatus,
         is_verified: editIsVerified,
         role_id: editRoleId || undefined,
+        storage_limit_bytes: editStorageLimitGb * 1024 * 1024 * 1024,
+        max_file_size_bytes: editMaxFileSizeMb * 1024 * 1024,
       });
       setEditOpen(false);
       setSelectedUserId(null);
@@ -303,6 +313,22 @@ export default function AdminUsersPage() {
                   </span>
                 </div>
                 <div className="flex items-center justify-between border-b border-border pb-2.5">
+                  <span className="text-ink-muted">Storage Limit</span>
+                  <span className="font-mono font-semibold">
+                    {detailsData.user.storage_limit_bytes
+                      ? `${Math.round(detailsData.user.storage_limit_bytes / (1024 * 1024 * 1024))} GB`
+                      : "1 GB"}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between border-b border-border pb-2.5">
+                  <span className="text-ink-muted">Max File Size</span>
+                  <span className="font-mono font-semibold">
+                    {detailsData.user.max_file_size_bytes
+                      ? `${Math.round(detailsData.user.max_file_size_bytes / (1024 * 1024))} MB`
+                      : "100 MB"}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between border-b border-border pb-2.5">
                   <span className="text-ink-muted">Email Verified</span>
                   <Badge variant={detailsData.user.is_verified ? "info" : "muted"}>
                     {detailsData.user.is_verified ? "Yes" : "No"}
@@ -387,6 +413,34 @@ export default function AdminUsersPage() {
                   <option value="suspended">Suspended</option>
                   <option value="inactive">Inactive</option>
                 </select>
+              </div>
+
+              <div className="flex flex-col gap-1.5">
+                <label htmlFor="editStorageLimitGb" className="text-xs font-semibold text-ink-muted font-sans">
+                  Storage Quota Limit (GB)
+                </label>
+                <Input
+                  id="editStorageLimitGb"
+                  type="number"
+                  min={1}
+                  max={2000}
+                  value={editStorageLimitGb}
+                  onChange={(e) => setEditStorageLimitGb(Number(e.target.value))}
+                />
+              </div>
+
+              <div className="flex flex-col gap-1.5">
+                <label htmlFor="editMaxFileSizeMb" className="text-xs font-semibold text-ink-muted font-sans">
+                  Max File Upload Size (MB)
+                </label>
+                <Input
+                  id="editMaxFileSizeMb"
+                  type="number"
+                  min={1}
+                  max={5120}
+                  value={editMaxFileSizeMb}
+                  onChange={(e) => setEditMaxFileSizeMb(Number(e.target.value))}
+                />
               </div>
 
               <div className="flex items-center gap-2 pt-1.5">

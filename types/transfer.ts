@@ -31,6 +31,7 @@ export interface TransferSession {
   id: string;
   fileName: string;
   fileId: string;
+  uploadId?: string; // Track multipart upload ID for resumable uploads
   direction: TransferDirection;
   status: TransferStatus;
   providerId: "r2" | "s3" | "local";
@@ -48,4 +49,7 @@ export interface TransferSession {
   logs: TransferLogEntry[];
   speedHistory: SpeedSample[];
   initiatedBy: string;
+  etags?: string[]; // track chunk etags for resume support
+  partUrls?: { part_number: number; url: string }[]; // cache urls for resume support
+  folderId?: string | null;
 }

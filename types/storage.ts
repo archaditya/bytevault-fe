@@ -16,3 +16,10 @@ export interface StorageProvider {
   isPrimary: boolean;
   uptimeHistory: { day: string; uptimePct: number }[];
 }
+
+export interface QuotaStats {
+  used_bytes: number;
+  total_bytes: number;
+  remaining_bytes: number;
+  max_file_size_bytes: number;
+}

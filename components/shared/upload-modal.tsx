@@ -27,6 +27,7 @@ import {
   useFoldersFlat,
   useUploadFileMutation,
   useCreateFolderMutation,
+  useQuota,
 } from "@/services";
 import { FolderRecord } from "@/types";
 import { cn, formatBytes } from "@/lib/utils";
@@ -148,6 +149,11 @@ export function UploadModal({ open, onOpenChange }: UploadModalProps) {
   const { data: allFolders, isLoading: foldersLoading } = useFoldersFlat();
   const uploadMutation = useUploadFileMutation();
   const createFolderMutation = useCreateFolderMutation();
+  const { data: quota } = useQuota();
+
+  // Dynamically calculate limits based on user quota settings, default to 100MB
+  const maxFileSizeBytes = quota?.max_file_size_bytes || 100 * 1024 * 1024;
+  const maxFileSizeMb = Math.round(maxFileSizeBytes / (1024 * 1024));
 
   const [selectedFolderId, setSelectedFolderId] = useState<string | null>(null);
   const [isCreatingFolder, setIsCreatingFolder] = useState(false);
@@ -235,7 +241,7 @@ export function UploadModal({ open, onOpenChange }: UploadModalProps) {
     let oversizedCount = 0;
 
     files.forEach((file) => {
-      if (file.size > MAX_FILE_SIZE_BYTES) {
+      if (file.size > maxFileSizeBytes) {
         oversizedCount++;
         return;
       }
@@ -248,12 +254,12 @@ export function UploadModal({ open, onOpenChange }: UploadModalProps) {
 
     if (oversizedCount > 0) {
       toast.error(
-        `${oversizedCount} file(s) exceeded the 100MB limit and were skipped.`,
+        `${oversizedCount} file(s) exceeded the ${maxFileSizeMb}MB limit and were skipped.`,
       );
     }
 
     setQueue((prev) => [...prev, ...validFiles]);
-  }, []);
+  }, [maxFileSizeBytes, maxFileSizeMb]);
 
   // Global window drag and drop listener
   useEffect(() => {
@@ -403,7 +409,7 @@ export function UploadModal({ open, onOpenChange }: UploadModalProps) {
           />
 
           <p className="text-[13px] text-ink-muted -mt-1">
-            Select destination folder and queue files to upload. Max 100MB per
+            Select destination folder and queue files to upload. Max {maxFileSizeMb}MB per
             file.
           </p>
 
@@ -534,7 +540,7 @@ export function UploadModal({ open, onOpenChange }: UploadModalProps) {
                 <span className="text-accent hover:underline">browse</span>
               </span>
               <span className="text-[10px] text-ink-faint mt-1">
-                Supports any file type up to 100MB
+                Supports any file type up to {maxFileSizeMb}MB
               </span>
             </div>
 
@@ -677,7 +683,7 @@ export function UploadModal({ open, onOpenChange }: UploadModalProps) {
             </h2>
             <p className="text-sm text-ink-muted">
               You can drop your files anywhere on the screen. Supports files up
-              to 100MB.
+              to {maxFileSizeMb}MB.
             </p>
           </div>
         </div>
