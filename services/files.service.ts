@@ -21,7 +21,6 @@ export function pauseUpload(txId: string) {
   const active = activeUploadsRegistry.get(txId);
   if (active) {
     active.abortController.abort();
-    activeUploadsRegistry.delete(txId);
   }
   useTransferStore.getState().updateTransfer(txId, { status: "paused" });
 }
