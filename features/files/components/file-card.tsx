@@ -7,8 +7,9 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { FileKindIcon } from "@/components/shared/file-kind-icon";
 import { formatBytes, formatRelativeTime } from "@/lib/utils";
-import { useDeleteFileMutation, useToggleShareMutation } from "@/services";
-import { getAccessToken } from "@/lib/api-client";
+import { useDeleteFileMutation, useToggleShareMutation, useFileImageBlob } from "@/services";
+import { useFilesStore } from "@/store/files.store";
+import { cn } from "@/lib/utils";
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -16,50 +17,28 @@ import {
   DropdownMenuItem,
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { MoveItemModal } from "./move-item-modal";
 
 export function FileCard({ file }: { file: FileRecord }) {
   const deleteMutation = useDeleteFileMutation();
   const toggleShareMutation = useToggleShareMutation();
-  
+  const selectedItems = useFilesStore((s) => s.selectedItems);
+  const toggleSelectItem = useFilesStore((s) => s.toggleSelectItem);
+
   const [isMoveModalOpen, setIsMoveModalOpen] = useState(false);
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 
-  useEffect(() => {
-    let active = true;
-    let url: string | null = null;
+  const isImage = ["png", "jpg", "jpeg", "gif", "webp", "svg"].includes(file.kind);
+  const { data: previewUrl } = useFileImageBlob(file.id, isImage && file.status === "READY");
+  const isSelected = selectedItems.some((item) => item.id === file.id);
 
-    if (file.kind === "image" && file.status === "READY") {
-      const token = getAccessToken();
-      const headers: Record<string, string> = {};
-      if (token) {
-        headers["Authorization"] = `Bearer ${token}`;
-      }
-
-      fetch(`/api/v1/files/${file.id}/download?inline=true`, { headers })
-        .then((res) => {
-          if (!res.ok) throw new Error();
-          return res.blob();
-        })
-        .then((blob) => {
-          if (active) {
-            url = URL.createObjectURL(blob);
-            setPreviewUrl(url);
-          }
-        })
-        .catch(() => {
-          // Fallback to showing kind icon
-        });
+  const handleCardClick = (e: React.MouseEvent) => {
+    if (selectedItems.length > 0) {
+      e.preventDefault();
+      e.stopPropagation();
+      toggleSelectItem(file.id, "file");
     }
-
-    return () => {
-      active = false;
-      if (url) {
-        URL.revokeObjectURL(url);
-      }
-    };
-  }, [file.id, file.kind, file.status]);
+  };
 
   const handleDownload = () => {
     window.open(`/api/v1/files/${file.id}/download`, "_blank");
@@ -77,8 +56,27 @@ export function FileCard({ file }: { file: FileRecord }) {
 
   return (
     <>
-      <Card className="group relative flex flex-col overflow-hidden p-0 transition-colors hover:border-border-strong bg-bg-surface">
-        <Link href={`/files/${file.id}`} className="flex flex-col">
+      <Card className={cn(
+        "group relative flex flex-col overflow-hidden p-0 transition-all duration-150 hover:border-border-strong bg-bg-surface",
+        isSelected && "ring-2 ring-accent border-accent"
+      )}>
+        {/* Checkbox overlay */}
+        <div
+          className={cn(
+            "absolute left-2.5 top-2.5 z-10 transition-opacity duration-150",
+            isSelected ? "opacity-100" : "opacity-0 group-hover:opacity-100"
+          )}
+          onClick={(e) => e.stopPropagation()}
+        >
+          <input
+            type="checkbox"
+            checked={isSelected}
+            onChange={() => toggleSelectItem(file.id, "file")}
+            className="h-4 w-4 rounded border-border bg-bg-raised text-accent focus:ring-accent cursor-pointer"
+          />
+        </div>
+
+        <Link href={`/files/${file.id}`} className="flex flex-col" onClick={handleCardClick}>
           <div
             className="flex h-24 items-center justify-center overflow-hidden"
             style={{ backgroundColor: `${file.thumbnailColor}14` }}
@@ -108,19 +106,22 @@ export function FileCard({ file }: { file: FileRecord }) {
               {file.shared && (
                 <Badge variant="info" className="px-1.5 flex items-center gap-1">
                   <Globe className="h-2.5 w-2.5" />
-                  <span>Public</span>
+                  Shared
                 </Badge>
               )}
             </div>
           </div>
         </Link>
 
-        <div className="absolute right-2 top-2 flex items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100">
-          {file.starred && <Star className="h-3.5 w-3.5 fill-live text-live" />}
+        {/* Dropdown actions trigger */}
+        <div
+          className="absolute right-2 top-2 z-10 opacity-0 group-hover:opacity-100 transition-opacity"
+          onClick={(e) => e.stopPropagation()}
+        >
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <button
-                className="flex h-6 w-6 items-center justify-center rounded-sm bg-bg-raised/90 text-ink-muted hover:text-ink border border-border"
+                className="flex h-6 w-6 items-center justify-center rounded-sm text-ink-muted hover:text-ink hover:bg-bg-overlay border border-transparent hover:border-border"
                 aria-label="File actions"
               >
                 <MoreVertical className="h-3.5 w-3.5" />
@@ -130,22 +131,11 @@ export function FileCard({ file }: { file: FileRecord }) {
               <DropdownMenuItem onClick={handleDownload} className="cursor-pointer hover:bg-bg-overlay">
                 <Download className="h-3.5 w-3.5 mr-2" /> Download
               </DropdownMenuItem>
-              {file.shared && (
-                <DropdownMenuItem 
-                  onClick={() => {
-                    navigator.clipboard.writeText(`${window.location.origin}/s/${file.id}`);
-                    alert("Link copied to clipboard!");
-                  }} 
-                  className="cursor-pointer hover:bg-bg-overlay"
-                >
-                  <Share2 className="h-3.5 w-3.5 mr-2" /> Copy Link
-                </DropdownMenuItem>
-              )}
-              <DropdownMenuItem onClick={handleToggleShare} className="cursor-pointer hover:bg-bg-overlay">
-                <Share2 className="h-3.5 w-3.5 mr-2" /> {file.shared ? "Make Private" : "Share Link"}
-              </DropdownMenuItem>
               <DropdownMenuItem onClick={() => setIsMoveModalOpen(true)} className="cursor-pointer hover:bg-bg-overlay">
                 <Move className="h-3.5 w-3.5 mr-2" /> Move
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={handleToggleShare} className="cursor-pointer hover:bg-bg-overlay">
+                <Share2 className="h-3.5 w-3.5 mr-2" /> {file.shared ? "Stop Sharing" : "Share"}
               </DropdownMenuItem>
               <DropdownMenuSeparator className="bg-border-strong" />
               <DropdownMenuItem onClick={handleDelete} className="cursor-pointer text-danger hover:bg-danger/10">

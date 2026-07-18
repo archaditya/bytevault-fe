@@ -10,16 +10,19 @@ import {
   Clock,
   Server,
   FileCode2,
+  Play,
+  Pause,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { useTransfer } from "@/services";
+import { useTransfer, pauseUpload, resumeUpload } from "@/services";
 import { TransferProgress } from "@/components/shared/transfer-progress";
 import { ChunkVisualizer } from "@/components/shared/chunk-visualizer";
 import { SpeedGraph } from "@/features/transfers/components/speed-graph";
 import { TransferTimeline } from "@/features/transfers/components/transfer-timeline";
 import { TransferStatusBadge } from "@/components/shared/status-badge";
-import { formatBytes, formatSpeed } from "@/lib/utils";
+import { formatBytes } from "@/lib/utils";
 import { useTransferStore } from "@/store";
+import { Button } from "@/components/ui/button";
 
 export default function TransferDetailsPage({
   params,
@@ -69,7 +72,27 @@ export default function TransferDetailsPage({
         >
           <ChevronLeft className="h-4 w-4" /> Back to transfers
         </Link>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2.5">
+          {transfer.direction === "upload" && transfer.status === "active" && (
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => pauseUpload(transfer.id)}
+              className="flex items-center gap-1.5 h-7 px-3 rounded-full text-xs font-semibold hover:bg-bg-overlay"
+            >
+              <Pause className="h-3.5 w-3.5" /> Pause Upload
+            </Button>
+          )}
+          {transfer.direction === "upload" && transfer.status === "paused" && (
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => resumeUpload(transfer.id)}
+              className="flex items-center gap-1.5 h-7 px-3 rounded-full text-xs font-semibold text-accent-bright border-accent/20 hover:border-accent hover:bg-accent/10"
+            >
+              <Play className="h-3.5 w-3.5" /> Resume Upload
+            </Button>
+          )}
           <TransferStatusBadge status={transfer.status} />
         </div>
       </div>

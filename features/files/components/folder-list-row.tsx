@@ -2,8 +2,9 @@
 
 import { Folder, MoreVertical, Edit2, Move, Trash2 } from "lucide-react";
 import { FolderRecord } from "@/types";
-import { useFilesStore } from "@/store";
+import { useFilesStore } from "@/store/files.store";
 import { useDeleteFolderMutation, useRenameFolderMutation } from "@/services";
+import { cn } from "@/lib/utils";
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -16,14 +17,24 @@ import { useState } from "react";
 import { MoveItemModal } from "./move-item-modal";
 
 export function FolderListRow({ folder }: { folder: FolderRecord }) {
-  const { pushFolder } = useFilesStore();
+  const { pushFolder, selectedItems, toggleSelectItem } = useFilesStore();
   const deleteMutation = useDeleteFolderMutation(folder.parent_id);
   const renameMutation = useRenameFolderMutation(folder.parent_id);
 
   const [isMoveModalOpen, setIsMoveModalOpen] = useState(false);
 
+  const isSelected = selectedItems.some((item) => item.id === folder.id);
+
   const handleDoubleClick = () => {
     pushFolder(folder.id, folder.name);
+  };
+
+  const handleRowClick = (e: React.MouseEvent) => {
+    if (selectedItems.length > 0) {
+      e.preventDefault();
+      e.stopPropagation();
+      toggleSelectItem(folder.id, "folder");
+    }
   };
 
   const handleRename = () => {
@@ -42,10 +53,21 @@ export function FolderListRow({ folder }: { folder: FolderRecord }) {
   return (
     <>
       <div
-        className="grid grid-cols-[1fr_110px_110px_40px] gap-4 items-center border-b border-border/60 px-4 py-3 text-[13px] transition-colors hover:bg-bg-overlay/40 select-none cursor-pointer"
+        className={cn(
+          "grid grid-cols-[1fr_110px_110px_40px] gap-4 items-center border-b border-border/60 px-4 py-3 text-[13px] transition-colors hover:bg-bg-overlay/40 select-none cursor-pointer",
+          isSelected && "bg-bg-overlay border-l-2 border-l-accent"
+        )}
         onDoubleClick={handleDoubleClick}
+        onClick={handleRowClick}
       >
         <span className="flex items-center gap-2.5 font-medium text-ink truncate">
+          <input
+            type="checkbox"
+            checked={isSelected}
+            onChange={() => toggleSelectItem(folder.id, "folder")}
+            onClick={(e) => e.stopPropagation()}
+            className="h-4 w-4 rounded border-border bg-bg-raised text-accent focus:ring-accent cursor-pointer"
+          />
           <Folder className="h-4.5 w-4.5 text-accent-bright shrink-0" />
           <span className="truncate" title={folder.name}>
             {folder.name}

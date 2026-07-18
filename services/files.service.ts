@@ -1,17 +1,298 @@
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiClient } from "@/lib/api-client";
-import { FileRecord, FileKind, FolderRecord } from "@/types";
-
+import { useFilesStore } from "@/store/files.store";
+import { FileRecord, FolderRecord, QuotaStats, TransferSession, FileKind } from "@/types";
 import { useTransferStore } from "@/store/transfer.store";
-import { TransferSession } from "@/types";
+import { getAccessToken } from "@/lib/api-client";
 
-// Maximum size constraints
 const MAX_UPLOAD_LIMIT_BYTES = 100 * 1024 * 1024; // 100MB
+const CHUNK_SIZE = 5 * 1024 * 1024; // 5MB chunks
 
-export interface QuotaStats {
-  used_bytes: number;
-  total_bytes: number;
-  remaining_bytes: number;
+// Map to hold references to active upload objects
+interface ActiveUpload {
+  file: File;
+  abortController: AbortController;
+  folderId?: string | null;
+}
+
+export const activeUploadsRegistry = new Map<string, ActiveUpload>();
+
+export function pauseUpload(txId: string) {
+  const active = activeUploadsRegistry.get(txId);
+  if (active) {
+    active.abortController.abort();
+    activeUploadsRegistry.delete(txId);
+  }
+  useTransferStore.getState().updateTransfer(txId, { status: "paused" });
+}
+
+export async function resumeUpload(txId: string, file?: File) {
+  const store = useTransferStore.getState();
+  const tx = store.transfers.find((t) => t.id === txId);
+  if (!tx || tx.status !== "paused") return;
+
+  let fileObj = activeUploadsRegistry.get(txId)?.file || file;
+  if (!fileObj) {
+    const input = document.createElement("input");
+    input.type = "file";
+    input.onchange = async (e: any) => {
+      const selectedFile = e.target.files?.[0];
+      if (selectedFile && selectedFile.name === tx.fileName && selectedFile.size === tx.sizeBytes) {
+        resumeUpload(txId, selectedFile);
+      } else {
+        alert("Please select the correct file to resume the upload session.");
+      }
+    };
+    input.click();
+    return;
+  }
+
+  const abortController = new AbortController();
+  activeUploadsRegistry.set(txId, { file: fileObj, abortController, folderId: tx.folderId });
+
+  store.updateTransfer(txId, { status: "active" });
+
+  const appendLog = (msg: string, level: "info" | "warn" | "error" = "info") => {
+    const latestTx = useTransferStore.getState().transfers.find((t) => t.id === txId);
+    if (!latestTx) return;
+    store.updateTransfer(txId, {
+      logs: [
+        ...latestTx.logs,
+        {
+          id: Math.random().toString(),
+          timestamp: new Date().toISOString(),
+          level,
+          message: msg,
+        },
+      ],
+    });
+  };
+
+  appendLog("Resuming upload session.");
+
+  if (tx.sizeBytes <= CHUNK_SIZE) {
+    try {
+      const session = await apiClient("/api/v1/files/upload-session", {
+        method: "POST",
+        body: JSON.stringify({
+          filename: fileObj.name,
+          file_size: fileObj.size,
+          content_type: fileObj.type || "application/octet-stream",
+          folder_id: tx.folderId || undefined,
+        }),
+        signal: abortController.signal,
+      });
+
+      const { file_id, upload_url } = session;
+      store.updateTransfer(txId, {
+        fileId: file_id,
+        chunks: [{ index: 0, status: "uploading", retries: 0 }],
+      });
+
+      const uploadResponse = await fetch(upload_url, {
+        method: "PUT",
+        headers: {
+          "Content-Type": fileObj.type || "application/octet-stream",
+        },
+        body: fileObj,
+        signal: abortController.signal,
+      });
+
+      if (!uploadResponse.ok) throw new Error("Upload failed");
+
+      await apiClient(`/api/v1/files/${file_id}/complete`, {
+        method: "POST",
+        signal: abortController.signal,
+      });
+
+      store.updateTransfer(txId, {
+        status: "completed",
+        transferredBytes: fileObj.size,
+        completedAt: new Date().toISOString(),
+        chunks: [{ index: 0, status: "complete", retries: 0 }],
+      });
+      appendLog("Upload completed successfully.");
+    } catch (err: any) {
+      if (err.name === "AbortError") {
+        appendLog("Upload paused.");
+      } else {
+        store.updateTransfer(txId, { status: "failed" });
+        appendLog(`Upload failed: ${err.message}`, "error");
+      }
+    }
+    return;
+  }
+
+  // --- MULTIPART RESUME FLOW ---
+  try {
+    const fileId = tx.fileId;
+    const uploadId = tx.uploadId;
+    const totalParts = tx.totalChunks;
+    const etags = tx.etags || [];
+    const partUrls = tx.partUrls || [];
+
+    // Determine which parts still need uploading
+    const pendingPartNumbers = partUrls
+      .filter((_, idx) => !etags[idx])
+      .map((p) => p.part_number);
+
+    // Refresh presigned URLs for pending parts (old ones may have expired)
+    let freshPartUrls = partUrls;
+    if (pendingPartNumbers.length > 0) {
+      try {
+        appendLog("Refreshing expired presigned URLs for pending parts.");
+        const refreshed = await apiClient(`/api/v1/files/${fileId}/refresh-part-urls`, {
+          method: "POST",
+          body: JSON.stringify({
+            upload_id: uploadId,
+            part_numbers: pendingPartNumbers,
+          }),
+          signal: abortController.signal,
+        });
+        // Merge fresh URLs into the existing partUrls array
+        const refreshedMap = new Map<number, string>();
+        for (const p of refreshed.part_urls) {
+          refreshedMap.set(p.part_number, p.url);
+        }
+        freshPartUrls = partUrls.map((p) => ({
+          part_number: p.part_number,
+          url: refreshedMap.get(p.part_number) || p.url,
+        }));
+        // Update store with fresh URLs
+        store.updateTransfer(txId, { partUrls: freshPartUrls });
+      } catch (refreshErr: any) {
+        if (refreshErr.name !== "AbortError") {
+          store.updateTransfer(txId, { status: "failed" });
+          appendLog(`Failed to refresh URLs: ${refreshErr.message}`, "error");
+          activeUploadsRegistry.delete(txId);
+        }
+        return;
+      }
+    }
+
+    if (!fileId || !uploadId) {
+      throw new Error("Missing session identifiers to resume multipart upload.");
+    }
+
+    const speedHistory: { t: number; bytesPerSecond: number }[] = [];
+    let currentTransferredBytes = 0;
+
+    // Synchronize progress with already uploaded chunks
+    const initialChunks = tx.chunks.map((chk, idx) => {
+      if (etags[idx]) {
+        currentTransferredBytes += (idx === totalParts - 1) ? (fileObj.size - idx * CHUNK_SIZE) : CHUNK_SIZE;
+        return { index: idx, status: "complete" as const, retries: 0 };
+      }
+      return { index: idx, status: "pending" as const, retries: 0 };
+    });
+
+    store.updateTransfer(txId, { chunks: initialChunks, transferredBytes: currentTransferredBytes });
+
+    const uploadPromises = freshPartUrls.map(async (part) => {
+      const idx = part.part_number - 1;
+      if (etags[idx]) {
+        return { part_number: part.part_number, etag: etags[idx] };
+      }
+
+      const start = idx * CHUNK_SIZE;
+      const end = Math.min(start + CHUNK_SIZE, fileObj.size);
+      const chunk = fileObj.slice(start, end);
+      const chunkSize = end - start;
+
+      const txLatest = useTransferStore.getState().transfers.find((t) => t.id === txId);
+      if (txLatest) {
+        const currentChunks = [...txLatest.chunks];
+        currentChunks[idx] = { index: idx, status: "uploading", retries: 0 };
+        store.updateTransfer(txId, { chunks: currentChunks });
+      }
+
+      const startTime = Date.now();
+      const uploadResponse = await fetch(part.url, {
+        method: "PUT",
+        headers: {
+          "Content-Type": fileObj.type || "application/octet-stream",
+        },
+        body: chunk,
+        signal: abortController.signal,
+      });
+
+      if (!uploadResponse.ok) {
+        throw new Error(`Failed to upload part ${part.part_number}`);
+      }
+
+      const etag = uploadResponse.headers.get("ETag")?.replace(/"/g, "") || "";
+      if (!etag) {
+        throw new Error(`Missing ETag for part ${part.part_number}`);
+      }
+
+      const durationSec = (Date.now() - startTime) / 1000 || 1;
+      const speed = chunkSize / durationSec;
+
+      currentTransferredBytes += chunkSize;
+      const txUp = useTransferStore.getState().transfers.find((t) => t.id === txId);
+      if (txUp) {
+        const currentChunks = [...txUp.chunks];
+        currentChunks[idx] = { index: idx, status: "complete", retries: 0 };
+        
+        const newEtags = [...(txUp.etags || [])];
+        newEtags[idx] = etag;
+
+        speedHistory.push({ t: speedHistory.length + 1, bytesPerSecond: speed });
+        const avgSpeed = speedHistory.reduce((acc, curr) => acc + curr.bytesPerSecond, 0) / speedHistory.length;
+        const remainingBytes = fileObj.size - currentTransferredBytes;
+        const eta = avgSpeed > 0 ? Math.ceil(remainingBytes / avgSpeed) : null;
+
+        store.updateTransfer(txId, {
+          chunks: currentChunks,
+          etags: newEtags,
+          transferredBytes: Math.min(currentTransferredBytes, fileObj.size),
+          speedBytesPerSecond: avgSpeed,
+          etaSeconds: eta,
+          logs: [
+            ...txUp.logs,
+            {
+              id: Math.random().toString(),
+              timestamp: new Date().toISOString(),
+              level: "info",
+              message: `Part #${part.part_number} uploaded successfully.`,
+            },
+          ],
+        });
+      }
+
+      return {
+        part_number: part.part_number,
+        etag: etag,
+      };
+    });
+
+    const completedParts = await Promise.all(uploadPromises);
+
+    appendLog("Assembling parts and validating signature integrity.");
+    await apiClient(`/api/v1/files/${fileId}/complete-multipart`, {
+      method: "POST",
+      body: JSON.stringify({
+        upload_id: uploadId,
+        parts: completedParts.sort((a, b) => a.part_number - b.part_number),
+      }),
+      signal: abortController.signal,
+    });
+
+    store.updateTransfer(txId, {
+      status: "completed",
+      completedAt: new Date().toISOString(),
+    });
+    appendLog("Multipart upload successfully completed.");
+    activeUploadsRegistry.delete(txId);
+  } catch (err: any) {
+    if (err.name === "AbortError") {
+      appendLog("Upload paused.");
+    } else {
+      store.updateTransfer(txId, { status: "failed" });
+      appendLog(`Upload failed: ${err.message}`, "error");
+      activeUploadsRegistry.delete(txId);
+    }
+  }
 }
 
 function determineFileKind(contentType: string): FileKind {
@@ -82,65 +363,6 @@ function getThumbnailColor(kind: FileKind): string {
   }
 }
 
-// Client-side file signature (magic numbers) validator
-async function validateFileSignature(file: File): Promise<void> {
-  const chunk = file.slice(0, 262); // Read first 262 bytes for signatures
-  const buffer = await chunk.arrayBuffer();
-  const arr = new Uint8Array(buffer);
-  const ext = file.name.split(".").pop()?.toLowerCase() || "";
-
-  // 1. Strict executable blocking (MZ, ELF, Mach-O headers)
-  const isPE = arr[0] === 0x4d && arr[1] === 0x5a; // MZ header
-  const isELF =
-    arr[0] === 0x7f && arr[1] === 0x45 && arr[2] === 0x4c && arr[3] === 0x46; // ELF header
-  const isMachO =
-    (arr[0] === 0xcf &&
-      arr[1] === 0xfa &&
-      arr[2] === 0xed &&
-      arr[3] === 0xfe) ||
-    (arr[0] === 0xce && arr[1] === 0xfa && arr[2] === 0xed && arr[3] === 0xfe);
-
-  if (isPE || isELF || isMachO) {
-    throw new Error("Security Violation: Executable files are not allowed.");
-  }
-
-  // 2. Validate known headers if extension claims to be a specific type
-  if (ext === "png") {
-    const isPng =
-      arr[0] === 0x89 && arr[1] === 0x50 && arr[2] === 0x4e && arr[3] === 0x47;
-    if (!isPng)
-      throw new Error(
-        "Security Violation: Spoofed file extension. Content is not a PNG image.",
-      );
-  }
-
-  if (ext === "jpg" || ext === "jpeg") {
-    const isJpeg = arr[0] === 0xff && arr[1] === 0xd8 && arr[2] === 0xff;
-    if (!isJpeg)
-      throw new Error(
-        "Security Violation: Spoofed file extension. Content is not a JPEG image.",
-      );
-  }
-
-  if (ext === "pdf") {
-    const isPdf =
-      arr[0] === 0x25 && arr[1] === 0x50 && arr[2] === 0x44 && arr[3] === 0x46; // %PDF
-    if (!isPdf)
-      throw new Error(
-        "Security Violation: Spoofed file extension. Content is not a PDF document.",
-      );
-  }
-
-  if (["zip", "docx", "xlsx", "pptx"].includes(ext)) {
-    const isZip =
-      arr[0] === 0x50 && arr[1] === 0x4b && arr[2] === 0x03 && arr[3] === 0x04; // PK..
-    if (!isZip)
-      throw new Error(
-        "Security Violation: Spoofed file extension. Content is not a valid archive/document.",
-      );
-  }
-}
-
 export function mapBackendFileToFrontend(f: any): FileRecord {
   const kind = determineFileKind(f.content_type || "");
   return {
@@ -166,44 +388,29 @@ export function mapBackendFileToFrontend(f: any): FileRecord {
   };
 }
 
-export interface FilesResponse {
-  files: FileRecord[];
-  next_cursor?: string;
-}
-
 export function useFiles(params: {
   folderId?: string | null;
   search?: string;
-  sortBy?: string;
+  sortBy?: "name" | "size" | "date";
   sortDirection?: "asc" | "desc";
   cursor?: string;
   limit?: number;
   isPublic?: boolean;
 }) {
-  return useQuery<FilesResponse>({
+  return useQuery<{ files: FileRecord[]; next_cursor?: string }>({
     queryKey: ["files", params],
     queryFn: async () => {
-      const queryParts = [];
-      if (params.folderId) queryParts.push(`folder_id=${params.folderId}`);
-      if (params.search)
-        queryParts.push(`q=${encodeURIComponent(params.search)}`);
-      if (params.isPublic !== undefined)
-        queryParts.push(`is_public=${params.isPublic}`);
-      if (params.sortBy) {
-        let sort = "date";
-        if (params.sortBy === "name") sort = "name";
-        else if (params.sortBy === "size") sort = "size";
-        queryParts.push(`sort_by=${sort}`);
-      }
-      if (params.sortDirection)
-        queryParts.push(`sort_dir=${params.sortDirection}`);
-      if (params.cursor) queryParts.push(`cursor=${params.cursor}`);
-      if (params.limit) queryParts.push(`limit=${params.limit}`);
+      const query = new URLSearchParams();
+      if (params.folderId) query.append("folder_id", params.folderId);
+      if (params.search) query.append("q", params.search);
+      if (params.sortBy) query.append("sort_by", params.sortBy);
+      if (params.sortDirection) query.append("sort_dir", params.sortDirection);
+      if (params.cursor) query.append("cursor", params.cursor);
+      if (params.limit) query.append("limit", String(params.limit));
+      if (params.isPublic !== undefined) query.append("is_public", String(params.isPublic));
 
-      const queryString =
-        queryParts.length > 0 ? `?${queryParts.join("&")}` : "";
-      const data = await apiClient(`/api/v1/files${queryString}`);
-
+      const data = await apiClient(`/api/v1/files?${query.toString()}`);
+      
       const filesList = Array.isArray(data.files)
         ? data.files.map(mapBackendFileToFrontend)
         : [];
@@ -234,6 +441,26 @@ export function useFileHistory(id: string) {
       return [];
     },
     enabled: !!id,
+  });
+}
+
+export function useFileImageBlob(id: string, isImage: boolean) {
+  return useQuery<string | null>({
+    queryKey: ["files", id, "blob"],
+    queryFn: async () => {
+      const token = getAccessToken();
+      const headers: Record<string, string> = {};
+      if (token) {
+        headers["Authorization"] = `Bearer ${token}`;
+      }
+      const res = await fetch(`/api/v1/files/${id}/download?inline=true`, { headers });
+      if (!res.ok) throw new Error("Failed to fetch image blob");
+      const blob = await res.blob();
+      return URL.createObjectURL(blob);
+    },
+    enabled: !!id && isImage,
+    staleTime: 10 * 60 * 1000,
+    gcTime: 15 * 60 * 1000,
   });
 }
 
@@ -313,6 +540,7 @@ export function useMoveFolderMutation(currentParentId?: string | null) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["folders"] });
       queryClient.invalidateQueries({ queryKey: ["folders", "flat"] });
+      queryClient.invalidateQueries({ queryKey: ["files"] });
     },
   });
 }
@@ -380,7 +608,7 @@ export function useToggleShareMutation() {
         body: JSON.stringify({ is_public: isPublic }),
       });
     },
-    onSuccess: (_, variables) => {
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["files"] });
     },
   });
@@ -401,7 +629,33 @@ export function useDeleteFileMutation() {
   });
 }
 
-const CHUNK_SIZE = 5 * 1024 * 1024;
+async function validateFileSignature(file: File) {
+  const header = await new Promise<Uint8Array>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(new Uint8Array(reader.result as ArrayBuffer));
+    reader.onerror = reject;
+    reader.readAsArrayBuffer(file.slice(0, 512));
+  });
+
+  const getMime = (bytes: Uint8Array) => {
+    if (bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff) return "image/jpeg";
+    if (bytes[0] === 0x89 && bytes[1] === 0x50 && bytes[2] === 0x4e && bytes[3] === 0x47) return "image/png";
+    if (bytes[0] === 0x47 && bytes[1] === 0x49 && bytes[2] === 0x46) return "image/gif";
+    if (bytes[0] === 0x25 && bytes[1] === 0x50 && bytes[2] === 0x44 && bytes[3] === 0x46) return "application/pdf";
+    if (bytes[0] === 0x50 && bytes[1] === 0x4b && bytes[2] === 0x03 && bytes[3] === 0x04) return "application/zip";
+    return "";
+  };
+
+  const detected = getMime(header);
+  const declared = file.type;
+
+  if (detected && declared && detected !== declared) {
+    if (detected === "application/zip" && (declared.includes("wordprocessingml") || declared.includes("spreadsheetml") || declared.includes("presentationml"))) {
+      return;
+    }
+    throw new Error("Extension spoofing detected! Upload rejected.");
+  }
+}
 
 export function useUploadFileMutation() {
   const queryClient = useQueryClient();
@@ -413,8 +667,13 @@ export function useUploadFileMutation() {
       file: File;
       folderId?: string | null;
     }) => {
-      if (file.size > MAX_UPLOAD_LIMIT_BYTES) {
-        throw new Error("File exceeds maximum allowed size of 100MB");
+      // Dynamically fetch quota limits from query cache, fallback to default limit (100MB)
+      const quota = queryClient.getQueryData<QuotaStats>(["quota"]);
+      const maxFileSizeBytes = quota?.max_file_size_bytes || MAX_UPLOAD_LIMIT_BYTES;
+      const maxFileSizeMb = Math.round(maxFileSizeBytes / (1024 * 1024));
+
+      if (file.size > maxFileSizeBytes) {
+        throw new Error(`File exceeds maximum allowed size of ${maxFileSizeMb}MB`);
       }
 
       const unsupportedExtensions = /\.(exe|bat|sh|dll|com|cmd)$/i;
@@ -424,10 +683,8 @@ export function useUploadFileMutation() {
 
       await validateFileSignature(file);
 
-      // Register transfer session in dynamic client state
       const txId = Math.random().toString(36).substring(7);
-      const totalParts =
-        file.size <= CHUNK_SIZE ? 1 : Math.ceil(file.size / CHUNK_SIZE);
+      const totalParts = file.size <= CHUNK_SIZE ? 1 : Math.ceil(file.size / CHUNK_SIZE);
 
       const newTx: TransferSession = {
         id: txId,
@@ -446,50 +703,31 @@ export function useUploadFileMutation() {
         completedAt: null,
         chunkSize: file.size <= CHUNK_SIZE ? file.size : CHUNK_SIZE,
         totalChunks: totalParts,
-        chunks:
-          file.size <= CHUNK_SIZE
-            ? [{ index: 0, status: "pending", retries: 0 }]
-            : Array.from({ length: totalParts }, (_, i) => ({
-                index: i,
-                status: "pending",
-                retries: 0,
-              })),
-        logs: [
-          {
-            id: Math.random().toString(),
-            timestamp: new Date().toISOString(),
-            level: "info",
-            message: "Upload session initialized.",
-          },
-        ],
+        chunks: file.size <= CHUNK_SIZE
+          ? [{ index: 0, status: "pending", retries: 0 }]
+          : Array.from({ length: totalParts }, (_, i) => ({ index: i, status: "pending", retries: 0 })),
+        logs: [{ id: Math.random().toString(), timestamp: new Date().toISOString(), level: "info", message: "Upload session initialized." }],
         speedHistory: [],
         initiatedBy: "Me",
+        etags: [],
+        partUrls: [],
+        folderId,
       };
 
       useTransferStore.getState().addTransfer(newTx);
 
-      const appendLog = (
-        msg: string,
-        level: "info" | "warn" | "error" = "info",
-      ) => {
-        const tx = useTransferStore
-          .getState()
-          .transfers.find((t) => t.id === txId);
+      const abortController = new AbortController();
+      activeUploadsRegistry.set(txId, { file, abortController, folderId });
+
+      const appendLog = (msg: string, level: "info" | "warn" | "error" = "info") => {
+        const tx = useTransferStore.getState().transfers.find((t) => t.id === txId);
         if (!tx) return;
-        const logs = [
-          ...tx.logs,
-          {
-            id: Math.random().toString(),
-            timestamp: new Date().toISOString(),
-            level,
-            message: msg,
-          },
-        ];
-        useTransferStore.getState().updateTransfer(txId, { logs });
+        useTransferStore.getState().updateTransfer(txId, {
+          logs: [...tx.logs, { id: Math.random().toString(), timestamp: new Date().toISOString(), level, message: msg }],
+        });
       };
 
       if (file.size <= CHUNK_SIZE) {
-        // --- SIMPLE UPLOAD FLOW ---
         try {
           appendLog("Initiating single-part upload session.");
           const session = await apiClient("/api/v1/files/upload-session", {
@@ -500,6 +738,7 @@ export function useUploadFileMutation() {
               content_type: file.type || "application/octet-stream",
               folder_id: folderId || undefined,
             }),
+            signal: abortController.signal,
           });
 
           const { file_id, upload_url } = session;
@@ -516,12 +755,11 @@ export function useUploadFileMutation() {
               "Content-Type": file.type || "application/octet-stream",
             },
             body: file,
+            signal: abortController.signal,
           });
 
           if (!uploadResponse.ok) {
-            throw new Error(
-              `Direct upload failed! Status: ${uploadResponse.status}`,
-            );
+            throw new Error(`Direct upload failed! Status: ${uploadResponse.status}`);
           }
 
           const durationSec = (Date.now() - startTime) / 1000 || 1;
@@ -534,6 +772,7 @@ export function useUploadFileMutation() {
           appendLog("Finalizing metadata handshake with backend.");
           await apiClient(`/api/v1/files/${file_id}/complete`, {
             method: "POST",
+            signal: abortController.signal,
           });
 
           useTransferStore.getState().updateTransfer(txId, {
@@ -543,24 +782,25 @@ export function useUploadFileMutation() {
             chunks: [{ index: 0, status: "complete", retries: 0 }],
           });
           appendLog("Upload completed and verified successfully.");
-
+          activeUploadsRegistry.delete(txId);
           return file_id;
         } catch (err: any) {
-          useTransferStore
-            .getState()
-            .updateTransfer(txId, { status: "failed" });
-          appendLog(`Upload failed: ${err.message}`, "error");
-          throw err;
+          if (err.name === "AbortError") {
+            appendLog("Upload paused.");
+          } else {
+            useTransferStore.getState().updateTransfer(txId, { status: "failed" });
+            appendLog(`Upload failed: ${err.message}`, "error");
+            activeUploadsRegistry.delete(txId);
+            throw err;
+          }
         }
       } else {
-        // --- MULTIPART UPLOAD FLOW ---
+        // --- MULTIPART UPLOAD ---
         let fileId = "";
         let uploadId = "";
 
         try {
-          appendLog(
-            `Initiating multipart upload session (${totalParts} parts).`,
-          );
+          appendLog(`Initiating multipart upload session (${totalParts} parts).`);
           const session = await apiClient("/api/v1/files/multipart-session", {
             method: "POST",
             body: JSON.stringify({
@@ -570,40 +810,38 @@ export function useUploadFileMutation() {
               folder_id: folderId || undefined,
               part_count: totalParts,
             }),
+            signal: abortController.signal,
           });
 
           const { file_id, upload_id, part_urls } = session;
           fileId = file_id;
           uploadId = upload_id;
 
-          useTransferStore.getState().updateTransfer(txId, { fileId: file_id });
+          useTransferStore.getState().updateTransfer(txId, {
+            fileId: file_id,
+            uploadId: upload_id,
+            partUrls: part_urls,
+          });
 
           appendLog("Handshake complete. Dispatching parallel upload workers.");
 
           const speedHistory: { t: number; bytesPerSecond: number }[] = [];
           let currentTransferredBytes = 0;
+          const etags: string[] = [];
 
           const uploadPromises = part_urls.map(
             async (part: { part_number: number; url: string }) => {
-              const start = (part.part_number - 1) * CHUNK_SIZE;
+              const idx = part.part_number - 1;
+              const start = idx * CHUNK_SIZE;
               const end = Math.min(start + CHUNK_SIZE, file.size);
               const chunk = file.slice(start, end);
               const chunkSize = end - start;
 
-              // Set chunk state to uploading
-              const tx = useTransferStore
-                .getState()
-                .transfers.find((t) => t.id === txId);
+              const tx = useTransferStore.getState().transfers.find((t) => t.id === txId);
               if (tx) {
                 const currentChunks = [...tx.chunks];
-                currentChunks[part.part_number - 1] = {
-                  index: part.part_number - 1,
-                  status: "uploading",
-                  retries: 0,
-                };
-                useTransferStore
-                  .getState()
-                  .updateTransfer(txId, { chunks: currentChunks });
+                currentChunks[idx] = { index: idx, status: "uploading", retries: 0 };
+                useTransferStore.getState().updateTransfer(txId, { chunks: currentChunks });
               }
 
               const startTime = Date.now();
@@ -613,59 +851,40 @@ export function useUploadFileMutation() {
                   "Content-Type": file.type || "application/octet-stream",
                 },
                 body: chunk,
+                signal: abortController.signal,
               });
 
               if (!uploadResponse.ok) {
-                throw new Error(
-                  `Failed to upload part ${part.part_number}: Status ${uploadResponse.status}`,
-                );
+                throw new Error(`Failed to upload part ${part.part_number}: Status ${uploadResponse.status}`);
               }
 
-              const etag =
-                uploadResponse.headers.get("ETag")?.replace(/"/g, "") || "";
+              const etag = uploadResponse.headers.get("ETag")?.replace(/"/g, "") || "";
               if (!etag) {
-                throw new Error(
-                  `Did not receive ETag header for part ${part.part_number}`,
-                );
+                throw new Error(`Did not receive ETag header for part ${part.part_number}`);
               }
 
               const durationSec = (Date.now() - startTime) / 1000 || 1;
               const speed = chunkSize / durationSec;
 
-              // Update stats
               currentTransferredBytes += chunkSize;
-              const txLatest = useTransferStore
-                .getState()
-                .transfers.find((t) => t.id === txId);
+              const txLatest = useTransferStore.getState().transfers.find((t) => t.id === txId);
               if (txLatest) {
                 const currentChunks = [...txLatest.chunks];
-                currentChunks[part.part_number - 1] = {
-                  index: part.part_number - 1,
-                  status: "complete",
-                  retries: 0,
-                };
+                currentChunks[idx] = { index: idx, status: "complete", retries: 0 };
+                
+                etags[idx] = etag;
 
-                const lastT =
-                  speedHistory.length > 0
-                    ? speedHistory[speedHistory.length - 1].t
-                    : 0;
+                const lastT = speedHistory.length > 0 ? speedHistory[speedHistory.length - 1].t : 0;
                 speedHistory.push({ t: lastT + 1, bytesPerSecond: speed });
 
-                const avgSpeed =
-                  speedHistory.reduce(
-                    (acc, curr) => acc + curr.bytesPerSecond,
-                    0,
-                  ) / speedHistory.length;
+                const avgSpeed = speedHistory.reduce((acc, curr) => acc + curr.bytesPerSecond, 0) / speedHistory.length;
                 const remainingBytes = file.size - currentTransferredBytes;
-                const eta =
-                  avgSpeed > 0 ? Math.ceil(remainingBytes / avgSpeed) : null;
+                const eta = avgSpeed > 0 ? Math.ceil(remainingBytes / avgSpeed) : null;
 
                 useTransferStore.getState().updateTransfer(txId, {
                   chunks: currentChunks,
-                  transferredBytes: Math.min(
-                    currentTransferredBytes,
-                    file.size,
-                  ),
+                  etags,
+                  transferredBytes: Math.min(currentTransferredBytes, file.size),
                   speedBytesPerSecond: avgSpeed,
                   speedHistory: speedHistory.slice(-30),
                   etaSeconds: eta,
@@ -695,35 +914,34 @@ export function useUploadFileMutation() {
             method: "POST",
             body: JSON.stringify({
               upload_id: uploadId,
-              parts: completedParts.sort(
-                (a, b) => a.part_number - b.part_number,
-              ),
+              parts: completedParts.sort((a, b) => a.part_number - b.part_number),
             }),
+            signal: abortController.signal,
           });
 
           useTransferStore.getState().updateTransfer(txId, {
             status: "completed",
             completedAt: new Date().toISOString(),
           });
-          appendLog("Multipart upload successfully archived.");
-
+          appendLog("Multipart upload successfully completed.");
+          activeUploadsRegistry.delete(txId);
           return fileId;
         } catch (uploadError: any) {
-          useTransferStore
-            .getState()
-            .updateTransfer(txId, { status: "failed" });
-          appendLog(`Upload failed: ${uploadError.message}`, "error");
+          if (uploadError.name === "AbortError") {
+            appendLog("Upload paused.");
+          } else {
+            useTransferStore.getState().updateTransfer(txId, { status: "failed" });
+            appendLog(`Upload failed: ${uploadError.message}`, "error");
+            activeUploadsRegistry.delete(txId);
 
-          if (fileId && uploadId) {
-            await apiClient(`/api/v1/files/${fileId}/abort-multipart`, {
-              method: "POST",
-              body: JSON.stringify({ upload_id: uploadId }),
-            }).catch((err) =>
-              console.error("Failed to abort multipart session:", err),
-            );
+            if (fileId && uploadId) {
+              await apiClient(`/api/v1/files/${fileId}/abort-multipart`, {
+                method: "POST",
+                body: JSON.stringify({ upload_id: uploadId }),
+              }).catch((err) => console.error("Failed to abort multipart session:", err));
+            }
+            throw uploadError;
           }
-
-          throw uploadError;
         }
       }
     },
