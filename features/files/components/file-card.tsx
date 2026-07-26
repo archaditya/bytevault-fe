@@ -28,8 +28,9 @@ export function FileCard({ file }: { file: FileRecord }) {
 
   const [isMoveModalOpen, setIsMoveModalOpen] = useState(false);
 
-  const isImage = ["png", "jpg", "jpeg", "gif", "webp", "svg"].includes(file.kind);
-  const { data: previewUrl } = useFileImageBlob(file.id, isImage && file.status === "READY");
+  // Fix: Check for media kinds ("image", "video", "document")
+  const hasPreview = ["image", "video", "document"].includes(file.kind);
+  const { data: previewUrl } = useFileImageBlob(file.id, hasPreview && file.status === "READY");
   const isSelected = selectedItems.some((item) => item.id === file.id);
 
   const handleCardClick = (e: React.MouseEvent) => {
@@ -98,62 +99,13 @@ export function FileCard({ file }: { file: FileRecord }) {
             <p className="truncate text-[13px] font-medium text-ink" title={file.name}>
               {file.name}
             </p>
-            <div className="flex items-center justify-between text-[12px] text-ink-muted">
-              <span className="font-mono">{formatBytes(file.sizeBytes)}</span>
+            <div className="flex items-center justify-between text-xs text-ink-muted">
+              <span>{formatBytes(file.sizeBytes)}</span>
               <span>{formatRelativeTime(file.uploadedAt)}</span>
-            </div>
-            <div className="flex items-center justify-end h-5">
-              {file.shared && (
-                <Badge variant="info" className="px-1.5 flex items-center gap-1">
-                  <Globe className="h-2.5 w-2.5" />
-                  Shared
-                </Badge>
-              )}
             </div>
           </div>
         </Link>
-
-        {/* Dropdown actions trigger */}
-        <div
-          className="absolute right-2 top-2 z-10 opacity-0 group-hover:opacity-100 transition-opacity"
-          onClick={(e) => e.stopPropagation()}
-        >
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <button
-                className="flex h-6 w-6 items-center justify-center rounded-sm text-ink-muted hover:text-ink hover:bg-bg-overlay border border-transparent hover:border-border"
-                aria-label="File actions"
-              >
-                <MoreVertical className="h-3.5 w-3.5" />
-              </button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="bg-bg-surface border-border-strong">
-              <DropdownMenuItem onClick={handleDownload} className="cursor-pointer hover:bg-bg-overlay">
-                <Download className="h-3.5 w-3.5 mr-2" /> Download
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setIsMoveModalOpen(true)} className="cursor-pointer hover:bg-bg-overlay">
-                <Move className="h-3.5 w-3.5 mr-2" /> Move
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={handleToggleShare} className="cursor-pointer hover:bg-bg-overlay">
-                <Share2 className="h-3.5 w-3.5 mr-2" /> {file.shared ? "Stop Sharing" : "Share"}
-              </DropdownMenuItem>
-              <DropdownMenuSeparator className="bg-border-strong" />
-              <DropdownMenuItem onClick={handleDelete} className="cursor-pointer text-danger hover:bg-danger/10">
-                <Trash2 className="h-3.5 w-3.5 mr-2" /> Delete
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
       </Card>
-
-      {isMoveModalOpen && (
-        <MoveItemModal
-          itemId={file.id}
-          itemType="file"
-          currentParentId={file.folderId}
-          onClose={() => setIsMoveModalOpen(false)}
-        />
-      )}
     </>
   );
 }
