@@ -76,7 +76,7 @@ export async function resumeUpload(txId: string, file?: File) {
         body: JSON.stringify({
           filename: fileObj.name,
           file_size: fileObj.size,
-          content_type: fileObj.type || "application/octet-stream",
+          content_type: getResolvedMimeType(fileObj),
           folder_id: tx.folderId || undefined,
         }),
         signal: abortController.signal,
@@ -91,7 +91,7 @@ export async function resumeUpload(txId: string, file?: File) {
       const uploadResponse = await fetch(upload_url, {
         method: "PUT",
         headers: {
-          "Content-Type": fileObj.type || "application/octet-stream",
+          "Content-Type": getResolvedMimeType(fileObj),
         },
         body: fileObj,
         signal: abortController.signal,
@@ -443,23 +443,17 @@ export function useFileHistory(id: string) {
   });
 }
 
-export function useFileImageBlob(id: string, isImage: boolean) {
-  return useQuery<string | null>({
-    queryKey: ["files", id, "blob"],
+export function useFileImageBlob(fileId: string, enabled: boolean = true) {
+  return useQuery({
+    queryKey: ["file-thumbnail-blob", fileId],
     queryFn: async () => {
-      const token = getAccessToken();
-      const headers: Record<string, string> = {};
-      if (token) {
-        headers["Authorization"] = `Bearer ${token}`;
-      }
-      const res = await fetch(`/api/v1/files/${id}/download?inline=true`, { headers });
-      if (!res.ok) throw new Error("Failed to fetch image blob");
-      const blob = await res.blob();
-      return URL.createObjectURL(blob);
+      const res = await apiClient(`/api/v1/files/${fileId}/thumbnail`, {
+        headers: { Accept: "image/*" },
+      });
+      return res.url || `/api/v1/files/${fileId}/thumbnail`;
     },
-    enabled: !!id && isImage,
-    staleTime: 10 * 60 * 1000,
-    gcTime: 15 * 60 * 1000,
+    enabled: enabled && !!fileId,
+    staleTime: 10 * 60 * 1000, // Cache thumbnails for 10 minutes
   });
 }
 
@@ -949,4 +943,26 @@ export function useUploadFileMutation() {
       queryClient.invalidateQueries({ queryKey: ["quota"] });
     },
   });
+}
+
+export function getResolvedMimeType(file: File): string {
+  if (file.type && file.type !== "application/octet-stream") {
+    return file.type;
+  }
+  const ext = file.name.split(".").pop()?.toLowerCase();
+  switch (ext) {
+    case "heic":
+      return "image/heic";
+    case "heif":
+      return "image/heif";
+    case "mov":
+      return "video/quicktime";
+    case "png":
+      return "image/png";
+    case "jpg":
+    case "jpeg":
+      return "image/jpeg";
+    default:
+      return file.type || "application/octet-stream";
+  }
 }
