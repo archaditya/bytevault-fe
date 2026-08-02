@@ -8,11 +8,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Box } from "lucide-react";
+import { Box, KeyRound } from "lucide-react";
 import toast from "react-hot-toast";
 import { apiClient, setTokens } from "@/lib/api-client";
 import { PasswordInput } from "@/components/ui/password-input";
-
 import { Suspense } from "react";
 
 function LoginPage() {
@@ -20,9 +19,14 @@ function LoginPage() {
   const searchParams = useSearchParams();
   const redirectTo = searchParams.get("redirect") || "/dashboard";
   const login = useAuthStore((s) => s.login);
+
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+
+  // 2FA login state
+  const [mfaToken, setMfaToken] = useState<string | null>(null);
+  const [totpCode, setTotpCode] = useState("");
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -33,10 +37,27 @@ function LoginPage() {
 
     setLoading(true);
     try {
-      await login(email, password);
+      const res = await apiClient("/api/v1/auth/login", {
+        method: "POST",
+        body: JSON.stringify({ email, password }),
+      });
 
-      const currentUser = useAuthStore.getState().user;
-      if (currentUser && !currentUser.isVerified) {
+      // If 2FA is required, save mfa_token and switch UI step
+      if (res.mfa_required) {
+        setMfaToken(res.mfa_token);
+        toast.success("Please enter your 6-digit 2FA code.");
+        setLoading(false);
+        return;
+      }
+
+      setTokens(res.tokens);
+      if (typeof window !== "undefined") {
+        localStorage.setItem("login_provider", "email");
+      }
+      const frontendUser = mapBackendUserToFrontend(res.user);
+      useAuthStore.getState().setUser(frontendUser);
+
+      if (!frontendUser.isVerified) {
         toast.success("Please verify your email address.");
         router.push(`/verify-email?email=${encodeURIComponent(email)}&redirect=${encodeURIComponent(redirectTo)}`);
       } else {
@@ -49,6 +70,82 @@ function LoginPage() {
       setLoading(false);
     }
   };
+
+  const handleVerifyMFA = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!totpCode || totpCode.length !== 6) {
+      toast.error("Please enter a 6-digit code.");
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const data = await apiClient("/api/v1/auth/mfa/verify-login", {
+        method: "POST",
+        body: JSON.stringify({
+          mfa_token: mfaToken,
+          code: totpCode,
+        }),
+      });
+
+      setTokens(data.tokens);
+      if (typeof window !== "undefined") {
+        localStorage.setItem("login_provider", "email");
+      }
+      const frontendUser = mapBackendUserToFrontend(data.user);
+      useAuthStore.getState().setUser(frontendUser);
+
+      toast.success("Logged in successfully with 2FA!");
+      router.push(redirectTo);
+    } catch (err: any) {
+      toast.error(err.message || "Invalid 2FA code");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (mfaToken) {
+    return (
+      <Card className="border border-border-strong bg-bg-surface">
+        <CardHeader className="flex flex-col items-center gap-2 pb-6">
+          <div className="flex h-10 w-10 items-center justify-center rounded-sm bg-accent mb-2">
+            <KeyRound className="h-6 w-6 text-white" />
+          </div>
+          <CardTitle className="text-xl font-bold tracking-tight text-ink">
+            Two-Factor Authentication
+          </CardTitle>
+          <p className="text-[13px] text-ink-muted text-center">
+            Enter the 6-digit code from your Authenticator app to continue.
+          </p>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={handleVerifyMFA} className="space-y-4">
+            <div className="space-y-1.5">
+              <Label htmlFor="totp-code">6-Digit Code</Label>
+              <Input
+                id="totp-code"
+                type="text"
+                maxLength={6}
+                placeholder="123456"
+                value={totpCode}
+                onChange={(e) => setTotpCode(e.target.value)}
+                className="font-mono text-center tracking-widest text-lg"
+                disabled={loading}
+                autoFocus
+                required
+              />
+            </div>
+            <Button type="submit" className="w-full text-[13px]" variant="primary" size="md" disabled={loading}>
+              {loading ? "Verifying..." : "Verify Code"}
+            </Button>
+            <Button type="button" variant="outline" className="w-full text-[13px]" onClick={() => setMfaToken(null)}>
+              Back to Login
+            </Button>
+          </form>
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
     <Card className="border border-border-strong bg-bg-surface">
