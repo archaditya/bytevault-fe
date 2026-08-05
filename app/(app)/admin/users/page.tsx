@@ -24,6 +24,7 @@ import {
   Edit2,
   Trash2,
 } from "lucide-react";
+import { useRouter } from "next/navigation";
 
 export default function AdminUsersPage() {
   const { user: currentUser } = useAuthStore();
@@ -32,6 +33,8 @@ export default function AdminUsersPage() {
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
   const [roleFilter, setRoleFilter] = useState("");
+
+  const router = useRouter();
 
   // Debounce search query to prevent DB query storm
   useEffect(() => {
@@ -227,7 +230,13 @@ export default function AdminUsersPage() {
                       </span>
                       <span className="text-ink-muted font-mono">{formatRelativeTime(u.created_at)}</span>
                       <div className="flex items-center justify-end gap-1.5">
-                        <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => handleOpenDetails(u.id)} title="View Details">
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          className="h-7 w-7"
+                          onClick={() => router.push(`/admin/users/${u.id}`)}
+                          title="View User Details & Activity History"
+                        >
                           <Eye className="h-3.5 w-3.5" />
                         </Button>
                         <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => handleOpenEdit(u)} title="Edit User">

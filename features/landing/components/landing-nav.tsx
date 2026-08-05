@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Box } from "lucide-react";
+import { Box, Flame } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuthStore } from "@/store";
 
@@ -18,6 +18,9 @@ export function LandingNav() {
           <span className="text-[14px] font-semibold tracking-tight text-ink">ByteVault</span>
         </Link>
         <nav className="hidden items-center gap-7 text-[13px] text-ink-muted md:flex">
+          <Link href="/instant" className="flex items-center gap-1 text-amber-500 font-medium hover:text-amber-400">
+            <Flame className="h-3.5 w-3.5" /> Instant Share 🔥
+          </Link>
           <Link href="/#features" className="hover:text-ink">Features</Link>
           <Link href="/#architecture" className="hover:text-ink">Architecture</Link>
           <Link href="/#faq" className="hover:text-ink">FAQ</Link>
