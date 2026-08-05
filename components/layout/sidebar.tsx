@@ -16,6 +16,7 @@ import {
   ScrollText,
   ArrowUpDown,
   MessageSquare,
+  Flame,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuthStore } from "@/store";
@@ -34,8 +35,9 @@ const userNavItems = [
 
 const adminNavItems = [
   { href: "/admin", label: "Dashboard", icon: LayoutDashboard, exact: true },
-  { href: "/admin/users", label: "Users", icon: Users },
+  { href: "/admin/users", label: "Users", icon: Users },  
   { href: "/admin/files", label: "Files", icon: Files },
+  { href: "/admin/instant-shares", label: "Instant Shares", icon: Flame },
   { href: "/admin/shared", label: "Shared Links", icon: Share2 },
   { href: "/admin/contact-queries", label: "Contact Queries", icon: MessageSquare },
   { href: "/admin/notifications", label: "Notifications", icon: BellRing },

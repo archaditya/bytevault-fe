@@ -7,6 +7,8 @@ import { useAuthStore } from "@/store";
 function isPublicPath(pathname: string): boolean {
   return (
     pathname === "/" ||
+    pathname.startsWith("/instant") ||
+    pathname.startsWith("/contact") ||
     pathname.startsWith("/login") ||
     pathname.startsWith("/register") ||
     pathname.startsWith("/forgot-password") ||
