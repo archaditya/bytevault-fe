@@ -453,7 +453,9 @@ export function useFileImageBlob(fileId: string, enabled: boolean = true) {
       return res.url || `/api/v1/files/${fileId}/thumbnail`;
     },
     enabled: enabled && !!fileId,
-    staleTime: 10 * 60 * 1000, // Cache thumbnails for 10 minutes
+    staleTime: 5 * 60 * 1000,
+    retry: (failureCount) => failureCount < 3, // Retry up to 3 times while background worker generates thumbnail
+    retryDelay: 2000,                          // Wait 2s between retries
   });
 }
 
@@ -509,8 +511,9 @@ export function useCreateFolderMutation(currentParentId?: string | null) {
       });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["folders", currentParentId] });
-      queryClient.invalidateQueries({ queryKey: ["folders", "flat"] });
+      queryClient.invalidateQueries({ queryKey: ["files"] });
+      queryClient.invalidateQueries({ queryKey: ["file-thumbnail-blob"] });
+      queryClient.invalidateQueries({ queryKey: ["quota"] });
     },
   });
 }
