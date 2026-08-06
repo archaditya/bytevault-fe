@@ -22,7 +22,8 @@ export function FileCard({ file }: { file: FileRecord }) {
 
   // Fix: Check for media kinds ("image", "video", "document")
   const hasPreview = ["image", "video", "document"].includes(file.kind);
-  const { data: previewUrl } = useFileImageBlob(file.id, hasPreview && file.status === "READY");
+  const { data: previewUrl } = useFileImageBlob(file.id, hasPreview && !file.thumbnailUrl && file.status === "READY");
+  const displayUrl = file.thumbnailUrl || previewUrl;
   const isSelected = selectedItems.some((item) => item.id === file.id);
   const [imgError, setImgError] = useState(false);
 
@@ -75,9 +76,9 @@ export function FileCard({ file }: { file: FileRecord }) {
             className="flex h-24 items-center justify-center overflow-hidden"
             style={{ backgroundColor: `${file.thumbnailColor}14` }}
           >
-            {previewUrl && !imgError ? (
+            {displayUrl && !imgError ? (
               <img
-                src={previewUrl}
+                src={displayUrl}
                 alt={file.name}
                 className="h-full w-full object-cover"
                 loading="lazy"

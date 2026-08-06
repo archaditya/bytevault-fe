@@ -384,6 +384,7 @@ export function mapBackendFileToFrontend(f: any): FileRecord {
     thumbnailColor: getThumbnailColor(kind),
     status: f.status || "READY",
     folderId: f.folder_id || undefined,
+    thumbnailUrl: f.thumbnail_url || undefined,
   };
 }
 
@@ -418,6 +419,11 @@ export function useFiles(params: {
         files: filesList,
         next_cursor: data.pagination?.next_cursor || undefined,
       };
+    },
+    refetchInterval: (query) => {
+      const files = query.state.data?.files;
+      const hasPending = files?.some((f: any) => f.status === "PENDING_SCAN");
+      return hasPending ? 2000 : false;
     },
   });
 }
