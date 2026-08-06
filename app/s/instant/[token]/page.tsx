@@ -6,7 +6,7 @@ import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Flame, Download, Lock, ShieldAlert, CheckCircle2 } from "lucide-react";
+import { Flame, Download, Lock } from "lucide-react";
 import { formatBytes } from "@/lib/utils";
 import toast from "react-hot-toast";
 
@@ -54,10 +54,26 @@ export default function GuestDownloadPage() {
         throw new Error(json.detail || "Download failed");
       }
 
-      // Trigger browser download
-      window.location.href = json.data.download_url;
-      setBurned(true);
-      toast.success("Download started! File has self-destructed.");
+      // Trigger browser download via invisible link without breaking Next.js page state
+      const link = document.createElement("a");
+      link.href = json.data.download_url;
+      link.download = share?.filename || "download";
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+
+      toast.success("Download started!");
+
+      // Update remaining download count locally
+      setShare((prev: any) => {
+        if (!prev) return prev;
+        const newCount = prev.download_count + 1;
+        if (newCount >= prev.max_downloads) {
+          // Transition to burned card only when last download is consumed
+          setTimeout(() => setBurned(true), 1500);
+        }
+        return { ...prev, download_count: newCount };
+      });
     } catch (err: any) {
       toast.error(err.message || "Failed to download");
     } finally {
@@ -67,7 +83,7 @@ export default function GuestDownloadPage() {
 
   if (loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center p-6 bg-bg-base text-xs text-ink-muted">
+      <div className="flex min-h-screen items-center justify-center p-6 bg-bg-base text-xs text-ink-muted font-sans">
         Loading secure file metadata...
       </div>
     );
@@ -75,8 +91,8 @@ export default function GuestDownloadPage() {
 
   if (burned || !share) {
     return (
-      <div className="flex min-h-screen items-center justify-center p-6 bg-bg-base">
-        <Card className="w-full max-w-md border-border-strong bg-bg-surface text-center p-6">
+      <div className="flex min-h-screen items-center justify-center p-6 bg-bg-base font-sans">
+        <Card className="w-full max-w-md border-border-strong bg-bg-surface text-center p-6 shadow-2xl">
           <div className="flex h-12 w-12 items-center justify-center rounded-full bg-danger/10 text-danger mx-auto mb-3">
             <Flame className="h-6 w-6" />
           </div>
@@ -89,9 +105,11 @@ export default function GuestDownloadPage() {
     );
   }
 
+  const remaining = Math.max(0, share.max_downloads - share.download_count);
+
   return (
-    <div className="flex min-h-screen items-center justify-center p-6 bg-bg-base">
-      <Card className="w-full max-w-md border-border-strong bg-bg-surface">
+    <div className="flex min-h-screen items-center justify-center p-6 bg-bg-base font-sans">
+      <Card className="w-full max-w-md border-border-strong bg-bg-surface shadow-2xl">
         <CardHeader className="text-center pb-4 border-b border-border">
           <div className="flex h-10 w-10 items-center justify-center rounded-full bg-amber-500/10 text-amber-500 mx-auto mb-2">
             <Flame className="h-5 w-5" />
@@ -101,9 +119,9 @@ export default function GuestDownloadPage() {
         </CardHeader>
         <CardContent className="pt-6">
           <form onSubmit={handleDownload} className="space-y-4">
-            <div className="p-3 bg-bg-raised rounded border border-border text-xs text-ink-muted flex items-center justify-between">
+            <div className="p-3 bg-bg-raised rounded border border-border text-xs text-ink-muted flex items-center justify-between font-mono">
               <span>Remaining Downloads:</span>
-              <strong className="text-amber-500">{share.max_downloads - share.download_count} of {share.max_downloads}</strong>
+              <strong className="text-amber-500">{remaining} of {share.max_downloads}</strong>
             </div>
 
             {share.has_password && (
@@ -117,15 +135,15 @@ export default function GuestDownloadPage() {
                   placeholder="Enter passcode to unlock"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="h-8 text-xs"
+                  className="h-8 text-xs font-mono"
                   required
                 />
               </div>
             )}
 
-            <Button type="submit" className="w-full text-xs" disabled={downloading}>
+            <Button type="submit" className="w-full text-xs font-semibold" disabled={downloading || remaining <= 0}>
               <Download className="h-4 w-4 mr-2" />
-              {downloading ? "Decrypting & Serving..." : "Download File"}
+              {downloading ? "Preparing Download..." : "Download File"}
             </Button>
           </form>
         </CardContent>

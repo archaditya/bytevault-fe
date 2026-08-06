@@ -10,15 +10,7 @@ import { formatBytes, formatRelativeTime } from "@/lib/utils";
 import { useDeleteFileMutation, useToggleShareMutation, useFileImageBlob } from "@/services";
 import { useFilesStore } from "@/store/files.store";
 import { cn } from "@/lib/utils";
-import {
-  DropdownMenu,
-  DropdownMenuTrigger,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-} from "@/components/ui/dropdown-menu";
 import { useState } from "react";
-import { MoveItemModal } from "./move-item-modal";
 
 export function FileCard({ file }: { file: FileRecord }) {
   const deleteMutation = useDeleteFileMutation();
@@ -32,6 +24,7 @@ export function FileCard({ file }: { file: FileRecord }) {
   const hasPreview = ["image", "video", "document"].includes(file.kind);
   const { data: previewUrl } = useFileImageBlob(file.id, hasPreview && file.status === "READY");
   const isSelected = selectedItems.some((item) => item.id === file.id);
+  const [imgError, setImgError] = useState(false);
 
   const handleCardClick = (e: React.MouseEvent) => {
     if (selectedItems.length > 0) {
@@ -82,12 +75,13 @@ export function FileCard({ file }: { file: FileRecord }) {
             className="flex h-24 items-center justify-center overflow-hidden"
             style={{ backgroundColor: `${file.thumbnailColor}14` }}
           >
-            {previewUrl ? (
+            {previewUrl && !imgError ? (
               <img
                 src={previewUrl}
                 alt={file.name}
                 className="h-full w-full object-cover"
                 loading="lazy"
+                onError={() => setImgError(true)}
               />
             ) : (
               <div style={{ color: file.thumbnailColor }}>
