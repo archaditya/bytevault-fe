@@ -30,6 +30,7 @@ export interface FileRecord {
   thumbnailColor: string;
   status?: string; // UPLOADING | READY | FAILED
   folderId?: string;
+  thumbnailUrl?: string;
 }
 
 export interface FileTransferHistoryEntry {
