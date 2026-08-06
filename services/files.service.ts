@@ -511,9 +511,8 @@ export function useCreateFolderMutation(currentParentId?: string | null) {
       });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["files"] });
-      queryClient.invalidateQueries({ queryKey: ["file-thumbnail-blob"] });
-      queryClient.invalidateQueries({ queryKey: ["quota"] });
+      queryClient.invalidateQueries({ queryKey: ["folders", currentParentId] });
+      queryClient.invalidateQueries({ queryKey: ["folders", "flat"] });
     },
   });
 }
@@ -943,6 +942,7 @@ export function useUploadFileMutation() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["files"] });
+      queryClient.invalidateQueries({ queryKey: ["file-thumbnail-blob"] });
       queryClient.invalidateQueries({ queryKey: ["quota"] });
     },
   });
