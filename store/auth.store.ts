@@ -53,7 +53,6 @@ async function registerPushTokenIfAvailable() {
   try {
     if (typeof window === "undefined" || !("Notification" in window)) return;
 
-    // Skip if VAPID key is not configured in .env to prevent browser exceptions
     const vapidKey = process.env.NEXT_PUBLIC_FIREBASE_VAPID_KEY;
     if (!vapidKey) {
       console.warn(
@@ -65,21 +64,16 @@ async function registerPushTokenIfAvailable() {
     const permission = await Notification.requestPermission();
     if (permission !== "granted") return;
 
-    // Load Firebase messaging dynamically
+    // Dynamically load Firebase messaging and await instance resolution
     const { getToken } = await import("firebase/messaging");
-    const { messaging } = await import("../lib/firebase");
+    const { getMessagingInstance } = await import("../lib/firebase");
 
+    const messaging = await getMessagingInstance();
     if (!messaging) return;
 
-    // Register Service Worker explicitly with matching credentials
-    const apiKey = process.env.NEXT_PUBLIC_FIREBASE_API_KEY || "";
-    const authDomain = process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN || "";
-    const projectId = process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || "";
-    const storageBucket = process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET || ""; // Fixed name mismatch
-
-    const swUrl = `/firebase-messaging-sw.js?apiKey=${encodeURIComponent(apiKey)}&authDomain=${encodeURIComponent(authDomain)}&projectId=${encodeURIComponent(projectId)}&storageBucket=${encodeURIComponent(storageBucket)}&messagingSenderId=${encodeURIComponent(process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID || "")}&appId=${encodeURIComponent(process.env.NEXT_PUBLIC_FIREBASE_APP_ID || "")}`;
-
-    const registration = await navigator.serviceWorker.register(swUrl);
+    // Register service worker and await full activation (ready state)
+    await navigator.serviceWorker.register("/firebase-messaging-sw.js");
+    const registration = await navigator.serviceWorker.ready;
 
     const token = await getToken(messaging, {
       serviceWorkerRegistration: registration,
@@ -87,13 +81,13 @@ async function registerPushTokenIfAvailable() {
     });
 
     if (token) {
-      await apiClient("/api/v1/push-tokens", {
+      await apiClient("/api/v1/me/devices", {
         method: "POST",
-        body: JSON.stringify({ token, device_type: "web" }),
+        body: JSON.stringify({ fcm_token: token, device_type: "web" }),
       });
+      console.log("✅ FCM Push Token registered with backend successfully");
     }
   } catch (err) {
-    // Silent fail — FCM is optional, don't block auth flow
     console.warn("FCM token registration skipped:", err);
   }
 }

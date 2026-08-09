@@ -1,35 +1,34 @@
-importScripts('https://www.gstatic.com/firebasejs/9.0.0/firebase-app-compat.js');
-importScripts('https://www.gstatic.com/firebasejs/9.0.0/firebase-messaging-compat.js');
+importScripts('https://www.gstatic.com/firebasejs/12.15.0/firebase-app-compat.js');
+importScripts('https://www.gstatic.com/firebasejs/12.15.0/firebase-messaging-compat.js');
 
-// Parse search parameters
-const params = new URL(self.location).searchParams;
-const apiKey = params.get('apiKey');
-const authDomain = params.get('authDomain');
-const projectId = params.get('projectId');
-const storageBucket = params.get('storageBucket');
-const messagingSenderId = params.get('messagingSenderId');
-const appId = params.get('appId');
+// Force immediate activation upon service worker installation
+self.addEventListener('install', () => {
+  self.skipWaiting();
+});
 
-if (apiKey && messagingSenderId) {
-  firebase.initializeApp({
-    apiKey,
-    authDomain,
-    projectId,
-    storageBucket,
-    messagingSenderId,
-    appId
-  });
+self.addEventListener('activate', (event) => {
+  event.waitUntil(self.clients.claim());
+});
 
-  const messaging = firebase.messaging();
+// Firebase config — matches frontend .env / lib/firebase.ts
+firebase.initializeApp({
+  apiKey: 'AIzaSyBPhZ-DQAPwGZAZn-SHObvyygv5QmZX3i0',
+  authDomain: 'bytevault-cd41f.firebaseapp.com',
+  projectId: 'bytevault-cd41f',
+  storageBucket: 'bytevault-cd41f.firebasestorage.app',
+  messagingSenderId: '830532298839',
+  appId: '1:830532298839:web:9e353a91df24173a735b12'
+});
 
-  messaging.onBackgroundMessage((payload) => {
-    console.log('[firebase-messaging-sw.js] Received background message ', payload);
-    const notificationTitle = payload.notification.title;
-    const notificationOptions = {
-      body: payload.notification.body,
-      icon: '/logo.png'
-    };
+const messaging = firebase.messaging();
 
-    self.registration.showNotification(notificationTitle, notificationOptions);
-  });
-}
+messaging.onBackgroundMessage((payload) => {
+  // console.log('[firebase-messaging-sw.js] Received background message ', payload);
+  const notificationTitle = payload.notification.title;
+  const notificationOptions = {
+    body: payload.notification.body,
+    icon: '/logo.png'
+  };
+
+  self.registration.showNotification(notificationTitle, notificationOptions);
+});
