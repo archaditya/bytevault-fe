@@ -1,6 +1,6 @@
 import { initializeApp, getApps, getApp } from "firebase/app";
 import { getAuth } from "firebase/auth";
-import { getMessaging, isSupported } from "firebase/messaging";
+import { getMessaging, isSupported, Messaging } from "firebase/messaging";
 
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
@@ -11,25 +11,27 @@ const firebaseConfig = {
   appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
 };
 
-// Initialize Firebase
+// Initialize Firebase App
 const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
 const auth = getAuth(app);
 
-// Messaging is only supported in browser environments
-let messaging: any = null;
-if (typeof window !== "undefined") {
-  isSupported()
-    .then((supported) => {
-      if (supported) {
-        messaging = getMessaging(app);
-      }
-    })
-    .catch((err) => {
-      console.error(
-        "Firebase messaging is not supported in this browser:",
-        err,
-      );
-    });
+let messagingPromise: Promise<Messaging | null> | null = null;
+
+/**
+ * Returns a Promise that resolves to the Firebase Messaging instance once supported check finishes.
+ */
+export async function getMessagingInstance(): Promise<Messaging | null> {
+  if (typeof window === "undefined") return null;
+
+  if (!messagingPromise) {
+    messagingPromise = isSupported()
+      .then((supported) => (supported ? getMessaging(app) : null))
+      .catch((err) => {
+        console.error("Firebase messaging is not supported in this browser:", err);
+        return null;
+      });
+  }
+  return messagingPromise;
 }
 
-export { app, auth, messaging };
+export { app, auth };
