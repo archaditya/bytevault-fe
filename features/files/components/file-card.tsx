@@ -26,9 +26,18 @@ export function FileCard({ file }: { file: FileRecord }) {
   const [isRenameOpen, setIsRenameOpen] = useState(false);
   const [newFileName, setNewFileName] = useState(file.name);
 
-  const hasPreview = ["image", "video", "document"].includes(file.kind);
-  const { data: previewUrl } = useFileImageBlob(file.id, hasPreview && !file.thumbnailUrl && file.status === "READY");
-  const displayUrl = file.thumbnailUrl || previewUrl;
+  const isVisualMedia =
+    file.kind === "image" ||
+    file.kind === "video" ||
+    (file.kind === "document" &&
+      (file.mimeType === "application/pdf" ||
+        file.name.toLowerCase().endsWith(".pdf")));
+
+  const { data: previewUrl } = useFileImageBlob(
+    file.id,
+    isVisualMedia && !file.thumbnailUrl && file.status === "READY"
+  );
+  const displayUrl = isVisualMedia ? file.thumbnailUrl || previewUrl : undefined;
   const isSelected = selectedItems.some((item) => item.id === file.id);
   const [imgError, setImgError] = useState(false);
 
