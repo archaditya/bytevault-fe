@@ -9,6 +9,7 @@ import {
   Upload,
   FolderPlus,
   Loader2,
+  RotateCw,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -29,6 +30,8 @@ import { useFilesStore } from "@/store";
 import { cn } from "@/lib/utils";
 import { useUploadFileMutation, useCreateFolderMutation } from "@/services";
 import { UploadModal } from "@/components/shared/upload-modal";
+import { useQueryClient } from "@tanstack/react-query";
+import toast from "react-hot-toast";
 
 const kindOptions = [
   { value: "all", label: "All types" },
@@ -42,6 +45,7 @@ const kindOptions = [
 ];
 
 export function FilesToolbar() {
+  const queryClient = useQueryClient();
   const uploadMutation = useUploadFileMutation();
   const { currentFolderId } = useFilesStore();
   const createFolderMutation = useCreateFolderMutation(currentFolderId);
@@ -49,6 +53,7 @@ export function FilesToolbar() {
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [newFolderName, setNewFolderName] = useState("");
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   const searchParams = useSearchParams();
 
@@ -70,6 +75,17 @@ export function FilesToolbar() {
     kindFilter,
     setKindFilter,
   } = useFilesStore();
+
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: ["files"] }),
+      queryClient.invalidateQueries({ queryKey: ["folders"] }),
+      queryClient.invalidateQueries({ queryKey: ["quota"] }),
+    ]);
+    toast.success("File list refreshed");
+    setTimeout(() => setIsRefreshing(false), 400);
+  };
 
   const handleCreateFolderSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -118,6 +134,18 @@ export function FilesToolbar() {
       </Select>
 
       <div className="ml-auto flex items-center gap-2">
+        <Button
+          size="sm"
+          variant="secondary"
+          onClick={handleRefresh}
+          disabled={isRefreshing}
+          title="Refresh files"
+          aria-label="Refresh files"
+        >
+          <RotateCw className={cn("h-3.5 w-3.5", isRefreshing && "animate-spin text-accent")} />
+          <span className="hidden sm:inline">Refresh</span>
+        </Button>
+
         <div className="flex items-center rounded-md border border-border-strong bg-bg-surface p-0.5">
           <button
             onClick={() => setViewMode("grid")}

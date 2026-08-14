@@ -7,7 +7,7 @@ import { useFiles, useQuota } from "@/services";
 
 export function DashboardStats() {
   const { data: quota } = useQuota();
-  const { data: filesResponse } = useFiles({});
+  const { data: filesResponse } = useFiles({ limit: 1000 });
   
   const totalUsed = quota?.used_bytes || 0;
   const totalQuota = quota?.total_bytes || 0;

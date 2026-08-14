@@ -306,7 +306,14 @@ function determineFileKind(contentType: string): FileKind {
     mime.includes("typescript") ||
     mime.includes("html") ||
     mime.includes("css") ||
-    mime.includes("xml")
+    mime.includes("xml") ||
+    mime.includes("yaml") ||
+    mime.includes("sql") ||
+    mime.includes("python") ||
+    mime.includes("shell") ||
+    mime.includes("wasm") ||
+    mime.includes("toml") ||
+    mime.includes("graphql")
   ) {
     return "code";
   }
@@ -314,7 +321,11 @@ function determineFileKind(contentType: string): FileKind {
     mime.includes("pdf") ||
     mime.includes("msword") ||
     mime.includes("wordprocessing") ||
-    mime.includes("officedocument.word") ||
+    mime.includes("officedocument") ||
+    mime.includes("iwork") ||
+    mime.includes("pages") ||
+    mime.includes("numbers") ||
+    mime.includes("keynote") ||
     mime.includes("epub") ||
     mime.includes("rtf")
   ) {
@@ -325,7 +336,9 @@ function determineFileKind(contentType: string): FileKind {
     mime.includes("x-tar") ||
     mime.includes("gzip") ||
     mime.includes("rar") ||
-    mime.includes("7z")
+    mime.includes("7z") ||
+    mime.includes("bzip2") ||
+    mime.includes("apple-diskimage")
   ) {
     return "archive";
   }
@@ -334,6 +347,7 @@ function determineFileKind(contentType: string): FileKind {
     mime.includes("excel") ||
     mime.includes("spreadsheet") ||
     mime.includes("parquet") ||
+    mime.includes("sqlite") ||
     (mime.includes("octet-stream") && mime.endsWith("db"))
   ) {
     return "dataset";
@@ -401,7 +415,11 @@ export function useFiles(params: {
     queryKey: ["files", params],
     queryFn: async () => {
       const query = new URLSearchParams();
-      if (params.folderId) query.append("folder_id", params.folderId);
+      if (params.folderId === null) {
+        query.append("folder_id", "root");
+      } else if (params.folderId !== undefined) {
+        query.append("folder_id", params.folderId);
+      }
       if (params.search) query.append("q", params.search);
       if (params.sortBy) query.append("sort_by", params.sortBy);
       if (params.sortDirection) query.append("sort_dir", params.sortDirection);
@@ -630,6 +648,21 @@ export function useDeleteFileMutation() {
   });
 }
 
+export function useRenameFileMutation() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, filename }: { id: string; filename: string }) => {
+      return apiClient(`/api/v1/files/${id}/rename`, {
+        method: "PUT",
+        body: JSON.stringify({ filename }),
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["files"] });
+    },
+  });
+}
+
 async function validateFileSignature(file: File) {
   const header = await new Promise<Uint8Array>((resolve, reject) => {
     const reader = new FileReader();
@@ -651,10 +684,26 @@ async function validateFileSignature(file: File) {
   const declared = file.type;
 
   if (detected && declared && detected !== declared) {
-    if (detected === "application/zip" && (declared.includes("wordprocessingml") || declared.includes("spreadsheetml") || declared.includes("presentationml"))) {
+    if (
+      detected === "application/zip" &&
+      (declared.includes("officedocument") ||
+        declared.includes("wordprocessingml") ||
+        declared.includes("spreadsheetml") ||
+        declared.includes("presentationml") ||
+        declared.includes("iwork") ||
+        declared.includes("pages") ||
+        declared.includes("numbers") ||
+        declared.includes("keynote") ||
+        declared.includes("epub") ||
+        declared.includes("jar") ||
+        declared.includes("apk"))
+    ) {
       return;
     }
-    throw new Error("Extension spoofing detected! Upload rejected.");
+    // Only throw if binary header does not match expected image/pdf/zip format
+    if (detected !== "application/zip") {
+      throw new Error("Extension spoofing detected! Upload rejected.");
+    }
   }
 }
 
@@ -677,9 +726,10 @@ export function useUploadFileMutation() {
         throw new Error(`File exceeds maximum allowed size of ${maxFileSizeMb}MB`);
       }
 
-      const unsupportedExtensions = /\.(exe|bat|sh|dll|com|cmd)$/i;
+      // Block only dangerous executable payloads (allow shell scripts, dev configs, etc.)
+      const unsupportedExtensions = /\.(exe|bat|cmd|com|msi|scr|pif|vbs|wsf)$/i;
       if (unsupportedExtensions.test(file.name)) {
-        throw new Error("Unsupported file type. Executables are not allowed.");
+        throw new Error("Unsupported file type. Windows/DOS executables are not allowed.");
       }
 
       await validateFileSignature(file);
@@ -960,17 +1010,111 @@ export function getResolvedMimeType(file: File): string {
   }
   const ext = file.name.split(".").pop()?.toLowerCase();
   switch (ext) {
+    // Developer & Code
+    case "json":
+      return "application/json";
+    case "yaml":
+    case "yml":
+      return "application/x-yaml";
+    case "js":
+    case "mjs":
+    case "cjs":
+      return "text/javascript";
+    case "ts":
+    case "tsx":
+      return "text/typescript";
+    case "jsx":
+      return "text/javascript";
+    case "py":
+      return "text/x-python";
+    case "go":
+      return "text/x-go";
+    case "rs":
+      return "text/x-rust";
+    case "java":
+      return "text/x-java-source";
+    case "c":
+      return "text/x-c";
+    case "cpp":
+    case "cc":
+    case "h":
+    case "hpp":
+      return "text/x-c++";
+    case "sql":
+      return "text/x-sql";
+    case "html":
+    case "htm":
+      return "text/html";
+    case "css":
+      return "text/css";
+    case "xml":
+      return "text/xml";
+    case "sh":
+    case "bash":
+    case "zsh":
+      return "text/x-shellscript";
+    case "md":
+    case "markdown":
+      return "text/markdown";
+    case "csv":
+      return "text/csv";
+    case "toml":
+      return "text/x-toml";
+    case "graphql":
+    case "gql":
+      return "application/graphql";
+    case "wasm":
+      return "application/wasm";
+    case "proto":
+      return "application/x-protobuf";
+    case "env":
+      return "text/plain";
+
+    // Apple & Media
     case "heic":
       return "image/heic";
     case "heif":
       return "image/heif";
+    case "avif":
+      return "image/avif";
     case "mov":
       return "video/quicktime";
+    case "m4a":
+      return "audio/x-m4a";
+    case "aiff":
+    case "aif":
+      return "audio/x-aiff";
+    case "pages":
+      return "application/x-iwork-pages-sffpages";
+    case "numbers":
+      return "application/x-iwork-numbers-sffnumbers";
+    case "key":
+      return "application/x-iwork-keynote-sffkey";
+    case "dmg":
+      return "application/x-apple-diskimage";
+    case "plist":
+      return "application/x-plist";
+
+    // Documents & Common
+    case "pdf":
+      return "application/pdf";
     case "png":
       return "image/png";
     case "jpg":
     case "jpeg":
       return "image/jpeg";
+    case "gif":
+      return "image/gif";
+    case "webp":
+      return "image/webp";
+    case "svg":
+      return "image/svg+xml";
+    case "parquet":
+      return "application/vnd.apache.parquet";
+    case "sqlite":
+    case "sqlite3":
+    case "db":
+      return "application/x-sqlite3";
     default:
       return file.type || "application/octet-stream";
   }
