@@ -30,6 +30,7 @@ const userNavItems = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/files", label: "Files", icon: FolderClosed },
   { href: "/transfers", label: "Transfers", icon: ArrowUpDown },
+  { href: "/instant", label: "Instant Share", icon: Flame, highlight: true },
   { href: "/shared", label: "Shared links", icon: Share2 },
 ];
 
@@ -100,6 +101,7 @@ export function Sidebar({ mobileOpen, setMobileOpen }: SidebarProps) {
             {navItems.map((item) => {
               const active = isActive(item);
               const Icon = item.icon;
+              const isHighlighted = (item as any).highlight;
               return (
                 <li key={item.href}>
                   <Link
@@ -109,13 +111,20 @@ export function Sidebar({ mobileOpen, setMobileOpen }: SidebarProps) {
                       "flex items-center justify-between gap-2.5 rounded-sm px-2.5 py-1.5 text-[13px] font-medium transition-colors",
                       active
                         ? "bg-accent/10 text-accent-bright"
+                        : isHighlighted
+                        ? "text-amber-400 hover:bg-amber-500/10 hover:text-amber-300"
                         : "text-ink-muted hover:bg-bg-overlay hover:text-ink"
                     )}
                   >
                     <span className="flex items-center gap-2.5">
-                      <Icon className="h-[15px] w-[15px]" strokeWidth={2} />
+                      <Icon className={cn("h-[15px] w-[15px]", isHighlighted && "text-amber-400")} strokeWidth={2} />
                       {item.label}
                     </span>
+                    {isHighlighted && (
+                      <span className="rounded-full bg-amber-500/20 px-1.5 py-0.2 text-[9px] font-bold text-amber-400 border border-amber-500/30 uppercase tracking-wider">
+                        Quick
+                      </span>
+                    )}
                   </Link>
                 </li>
               );
