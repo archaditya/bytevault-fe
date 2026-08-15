@@ -1,6 +1,12 @@
-import { RefreshCw, GitCommitHorizontal, Gauge, ShieldCheck, Share2, BarChart3 } from "lucide-react";
+import { RefreshCw, GitCommitHorizontal, Gauge, ShieldCheck, Share2, BarChart3, Flame } from "lucide-react";
 
 const features = [
+  {
+    icon: Flame,
+    title: "Instant Ephemeral Sharing",
+    desc: "Send files up to 2GB instantly with zero account or signup required. Features one-time download limits, password encryption, and auto self-destruction.",
+    highlight: true,
+  },
   {
     icon: RefreshCw,
     title: "Resumable by design",
@@ -25,11 +31,6 @@ const features = [
     icon: Share2,
     title: "Controlled sharing",
     desc: "Password-protect links, cap download counts, set expirations. Revoke access instantly without touching the underlying file.",
-  },
-  {
-    icon: BarChart3,
-    title: "Transfer analytics",
-    desc: "Upload and download trends, success rates, and provider comparisons — the operational picture your infra team actually needs.",
   },
 ];
 

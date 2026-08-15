@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
-import { ArrowRight, Upload, Loader2, CheckCircle2, ShieldAlert, Sparkles } from "lucide-react";
+import { ArrowRight, Upload, Loader2, CheckCircle2, ShieldAlert, Sparkles, Flame, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
@@ -137,13 +137,16 @@ export function Hero() {
       <div className="absolute inset-0 bg-grid-pattern bg-[size:42px_42px] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,black_40%,transparent_100%)]" />
       <div className="container relative pt-28 pb-20">
         <div className="mx-auto flex max-w-3xl flex-col items-center text-center">
-          {/* <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-border-strong bg-bg-surface px-3 py-1 text-[12px] text-ink-muted">
-            <span className="relative flex h-1.5 w-1.5">
-              <span className="absolute inline-flex h-full w-full animate-pulse-live rounded-full bg-live opacity-75" />
-              <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-live" />
-            </span>
-            Now streaming 14,200 chunks/sec across 3 providers
-          </div> */}
+          {/* Instant Share Flagship Promotion Pill */}
+          <Link
+            href="/instant"
+            className="mb-6 group inline-flex items-center gap-2 rounded-full border border-amber-500/30 bg-amber-500/10 px-4 py-1.5 text-[12px] sm:text-[13px] font-medium text-amber-300 backdrop-blur-sm transition-all hover:border-amber-500/60 hover:bg-amber-500/20 hover:scale-[1.02]"
+          >
+            <span className="flex h-2 w-2 rounded-full bg-amber-400 animate-pulse" />
+            <span className="font-semibold text-amber-400">⚡ Instant Share:</span>
+            <span className="text-ink-muted group-hover:text-ink transition-colors">Send files up to 2GB with zero signup & auto-expiry</span>
+            <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5 text-amber-400" />
+          </Link>
 
           <h1 className="text-4xl font-semibold tracking-tight text-ink sm:text-5xl lg:text-6xl">
             File transfer, down to{" "}
@@ -151,7 +154,7 @@ export function Hero() {
               the chunk.
             </span>
           </h1>
-          <p className="mt-5 max-w-xl text-[16px] leading-relaxed text-ink-muted">
+          <p className="mt-5 max-w-xl text-[15px] sm:text-[16px] leading-relaxed text-ink-muted px-2">
             ByteVault resumes every upload exactly where it stopped, retries only the
             piece that failed, and shows you precisely which chunk is in flight.
           </p>
@@ -163,13 +166,24 @@ export function Hero() {
             className="hidden"
           />
 
-          <div className="mt-8 flex items-center gap-3">
-            <Button size="lg" onClick={triggerFileSelect} className="gap-2">
-              <Upload className="h-4 w-4" />
-              Upload & Secure a File
+          {/* Hero CTAs with Responsive Mobile Layout (No Overflow) */}
+          <div className="mt-8 flex flex-col sm:flex-row items-stretch sm:items-center justify-center gap-3 w-full max-w-lg sm:max-w-none px-4 sm:px-0">
+            <Button
+              size="lg"
+              className="w-full sm:w-auto gap-2 bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 text-white font-medium border-0 shadow-lg shadow-orange-500/20"
+              asChild
+            >
+              <Link href="/instant">
+                <Flame className="h-4 w-4 fill-white/20" />
+                Instant Share (No Signup)
+              </Link>
             </Button>
-            <Button size="lg" variant="secondary" asChild>
-              <Link href="/transfers">See live transfers</Link>
+            <Button size="lg" onClick={triggerFileSelect} variant="primary" className="w-full sm:w-auto gap-2">
+              <Upload className="h-4 w-4" />
+              Upload to Vault
+            </Button>
+            <Button size="lg" variant="secondary" className="w-full sm:w-auto" asChild>
+              <Link href="/transfers">Live transfers</Link>
             </Button>
           </div>
         </div>
