@@ -2,7 +2,7 @@ import { Metadata } from "next";
 import { TransfersList } from "@/features/transfers/components/transfers-list";
 
 export const metadata: Metadata = {
-  title: "Transfers — ByteVault",
+  title: "Transfers — PushPort",
 };
 
 export default function TransfersPage() {

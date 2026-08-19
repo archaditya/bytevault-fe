@@ -24,7 +24,7 @@ interface ChunkVisualizerProps {
 }
 
 /**
- * Renders one block per chunk. This is ByteVault's signature visualization —
+ * Renders one block per chunk. This is PushPort's signature visualization —
  * a transfer isn't a single bar filling up, it's a grid of discrete units of
  * work, each independently retried, completed, or failed.
  */

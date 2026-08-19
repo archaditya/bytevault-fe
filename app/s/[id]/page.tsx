@@ -212,7 +212,7 @@ export default function PublicSharePage({
           </Button>
 
           <p className="mt-6 text-[12px] text-ink-faint">
-            Securely shared via ByteVault
+            Securely shared via PushPort
           </p>
         </div>
       </div>

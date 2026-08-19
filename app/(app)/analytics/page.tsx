@@ -3,7 +3,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { BarChart3 } from "lucide-react";
 
 export const metadata: Metadata = {
-  title: "Analytics — ByteVault",
+  title: "Analytics — PushPort",
 };
 
 export default function AnalyticsPage() {

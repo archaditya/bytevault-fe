@@ -32,7 +32,7 @@ export default function ContactPage() {
 
   // WhatsApp Prepopulated message redirect
   const whatsappUrl = `https://wa.me/919334106744?text=${encodeURIComponent(
-    "Hi Archaditya, I'm reaching out about ByteVault!"
+    "Hi Archaditya, I'm reaching out about PushPort!"
   )}`;
 
   return (
@@ -94,8 +94,8 @@ export default function ContactPage() {
                   <span className="flex items-center gap-1.5"><Github className="h-3.5 w-3.5" /> Creator GitHub</span>
                   <span className="text-[11px] font-mono text-ink-muted">@archaditya</span>
                 </a>
-                <a href="https://github.com/archaditya/bytevault" target="_blank" rel="noreferrer" className="flex items-center justify-between text-ink hover:text-accent transition-colors">
-                  <span className="flex items-center gap-1.5"><Github className="h-3.5 w-3.5" /> ByteVault Codebase</span>
+                <a href="https://github.com/archaditya/PushPort" target="_blank" rel="noreferrer" className="flex items-center justify-between text-ink hover:text-accent transition-colors">
+                  <span className="flex items-center gap-1.5"><Github className="h-3.5 w-3.5" /> PushPort Codebase</span>
                   <span className="text-[11px] font-mono text-ink-muted">repository</span>
                 </a>
               </div>

@@ -7,18 +7,18 @@ import { cn } from "@/lib/utils";
 const faqs = [
   {
     q: "What happens if my connection drops mid-upload?",
-    a: "ByteVault tracks completion at the chunk level, not the file level. When you reconnect, the transfer resumes from the last completed chunk — nothing already uploaded gets sent again.",
+    a: "PushPort tracks completion at the chunk level, not the file level. When you reconnect, the transfer resumes from the last completed chunk — nothing already uploaded gets sent again.",
   },
   {
     q: "Can I move files between storage providers later?",
-    a: "Yes. Files can be replicated or moved across Object Storage without re-uploading from your machine — ByteVault transfers between storage targets directly.",
+    a: "Yes. Files can be replicated or moved across Object Storage without re-uploading from your machine — PushPort transfers between storage targets directly.",
   },
   {
     q: "Is there a limit on file size or storage quota?",
     a: "Yes. There is a maximum file upload cap of 100MB per file and a total storage quota limit of 1GB per user to maintain high-performance and availability.",
   },
   {
-    q: "Does ByteVault rate limit requests?",
+    q: "Does PushPort rate limit requests?",
     a: "Yes. To prevent abuse and ensure fair resource sharing, API endpoints are rate limited. If you exceed the rate limits, requests will temporarily return a 429 status code.",
   },
   {

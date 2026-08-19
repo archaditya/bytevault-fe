@@ -26,7 +26,7 @@ export function TransferEngineShowcase() {
             See the chunk that's actually moving.
           </h2>
           <p className="mt-4 max-w-md text-[14px] leading-relaxed text-ink-muted">
-            Most tools show you a percentage. ByteVault shows you the grid: which
+            Most tools show you a percentage. PushPort shows you the grid: which
             chunks landed, which one is in flight, which one is retrying after a
             timeout, and which one needs your attention.
           </p>

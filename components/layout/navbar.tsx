@@ -40,7 +40,7 @@ export function Navbar({ onMenuClick }: { onMenuClick?: () => void }) {
   const [globalSearch, setGlobalSearch] = useState("");
   const uploadMutation = useUploadFileMutation();
 
-  const title = titleMap[pathname] || (pathname.startsWith("/admin") ? "Admin Console" : "ByteVault");
+  const title = titleMap[pathname] || (pathname.startsWith("/admin") ? "Admin Console" : "PushPort");
   const isAdmin = user?.role === "super_admin" || user?.role === "admin";
 
   const handleGlobalSearch = (e: React.FormEvent) => {

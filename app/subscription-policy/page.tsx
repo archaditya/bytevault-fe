@@ -12,7 +12,7 @@ export default function SubscriptionPolicyPage() {
           <section>
             <h2 className="text-lg font-semibold text-ink mb-2">1. Subscription Plans</h2>
             <p>
-              ByteVault offers subscription plans to unlock advanced storage, bandwidth, and team cooperation options. By choosing a plan, you agree to the recurring fees specified for that subscription cycle.
+              PushPort offers subscription plans to unlock advanced storage, bandwidth, and team cooperation options. By choosing a plan, you agree to the recurring fees specified for that subscription cycle.
             </p>
           </section>
 
@@ -43,7 +43,7 @@ export default function SubscriptionPolicyPage() {
           <section>
             <h2 className="text-lg font-semibold text-ink mb-2">5. Account Termination</h2>
             <p>
-              If a payment fails or is disputed, access to the premium features of your vault may be temporarily suspended. ByteVault reserves the right to terminate accounts that repeatedly violate terms or fail subscription payments.
+              If a payment fails or is disputed, access to the premium features of your vault may be temporarily suspended. PushPort reserves the right to terminate accounts that repeatedly violate terms or fail subscription payments.
             </p>
           </section>
         </div>

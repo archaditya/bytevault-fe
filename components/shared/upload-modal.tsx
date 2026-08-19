@@ -679,7 +679,7 @@ export function UploadModal({ open, onOpenChange }: UploadModalProps) {
               <Upload className="h-8 w-8" />
             </div>
             <h2 className="text-2xl font-bold tracking-tight text-ink mb-2">
-              Drop files to upload to ByteVault
+              Drop files to upload to PushPort
             </h2>
             <p className="text-sm text-ink-muted">
               You can drop your files anywhere on the screen. Supports files up
