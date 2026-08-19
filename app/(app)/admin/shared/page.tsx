@@ -85,7 +85,7 @@ export default function AdminSharedLinksPage() {
             <Share2 className="h-5 w-5 text-accent-bright" /> Global Public Links
           </h1>
           <p className="text-[13px] text-ink-muted mt-0.5">
-            Review and audit all active public access links active on ByteVault. Search query runs on database.
+            Review and audit all active public access links active on PushPort. Search query runs on database.
           </p>
         </div>
         <Button

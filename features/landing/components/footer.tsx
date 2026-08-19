@@ -27,7 +27,7 @@ export function Footer() {
               <div className="flex h-6 w-6 items-center justify-center rounded-sm bg-accent">
                 <Box className="h-3.5 w-3.5 text-white" />
               </div>
-              <span className="text-[14px] font-semibold text-ink">ByteVault</span>
+              <span className="text-[14px] font-semibold text-ink">PushPort</span>
             </div>
             <p className="mt-3 max-w-[180px] text-[12px] text-ink-muted">
               Resumable file transfer with binary signature checks.
@@ -49,7 +49,7 @@ export function Footer() {
           ))}
         </div>
         <div className="mt-12 flex flex-col items-center justify-between gap-3 border-t border-border pt-6 text-[12px] text-ink-faint sm:flex-row">
-          <span>&copy; {new Date().getFullYear()} ByteVault.</span>
+          <span>&copy; {new Date().getFullYear()} PushPort.</span>
           <div className="flex gap-5">
             <Link href="/terms" className="hover:text-ink">Terms &amp; Conditions</Link>
             <Link href="/subscription-policy" className="hover:text-ink">Subscription Policy</Link>

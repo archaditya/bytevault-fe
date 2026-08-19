@@ -37,7 +37,7 @@ export const sharedLinks: SharedLink[] = Array.from({ length: 14 }, (_, i) => {
     id: `link_${i.toString(36)}`,
     fileId: file.id,
     fileName: file.name,
-    url: `https://bytevault.sh/s/${file.id.slice(5)}${i}`,
+    url: `https://PushPort.sh/s/${file.id.slice(5)}${i}`,
     createdAt: daysAgo(randomInt(sRand, 0, 60), 12, sRand),
     expiresAt: hasExpiry ? daysAgo(-randomInt(sRand, 1, 30)) : null,
     passwordProtected: sRand() > 0.5,
@@ -51,7 +51,7 @@ export const sharedLinks: SharedLink[] = Array.from({ length: 14 }, (_, i) => {
 export const currentUser: User = {
   id: "user_1",
   name: "Aarav Mehta",
-  email: "aarav@bytevault.sh",
+  email: "aarav@PushPort.sh",
   avatar: "AM",
   role: "Staff Engineer",
   plan: "enterprise",

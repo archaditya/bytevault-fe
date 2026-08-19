@@ -84,7 +84,7 @@ export function Sidebar({ mobileOpen, setMobileOpen }: SidebarProps) {
             <span className="flex h-6 w-6 items-center justify-center rounded-sm bg-accent">
               <Box className="h-3.5 w-3.5 text-white" />
             </span>
-            <span className="text-[14px] font-semibold tracking-tight text-ink">ByteVault</span>
+            <span className="text-[14px] font-semibold tracking-tight text-ink">PushPort</span>
           </Link>
           
           <button 

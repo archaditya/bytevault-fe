@@ -57,7 +57,7 @@ export default function AdminPage() {
           <Shield className="h-5 w-5 text-accent-bright" /> Admin Console
         </h1>
         <p className="text-[13px] text-ink-muted mt-0.5">
-          Monitor and manage ByteVault system health, storage breakdown, users, and audit logs.
+          Monitor and manage PushPort system health, storage breakdown, users, and audit logs.
         </p>
       </div>
 

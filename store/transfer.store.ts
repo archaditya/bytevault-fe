@@ -21,7 +21,7 @@ export const useTransferStore = create<TransferState>((set) => {
   const save = (txs: TransferSession[]) => {
     if (typeof window !== "undefined") {
       try {
-        localStorage.setItem("bytevault-transfers", JSON.stringify(txs));
+        localStorage.setItem("PushPort-transfers", JSON.stringify(txs));
       } catch (e) {
         console.error("Failed to save transfers to localStorage", e);
       }
@@ -39,7 +39,7 @@ export const useTransferStore = create<TransferState>((set) => {
     loadFromLocalStorage: () => {
       if (typeof window !== "undefined") {
         try {
-          const saved = localStorage.getItem("bytevault-transfers");
+          const saved = localStorage.getItem("PushPort-transfers");
           if (saved) {
             set({ transfers: JSON.parse(saved) });
           }

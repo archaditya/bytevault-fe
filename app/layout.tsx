@@ -20,10 +20,10 @@ const fontMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "ByteVault — Resumable file transfer, down to the chunk",
+  title: "PushPort — Push files in. Pull links out.",
   description:
-    "ByteVault is a high-performance file transfer and storage platform.",
-  keywords: ["file transfer", "resumable upload", "storage", "Cloudflare R2", "AWS S3"],
+    "PushPort is a high-performance file transfer and storage platform. Push files in, pull links out.",
+  keywords: ["file transfer", "resumable upload", "storage", "Cloudflare R2", "AWS S3", "pushport"],
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

@@ -10,7 +10,7 @@ const features = [
   {
     icon: RefreshCw,
     title: "Resumable by design",
-    desc: "Every upload is chunked and checksummed. Drop your connection mid-transfer and ByteVault picks up at the last completed chunk — never the start.",
+    desc: "Every upload is chunked and checksummed. Drop your connection mid-transfer and PushPort picks up at the last completed chunk — never the start.",
   },
   {
     icon: GitCommitHorizontal,

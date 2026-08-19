@@ -1,7 +1,7 @@
 import { type MetadataRoute } from "next";
 
 export default function sitemap(): MetadataRoute.Sitemap {
-  const base = process.env.NEXT_PUBLIC_SITE_URL || "https://bytevault.archadi.dev";
+  const base = process.env.NEXT_PUBLIC_SITE_URL || "https://PushPort.archadi.dev";
   const now = new Date();
 
   return [
