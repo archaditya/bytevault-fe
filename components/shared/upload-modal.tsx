@@ -14,6 +14,7 @@ import {
   X,
   AlertCircle,
   FileCheck,
+  Tag,
 } from "lucide-react";
 import {
   Dialog,
@@ -161,6 +162,7 @@ export function UploadModal({ open, onOpenChange }: UploadModalProps) {
 
   // Files Queue State
   const [queue, setQueue] = useState<QueuedFile[]>([]);
+  const [tagsInput, setTagsInput] = useState("");
   const [isDragging, setIsDragging] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [isWindowDragging, setIsWindowDragging] = useState(false);
@@ -338,9 +340,14 @@ export function UploadModal({ open, onOpenChange }: UploadModalProps) {
       );
 
       try {
+        const tags = queue.length === 1 && tagsInput.trim()
+          ? tagsInput.split(",").map((t) => t.trim()).filter(Boolean)
+          : undefined;
+
         await uploadMutation.mutateAsync({
           file: item.file,
           folderId: selectedFolderId,
+          tags,
         });
 
         setQueue((prev) =>
@@ -375,6 +382,7 @@ export function UploadModal({ open, onOpenChange }: UploadModalProps) {
     setSelectedFolderId(null);
     setIsCreatingFolder(false);
     setNewFolderName("");
+    setTagsInput("");
     setQueue([]);
     setIsUploading(false);
   };
@@ -639,6 +647,28 @@ export function UploadModal({ open, onOpenChange }: UploadModalProps) {
                     </div>
                   ))}
                 </div>
+              </div>
+            )}
+
+            {/* Single File Tags Input (Optional) */}
+            {queue.length === 1 && (
+              <div className="flex flex-col gap-1.5 animate-in fade-in-50">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-semibold text-ink-muted flex items-center gap-1.5">
+                    <Tag className="h-3.5 w-3.5 text-accent" />
+                    Tags & Labels{" "}
+                    <span className="text-[10px] text-ink-faint font-normal">
+                      (optional, comma-separated)
+                    </span>
+                  </span>
+                </div>
+                <Input
+                  placeholder="e.g. invoice, 2026, banana, travel"
+                  value={tagsInput}
+                  onChange={(e) => setTagsInput(e.target.value)}
+                  disabled={isUploading}
+                  className="h-8 text-xs bg-bg-raised"
+                />
               </div>
             )}
           </div>

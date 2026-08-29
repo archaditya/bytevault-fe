@@ -393,7 +393,7 @@ export function mapBackendFileToFrontend(f: any): FileRecord {
     downloads: f.downloads || 0,
     shared: !!f.is_public,
     starred: false,
-    tags: [],
+    tags: Array.isArray(f.tags) ? f.tags : [],
     path: f.storage_key,
     thumbnailColor: getThumbnailColor(kind),
     status: f.status || "READY",
@@ -713,9 +713,11 @@ export function useUploadFileMutation() {
     mutationFn: async ({
       file,
       folderId,
+      tags,
     }: {
       file: File;
       folderId?: string | null;
+      tags?: string[];
     }) => {
       // Dynamically fetch quota limits from query cache, fallback to default limit (100MB)
       const quota = queryClient.getQueryData<QuotaStats>(["quota"]);
@@ -788,6 +790,7 @@ export function useUploadFileMutation() {
               file_size: file.size,
               content_type: file.type || "application/octet-stream",
               folder_id: folderId || undefined,
+              tags: tags && tags.length > 0 ? tags : undefined,
             }),
             signal: abortController.signal,
           });

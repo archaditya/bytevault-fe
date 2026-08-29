@@ -3,6 +3,7 @@
 import { useMemo, useState, useEffect } from "react";
 import { useFiles, useFolders, useDeleteFileMutation, useDeleteFolderMutation } from "@/services";
 import { useFilesStore } from "@/store/files.store";
+import { useDebouncedValue } from "@/hooks/use-debounced-value";
 import { FilesToolbar } from "./files-toolbar";
 import { FolderCard } from "./folder-card";
 import { FolderListRow } from "./folder-list-row";
@@ -43,9 +44,14 @@ export function FilesExplorer() {
     clearSelection();
   }, [currentFolderId, searchQuery, sortKey, sortDirection, kindFilter]);
 
+  // Debounce search query to avoid excessive API calls while user types.
+  // Live searchQuery is used for UI reactivity (e.g. resetting pagination),
+  // but the actual API call uses the debounced value.
+  const debouncedSearch = useDebouncedValue(searchQuery, 300);
+
   const { data: filesData, isLoading: filesLoading } = useFiles({
     folderId: currentFolderId,
-    search: searchQuery,
+    search: debouncedSearch,
     sortBy: sortKey,
     sortDirection,
     cursor,
