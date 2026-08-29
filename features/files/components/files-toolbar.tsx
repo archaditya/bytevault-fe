@@ -47,7 +47,15 @@ const kindOptions = [
 export function FilesToolbar() {
   const queryClient = useQueryClient();
   const uploadMutation = useUploadFileMutation();
-  const { currentFolderId } = useFilesStore();
+  const {
+    currentFolderId,
+    viewMode,
+    setViewMode,
+    searchQuery,
+    setSearchQuery,
+    kindFilter,
+    setKindFilter,
+  } = useFilesStore();
   const createFolderMutation = useCreateFolderMutation(currentFolderId);
 
   const [isCreateOpen, setIsCreateOpen] = useState(false);
@@ -65,16 +73,12 @@ export function FilesToolbar() {
       url.searchParams.delete("triggerUpload");
       window.history.replaceState({}, "", url.toString());
     }
-  }, [searchParams]);
 
-  const {
-    viewMode,
-    setViewMode,
-    searchQuery,
-    setSearchQuery,
-    kindFilter,
-    setKindFilter,
-  } = useFilesStore();
+    const q = searchParams.get("q");
+    if (q) {
+      setSearchQuery(q);
+    }
+  }, [searchParams, setSearchQuery]);
 
   const handleRefresh = async () => {
     setIsRefreshing(true);

@@ -11,9 +11,10 @@ import { FileCard } from "./file-card";
 import { FileListRow } from "./file-list-row";
 import { EmptyState } from "@/components/shared/empty-state";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Button } from "@/components/ui/button";
-import { FolderSearch } from "lucide-react";
+import { FolderSearch, Home, ChevronRight, ChevronLeft, Folder } from "lucide-react";
 import { MoveItemModal } from "./move-item-modal";
+import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
 
 export function FilesExplorer() {
   const {
@@ -109,23 +110,74 @@ export function FilesExplorer() {
   const isLoading = filesLoading || foldersLoading;
 
   return (
-    <div className="flex flex-col gap-4 relative">
-      {/* Dynamic Breadcrumbs Nav */}
-      <div className="flex items-center gap-1.5 text-[13px] text-ink-muted">
-        <button onClick={resetFolder} className="hover:text-ink transition-colors font-medium">
-          Root
-        </button>
-        {folderHistory.map((item, idx) => (
-          <span key={item.id} className="flex items-center gap-1.5">
-            <span>/</span>
+    <div className="flex flex-col gap-3 relative">
+      {/* Dynamic Breadcrumbs Nav Header */}
+      <div className="flex items-center justify-between gap-2 py-0.5 px-0.5 text-[13px]">
+        <div className="flex items-center gap-1.5 min-w-0 overflow-x-auto no-scrollbar py-0.5">
+          {/* Back 1 level button (Visible when inside a folder) */}
+          {folderHistory.length > 0 && (
             <button
-              onClick={() => goToFolderIndex(idx)}
-              className="hover:text-ink transition-colors font-medium last:text-ink last:pointer-events-none"
+              onClick={() => {
+                if (folderHistory.length > 1) {
+                  goToFolderIndex(folderHistory.length - 2);
+                } else {
+                  resetFolder();
+                }
+              }}
+              className="flex items-center gap-1 px-2.5 py-1 mr-1 text-xs font-semibold text-ink-muted hover:text-ink bg-bg-raised hover:bg-bg-overlay border border-border rounded-lg transition-colors shrink-0 shadow-sm"
+              title="Go up one level"
             >
-              {item.name}
+              <ChevronLeft className="h-3.5 w-3.5" />
+              <span>Back</span>
             </button>
-          </span>
-        ))}
+          )}
+
+          {/* Home Button / Root */}
+          <button
+            onClick={resetFolder}
+            className={cn(
+              "flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs transition-colors shrink-0",
+              folderHistory.length === 0
+                ? "bg-accent/15 text-accent-bright font-semibold border border-accent/30"
+                : "text-ink-muted hover:text-ink hover:bg-bg-raised font-medium"
+            )}
+          >
+            <Home className="h-3.5 w-3.5" />
+            <span>Home</span>
+          </button>
+
+          {/* Subfolders Breadcrumbs */}
+          {folderHistory.map((item, idx) => {
+            const isLast = idx === folderHistory.length - 1;
+            return (
+              <div key={item.id} className="flex items-center gap-1.5 shrink-0">
+                <ChevronRight className="h-3.5 w-3.5 text-ink-faint shrink-0" />
+                <button
+                  onClick={() => goToFolderIndex(idx)}
+                  disabled={isLast}
+                  className={cn(
+                    "flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs transition-colors truncate max-w-[150px] sm:max-w-[220px]",
+                    isLast
+                      ? "bg-accent/15 text-accent-bright font-semibold border border-accent/30 pointer-events-none"
+                      : "text-ink-muted hover:text-ink hover:bg-bg-raised font-medium"
+                  )}
+                  title={item.name}
+                >
+                  <Folder className="h-3.5 w-3.5 shrink-0 text-ink-faint" />
+                  <span className="truncate">{item.name}</span>
+                </button>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Quick file count */}
+        <div className="hidden sm:flex items-center gap-2 text-xs text-ink-faint font-mono shrink-0">
+          <span>{filteredFiles.length} {filteredFiles.length === 1 ? "file" : "files"}</span>
+          {folders && folders.length > 0 && showFoldersTree && (
+            <span>• {folders.length} {folders.length === 1 ? "folder" : "folders"}</span>
+          )}
+        </div>
       </div>
 
       <FilesToolbar />

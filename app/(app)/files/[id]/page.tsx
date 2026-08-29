@@ -9,6 +9,9 @@ import {
   Share2,
   Star,
   ChevronLeft,
+  ChevronRight,
+  Home,
+  Folder,
   Hash,
   Calendar,
   Trash2,
@@ -125,13 +128,29 @@ export default function FileDetailsPage({
   const previewUrl = `/api/v1/files/${file.id}/download?token=${token}&inline=true`;
 
   return (
-    <div className="flex flex-col gap-6">
-      <Link
-        href="/files"
-        className="inline-flex items-center gap-1 text-[13px] text-ink-muted hover:text-ink"
-      >
-        <ChevronLeft className="h-3.5 w-3.5" /> Back to files
-      </Link>
+    <div className="flex flex-col gap-5">
+      {/* Top Breadcrumb Navigation */}
+      <div className="flex items-center gap-1.5 text-xs text-ink-muted overflow-x-auto no-scrollbar py-0.5">
+        <Link
+          href="/files"
+          className="flex items-center gap-1.5 px-2 py-1 rounded-lg text-ink-muted hover:text-ink hover:bg-bg-raised font-medium transition-colors shrink-0"
+        >
+          <Home className="h-3.5 w-3.5" />
+          <span>Home</span>
+        </Link>
+        <ChevronRight className="h-3.5 w-3.5 text-ink-faint shrink-0" />
+        <Link
+          href="/files"
+          className="flex items-center gap-1.5 px-2 py-1 rounded-lg text-ink-muted hover:text-ink hover:bg-bg-raised font-medium transition-colors shrink-0"
+        >
+          <Folder className="h-3.5 w-3.5 text-ink-faint" />
+          <span>Files</span>
+        </Link>
+        <ChevronRight className="h-3.5 w-3.5 text-ink-faint shrink-0" />
+        <span className="flex items-center gap-1.5 px-2 py-1 rounded-lg bg-accent/15 text-accent-bright font-semibold border border-accent/30 truncate max-w-[200px] sm:max-w-[300px]">
+          {file.name}
+        </span>
+      </div>
 
       <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
         <div className="flex items-start gap-3 min-w-0">

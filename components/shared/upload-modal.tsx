@@ -452,7 +452,7 @@ export function UploadModal({ open, onOpenChange }: UploadModalProps) {
                       ) : (
                         <Folder className="h-4 w-4 flex-shrink-0 text-ink-faint" />
                       )}
-                      <span>Root (/)</span>
+                      <span>Home (All Files)</span>
                       {isRootSelected && (
                         <Check className="ml-auto h-3.5 w-3.5 text-accent flex-shrink-0" />
                       )}
