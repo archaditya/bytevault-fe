@@ -1,22 +1,46 @@
 "use client";
 
-import Link from "next/link";
-import { Star, Share2, MoreVertical, Download, Trash2, Globe, Move, Pencil } from "lucide-react";
+import { useRouter } from "next/navigation";
+import {
+  MoreVertical,
+  Download,
+  Trash2,
+  Share2,
+  Pencil,
+  Check,
+  ExternalLink,
+} from "lucide-react";
 import { FileRecord } from "@/types";
 import { Card } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { FileKindIcon } from "@/components/shared/file-kind-icon";
-import { formatBytes, formatRelativeTime } from "@/lib/utils";
-import { useDeleteFileMutation, useToggleShareMutation, useFileImageBlob, useRenameFileMutation } from "@/services";
+import { formatBytes, formatRelativeTime, cn } from "@/lib/utils";
+import {
+  useDeleteFileMutation,
+  useToggleShareMutation,
+  useFileImageBlob,
+  useRenameFileMutation,
+} from "@/services";
 import { useFilesStore } from "@/store/files.store";
-import { cn } from "@/lib/utils";
 import { useState } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+} from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import toast from "react-hot-toast";
 
 export function FileCard({ file }: { file: FileRecord }) {
+  const router = useRouter();
   const deleteMutation = useDeleteFileMutation();
   const toggleShareMutation = useToggleShareMutation();
   const renameMutation = useRenameFileMutation();
@@ -41,12 +65,26 @@ export function FileCard({ file }: { file: FileRecord }) {
   const isSelected = selectedItems.some((item) => item.id === file.id);
   const [imgError, setImgError] = useState(false);
 
+  const handleOpenFile = () => {
+    router.push(`/files/${file.id}`);
+  };
+
   const handleCardClick = (e: React.MouseEvent) => {
+    // If in multi-select mode, clicking anywhere selects/deselects
     if (selectedItems.length > 0) {
       e.preventDefault();
       e.stopPropagation();
       toggleSelectItem(file.id, "file");
+    } else {
+      // Direct open on 1 click
+      handleOpenFile();
     }
+  };
+
+  const handleSelectToggle = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    toggleSelectItem(file.id, "file");
   };
 
   const handleDownload = (e: React.MouseEvent) => {
@@ -75,90 +113,183 @@ export function FileCard({ file }: { file: FileRecord }) {
     }
   };
 
+  const handleToggleShare = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    e.preventDefault();
+    toggleShareMutation.mutate({ id: file.id, isPublic: !file.shared });
+  };
+
   return (
     <>
-      <Card className={cn(
-        "group relative flex flex-col overflow-hidden p-0 transition-all duration-150 hover:border-border-strong bg-bg-surface",
-        isSelected && "ring-2 ring-accent border-accent"
-      )}>
-        {/* Checkbox overlay */}
-        <div
-          className={cn(
-            "absolute left-2.5 top-2.5 z-10 transition-opacity duration-150",
-            isSelected ? "opacity-100" : "opacity-0 group-hover:opacity-100"
-          )}
-          onClick={(e) => e.stopPropagation()}
-        >
-          <input
-            type="checkbox"
-            checked={isSelected}
-            onChange={() => toggleSelectItem(file.id, "file")}
-            className="h-4 w-4 rounded border-border bg-bg-raised text-accent focus:ring-accent cursor-pointer"
-          />
-        </div>
-
-        {/* Action icons on top right */}
-        <div
-          className="absolute right-2 top-2 z-10 opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1 bg-bg-surface/80 backdrop-blur-sm p-1 rounded-md border border-border"
-          onClick={(e) => e.stopPropagation()}
-        >
+      <Card
+        onClick={handleCardClick}
+        onDoubleClick={handleOpenFile}
+        className={cn(
+          "group relative flex flex-col rounded-2xl border bg-bg-surface p-2.5 transition-all duration-200 cursor-pointer select-none",
+          isSelected
+            ? "ring-2 ring-accent border-accent bg-accent/[0.04] shadow-lg shadow-accent/10"
+            : "border-border/80 hover:border-border-strong hover:shadow-md hover:bg-bg-overlay/20"
+        )}
+      >
+        {/* Top Header: Selectable Icon + Title + Action Menu */}
+        <div className="flex items-center gap-2 mb-2 px-1">
+          {/* Select Toggle Button / Kind Icon */}
           <button
-            onClick={(e) => {
-              e.stopPropagation();
-              e.preventDefault();
-              setNewFileName(file.name);
-              setIsRenameOpen(true);
-            }}
-            className="p-1 text-ink-muted hover:text-ink transition-colors rounded"
-            title="Rename"
-          >
-            <Pencil className="h-3.5 w-3.5" />
-          </button>
-          <button
-            onClick={handleDownload}
-            className="p-1 text-ink-muted hover:text-ink transition-colors rounded"
-            title="Download"
-          >
-            <Download className="h-3.5 w-3.5" />
-          </button>
-          <button
-            onClick={handleDelete}
-            className="p-1 text-ink-muted hover:text-danger transition-colors rounded"
-            title="Delete"
-          >
-            <Trash2 className="h-3.5 w-3.5" />
-          </button>
-        </div>
-
-        <Link href={`/files/${file.id}`} className="flex flex-col" onClick={handleCardClick}>
-          <div
-            className="flex h-24 items-center justify-center overflow-hidden"
-            style={{ backgroundColor: `${file.thumbnailColor}14` }}
-          >
-            {displayUrl && !imgError ? (
-              <img
-                src={displayUrl}
-                alt={file.name}
-                className="h-full w-full object-cover"
-                loading="lazy"
-                onError={() => setImgError(true)}
-              />
-            ) : (
-              <div style={{ color: file.thumbnailColor }}>
-                <FileKindIcon kind={file.kind} className="h-7 w-7" />
-              </div>
+            type="button"
+            onClick={handleSelectToggle}
+            className={cn(
+              "flex h-7 w-7 shrink-0 items-center justify-center rounded-lg shadow-sm transition-all cursor-pointer",
+              isSelected
+                ? "bg-accent text-white"
+                : "hover:ring-2 hover:ring-accent/50 group-hover:scale-105"
             )}
-          </div>
-          <div className="flex flex-col gap-2 p-3.5">
-            <p className="truncate text-[13px] font-medium text-ink" title={file.name}>
+            style={
+              isSelected
+                ? undefined
+                : {
+                    backgroundColor: `${file.thumbnailColor}18`,
+                    color: file.thumbnailColor,
+                  }
+            }
+            title={isSelected ? "Deselect file" : "Select file"}
+          >
+            {isSelected ? (
+              <Check className="h-4 w-4 stroke-[2.5]" />
+            ) : (
+              <FileKindIcon kind={file.kind} className="h-4 w-4" />
+            )}
+          </button>
+
+          {/* File Name */}
+          <div className="flex-1 min-w-0">
+            <p
+              className={cn(
+                "truncate text-[13px] font-semibold transition-colors",
+                isSelected ? "text-accent-bright" : "text-ink group-hover:text-accent"
+              )}
+              title={file.name}
+            >
               {file.name}
             </p>
-            <div className="flex items-center justify-between text-xs text-ink-muted">
-              <span>{formatBytes(file.sizeBytes)}</span>
-              <span>{formatRelativeTime(file.uploadedAt)}</span>
-            </div>
           </div>
-        </Link>
+
+          {/* Actions Dropdown Menu */}
+          <div onClick={(e) => e.stopPropagation()}>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button
+                  type="button"
+                  className="flex h-7 w-7 items-center justify-center rounded-md text-ink-faint hover:bg-bg-raised hover:text-ink transition-colors"
+                  aria-label="File options"
+                >
+                  <MoreVertical className="h-4 w-4" />
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-44 bg-bg-surface border-border-strong text-ink">
+                <DropdownMenuItem
+                  onClick={handleOpenFile}
+                  className="gap-2 text-xs"
+                >
+                  <ExternalLink className="h-3.5 w-3.5" />
+                  Open Details
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={() => {
+                    setNewFileName(file.name);
+                    setIsRenameOpen(true);
+                  }}
+                  className="gap-2 text-xs"
+                >
+                  <Pencil className="h-3.5 w-3.5" />
+                  Rename
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={handleDownload} className="gap-2 text-xs">
+                  <Download className="h-3.5 w-3.5" />
+                  Download
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={handleToggleShare} className="gap-2 text-xs">
+                  <Share2 className="h-3.5 w-3.5" />
+                  {file.shared ? "Make Private" : "Share Link"}
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  onClick={handleDelete}
+                  className="gap-2 text-xs text-danger focus:text-danger focus:bg-danger/10"
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                  Delete
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+        </div>
+
+        {/* Middle Canvas: Large Visual Preview Canvas */}
+        <div
+          className={cn(
+            "relative h-36 sm:h-40 w-full rounded-xl overflow-hidden border flex items-center justify-center transition-all",
+            isSelected
+              ? "bg-accent/10 border-accent/30"
+              : "bg-bg-raised/70 border-border/50 group-hover:bg-bg-raised"
+          )}
+        >
+          {displayUrl && !imgError ? (
+            <img
+              src={displayUrl}
+              alt={file.name}
+              className="h-full w-full object-cover object-center group-hover:scale-105 transition-transform duration-300 ease-out"
+              loading="lazy"
+              onError={() => setImgError(true)}
+            />
+          ) : (
+            <div className="flex flex-col items-center justify-center gap-2 p-4 text-center select-none">
+              <div
+                className="flex h-12 w-12 items-center justify-center rounded-2xl shadow-inner transition-transform group-hover:scale-110 duration-200"
+                style={{
+                  backgroundColor: `${file.thumbnailColor}22`,
+                  color: file.thumbnailColor,
+                }}
+              >
+                <FileKindIcon kind={file.kind} className="h-6 w-6" />
+              </div>
+              <span className="text-[11px] font-mono text-ink-faint uppercase">
+                {file.mimeType?.split("/")[1] || file.kind}
+              </span>
+            </div>
+          )}
+        </div>
+
+        {/* Bottom Footer: Size/Date & Tag Badges */}
+        <div className="flex items-center justify-between gap-2 mt-2 px-1 text-[11px] text-ink-muted">
+          <div className="flex items-center gap-1.5 min-w-0">
+            <span className="font-mono text-ink-faint">{formatBytes(file.sizeBytes)}</span>
+            <span className="text-ink-faint">•</span>
+            <span className="truncate">{formatRelativeTime(file.uploadedAt)}</span>
+          </div>
+
+          {/* Tags Chips */}
+          {file.tags && file.tags.length > 0 && (
+            <div className="flex items-center gap-1 shrink-0">
+              {file.tags.slice(0, 1).map((tag) => (
+                <span
+                  key={tag}
+                  className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-accent/10 text-accent border border-accent/20 truncate max-w-[85px]"
+                  title={tag}
+                >
+                  #{tag}
+                </span>
+              ))}
+              {file.tags.length > 1 && (
+                <span
+                  className="text-[9px] font-semibold text-ink-faint px-1 py-0.5 rounded bg-bg-raised"
+                  title={file.tags.slice(1).join(", ")}
+                >
+                  +{file.tags.length - 1}
+                </span>
+              )}
+            </div>
+          )}
+        </div>
       </Card>
 
       {/* Rename Modal */}
@@ -178,7 +309,12 @@ export function FileCard({ file }: { file: FileRecord }) {
                 />
               </div>
               <div className="flex justify-end gap-2 pt-2">
-                <Button type="button" variant="secondary" size="sm" onClick={() => setIsRenameOpen(false)}>
+                <Button
+                  type="button"
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => setIsRenameOpen(false)}
+                >
                   Cancel
                 </Button>
                 <Button type="submit" size="sm" disabled={renameMutation.isPending}>

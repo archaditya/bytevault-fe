@@ -31,27 +31,17 @@ const titleMap: Record<string, string> = {
   "/profile": "Profile",
 };
 
+import { GlobalSearch } from "@/components/shared/global-search";
+
 export function Navbar({ onMenuClick }: { onMenuClick?: () => void }) {
   const pathname = usePathname();
   const router = useRouter();
   const { user, logout } = useAuthStore();
-  const { setSearchQuery } = useFilesStore();
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
-  const [globalSearch, setGlobalSearch] = useState("");
   const uploadMutation = useUploadFileMutation();
 
   const title = titleMap[pathname] || (pathname.startsWith("/admin") ? "Admin Console" : "PushPort");
   const isAdmin = user?.role === "super_admin" || user?.role === "admin";
-
-  const handleGlobalSearch = (e: React.FormEvent) => {
-    e.preventDefault();
-    const trimmed = globalSearch.trim();
-    if (!trimmed) return;
-    setSearchQuery(trimmed);
-    if (pathname !== "/files") {
-      router.push("/files");
-    }
-  };
 
   return (
     <header className="sticky top-0 z-30 flex h-14 items-center justify-between border-b border-border bg-bg-surface px-4 md:px-6">
@@ -63,21 +53,13 @@ export function Navbar({ onMenuClick }: { onMenuClick?: () => void }) {
         >
           <Menu className="h-5 w-5" />
         </button>
-        <h1 className="text-[14px] font-semibold text-ink">{title}</h1>
+        <h1 className="text-[14px] font-semibold text-ink whitespace-nowrap">{title}</h1>
       </div>
 
-      {/* Global Search Bar */}
-      <form onSubmit={handleGlobalSearch} className="hidden sm:flex relative max-w-xs flex-1 mx-4">
-        <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-ink-faint" />
-        <Input
-          placeholder="Search files..."
-          className="pl-8 h-8 text-[13px]"
-          value={globalSearch}
-          onChange={(e) => setGlobalSearch(e.target.value)}
-        />
-      </form>
+      {/* Global Live Autocomplete Search Bar */}
+      <GlobalSearch />
 
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-2 shrink-0">
         {/* Desktop upload button */}
         {!isAdmin && (
           <Button

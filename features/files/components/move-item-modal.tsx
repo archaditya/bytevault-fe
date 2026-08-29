@@ -114,7 +114,7 @@ export function MoveItemModal({ itemId, itemType, items, currentParentId, onClos
               value={selectedParentId}
               onChange={(e) => setSelectedParentId(e.target.value)}
             >
-              <option value="">Root (/)</option>
+              <option value="">🏠 Home (All Files)</option>
               {validFolders.map((f) => (
                 <option key={f.id} value={f.id}>
                   {f.name}

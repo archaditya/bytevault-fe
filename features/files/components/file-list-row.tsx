@@ -75,6 +75,19 @@ export function FileListRow({ file }: { file: FileRecord }) {
             <FileKindIcon kind={file.kind} />
           </div>
           <span className="truncate font-medium text-ink">{file.name}</span>
+          {file.tags && file.tags.length > 0 && (
+            <div className="hidden sm:flex items-center gap-1 shrink-0">
+              {file.tags.slice(0, 2).map((tag) => (
+                <span
+                  key={tag}
+                  className="inline-flex items-center px-1.5 py-0.2 rounded text-[10px] font-medium bg-accent/10 text-accent border border-accent/20 truncate max-w-[80px]"
+                  title={tag}
+                >
+                  #{tag}
+                </span>
+              ))}
+            </div>
+          )}
           {file.starred && <Star className="h-3 w-3 shrink-0 fill-live text-live" />}
         </div>
         <span className="font-mono text-ink-muted">{formatBytes(file.sizeBytes)}</span>
