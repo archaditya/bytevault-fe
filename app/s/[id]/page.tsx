@@ -53,14 +53,15 @@ export default function PublicSharePage({
   }, [metadataUrl]);
 
   // Determine if it's a text-based/code preview
+  const contentType = metadata?.content_type?.toLowerCase() || "";
   const isTextType =
-    metadata &&
-    (metadata.content_type.startsWith("text/") ||
-      metadata.content_type.includes("json") ||
-      metadata.content_type.includes("javascript") ||
-      metadata.content_type.includes("typescript") ||
-      metadata.content_type.includes("xml") ||
-      metadata.content_type.includes("csv"));
+    Boolean(metadata) &&
+    (contentType.startsWith("text/") ||
+      contentType.includes("json") ||
+      contentType.includes("javascript") ||
+      contentType.includes("typescript") ||
+      contentType.includes("xml") ||
+      contentType.includes("csv"));
 
   // Fetch text content if applicable
   useEffect(() => {
@@ -129,17 +130,31 @@ export default function PublicSharePage({
     );
   }
 
-  const mimeType = metadata?.content_type || "";
-  const filename = metadata?.filename || "";
-  const ext = filename.split(".").pop()?.toLowerCase() || "";
+  if (!metadata) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-bg p-4 md:p-8">
+        <div className="flex w-full max-w-md flex-col items-center justify-center text-center rounded-xl border border-border-strong bg-bg-surface p-8 shadow-sm">
+          <AlertCircle className="h-8 w-8 text-red-500 mb-4" />
+          <h1 className="text-xl font-bold text-ink">File Not Found</h1>
+          <p className="mt-2 text-sm text-ink-muted">The requested file metadata could not be loaded.</p>
+        </div>
+      </div>
+    );
+  }
+
+  const mimeType = (metadata.content_type || "").toLowerCase();
+  const filename = metadata.filename || "file";
+  const hasExt = filename.includes(".") && !filename.startsWith(".");
+  const ext = hasExt ? filename.split(".").pop()?.toLowerCase() || "" : "";
   const isAPK = ext === "apk" || mimeType === "application/vnd.android.package-archive";
-  const isIPA = ext === "ipa";
+  const isIPA = ext === "ipa" || (mimeType === "application/octet-stream" && ext === "ipa");
   const isAppFile = isAPK || isIPA;
 
   // Device detection (client-side only)
   const [deviceInfo, setDeviceInfo] = useState({ isAndroid: false, isIOS: false, isMobile: false });
   useEffect(() => {
-    const ua = navigator.userAgent;
+    if (typeof window === "undefined") return;
+    const ua = navigator.userAgent || "";
     const isAndroid = /Android/i.test(ua);
     const isIOS = /iPhone|iPad|iPod/i.test(ua);
     setDeviceInfo({ isAndroid, isIOS, isMobile: isAndroid || isIOS });
@@ -148,7 +163,9 @@ export default function PublicSharePage({
   // QR code generation for desktop users
   const [pageUrl, setPageUrl] = useState("");
   useEffect(() => {
-    setPageUrl(window.location.href);
+    if (typeof window !== "undefined") {
+      setPageUrl(window.location.href);
+    }
   }, []);
 
   const appName = isAPK

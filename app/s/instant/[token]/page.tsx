@@ -105,10 +105,12 @@ export default function GuestDownloadPage() {
     );
   }
 
-  const remaining = Math.max(0, share.max_downloads - share.download_count);
+  const remaining = Math.max(0, (share?.max_downloads ?? 0) - (share?.download_count ?? 0));
 
-  // APK/IPA detection
-  const ext = (share.filename || "").split(".").pop()?.toLowerCase() || "";
+  // Safe APK/IPA detection
+  const safeFilename = share?.filename || "";
+  const hasExt = safeFilename.includes(".") && !safeFilename.startsWith(".");
+  const ext = hasExt ? safeFilename.split(".").pop()?.toLowerCase() || "" : "";
   const isAPK = ext === "apk";
   const isIPA = ext === "ipa";
   const isAppFile = isAPK || isIPA;
@@ -116,7 +118,9 @@ export default function GuestDownloadPage() {
   // Device detection for install guidance
   const [isAndroid, setIsAndroid] = useState(false);
   useEffect(() => {
-    setIsAndroid(/Android/i.test(navigator.userAgent));
+    if (typeof window !== "undefined") {
+      setIsAndroid(/Android/i.test(navigator.userAgent || ""));
+    }
   }, []);
 
   return (
@@ -175,7 +179,7 @@ export default function GuestDownloadPage() {
               {downloading
                 ? "Preparing Download..."
                 : isAPK && isAndroid
-                  ? "📲 Install App"
+                  ? "📲 Download & Install APK"
                   : isAPK
                     ? "Download APK"
                     : isIPA
