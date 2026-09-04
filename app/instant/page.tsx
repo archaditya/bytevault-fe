@@ -56,10 +56,15 @@ export default function InstantUploadPage() {
     url: string,
     body: Blob,
     contentType: string,
-    onProgress: (loaded: number, total: number) => void
+    onProgress: (loaded: number, total: number) => void,
+    onRegisterXhr?: (xhr: XMLHttpRequest) => void
   ): Promise<string> => {
     return new Promise((resolve, reject) => {
       const xhr = new XMLHttpRequest();
+      if (onRegisterXhr) {
+        onRegisterXhr(xhr);
+      }
+
       xhr.open("PUT", url, true);
       xhr.setRequestHeader("Content-Type", contentType);
 
@@ -78,8 +83,8 @@ export default function InstantUploadPage() {
         }
       };
 
-      xhr.onerror = () => reject(new Error("Network transmission error during upload."));
-      xhr.ontimeout = () => reject(new Error("Upload connection timed out."));
+      xhr.onerror = () => reject(new Error("Network transmission error during upload. Please check your internet connection."));
+      xhr.ontimeout = () => reject(new Error("Upload connection timed out. Server took too long to respond."));
 
       xhr.send(body);
     });
@@ -178,6 +183,7 @@ export default function InstantUploadPage() {
         };
 
         const completedParts: { part_number: number; etag: string }[] = [];
+        const activeXhrs = new Set<XMLHttpRequest>();
         let nextPartIdx = 0;
         let workerError: Error | null = null;
 
@@ -191,6 +197,8 @@ export default function InstantUploadPage() {
             const chunkBlob = file.slice(start, end);
             const chunkSize = end - start;
 
+            let currentXhr: XMLHttpRequest | null = null;
+
             try {
               const etag = await uploadChunkWithProgress(
                 partInfo.url,
@@ -199,14 +207,32 @@ export default function InstantUploadPage() {
                 (loaded) => {
                   chunkLoadedBytes[currentIdx] = loaded;
                   updateProgress();
+                },
+                (xhr) => {
+                  currentXhr = xhr;
+                  activeXhrs.add(xhr);
                 }
               );
+
+              if (currentXhr) {
+                activeXhrs.delete(currentXhr);
+              }
 
               chunkLoadedBytes[currentIdx] = chunkSize;
               updateProgress();
               completedParts.push({ part_number: partNum, etag });
             } catch (err: any) {
+              if (currentXhr) {
+                activeXhrs.delete(currentXhr);
+              }
               workerError = err;
+              // Abort all remaining in-flight chunk uploads immediately
+              activeXhrs.forEach((xhr) => {
+                try {
+                  xhr.abort();
+                } catch (_) {}
+              });
+              activeXhrs.clear();
               throw err;
             }
           }
@@ -253,7 +279,13 @@ export default function InstantUploadPage() {
         toast.success("Self-destruct link generated!");
       }
     } catch (err: any) {
-      toast.error(err.message || "Guest upload rate limit reached or failed.");
+      const errorMsg =
+        err?.name === "AbortError"
+          ? "Upload was aborted."
+          : err?.message?.includes("Failed to fetch")
+            ? "Network connection interrupted. Please check your connection."
+            : err?.message || "Upload failed. Please try again.";
+      toast.error(errorMsg);
     } finally {
       setUploading(false);
     }
