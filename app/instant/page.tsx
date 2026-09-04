@@ -26,6 +26,7 @@ export default function InstantUploadPage() {
   const [password, setPassword] = useState("");
   const [uploading, setUploading] = useState(false);
   const [progress, setProgress] = useState(0);
+  const [statusText, setStatusText] = useState("");
 
   const [shareUrl, setShareUrl] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
@@ -48,6 +49,46 @@ export default function InstantUploadPage() {
 
   // Convert GB to bytes for file size comparison
   const maxSizeBytes = config.max_file_size_gb * 1024 * 1024 * 1024;
+  const CHUNK_SIZE = 5 * 1024 * 1024; // 5MB chunks
+  const CONCURRENT_WORKERS = 3; // Upload up to 3 chunks in parallel
+
+  const uploadChunkWithProgress = (
+    url: string,
+    body: Blob,
+    contentType: string,
+    onProgress: (loaded: number, total: number) => void,
+    onRegisterXhr?: (xhr: XMLHttpRequest) => void
+  ): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const xhr = new XMLHttpRequest();
+      if (onRegisterXhr) {
+        onRegisterXhr(xhr);
+      }
+
+      xhr.open("PUT", url, true);
+      xhr.setRequestHeader("Content-Type", contentType);
+
+      xhr.upload.onprogress = (e) => {
+        if (e.lengthComputable) {
+          onProgress(e.loaded, e.total);
+        }
+      };
+
+      xhr.onload = () => {
+        if (xhr.status >= 200 && xhr.status < 300) {
+          const rawEtag = xhr.getResponseHeader("ETag") || xhr.getResponseHeader("etag") || "";
+          resolve(rawEtag.replace(/"/g, ""));
+        } else {
+          reject(new Error(`Storage PUT failed with status ${xhr.status}`));
+        }
+      };
+
+      xhr.onerror = () => reject(new Error("Network transmission error during upload. Please check your internet connection."));
+      xhr.ontimeout = () => reject(new Error("Upload connection timed out. Server took too long to respond."));
+
+      xhr.send(body);
+    });
+  };
 
   const handleUpload = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -56,7 +97,6 @@ export default function InstantUploadPage() {
       return;
     }
 
-    // Client-side Validation against DB Config
     if (file.size > maxSizeBytes) {
       toast.error(
         `File exceeds dynamic guest limit of ${formatBytes(maxSizeBytes)}. Sign in for larger files.`
@@ -65,44 +105,187 @@ export default function InstantUploadPage() {
     }
 
     setUploading(true);
-    setProgress(15);
+    setProgress(0);
+    setStatusText("Preparing upload...");
 
     try {
-      const res = await fetch("/api/v1/ephemeral/upload-session", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          filename: file.name,
-          file_size: file.size,
-          content_type: file.type || "application/octet-stream",
-          password: password || undefined,
-        }),
-      });
+      const isMultipart = file.size > CHUNK_SIZE;
 
-      const json = await res.json();
-      if (!res.ok) {
-        throw new Error(json.detail || json.error || "Failed to initialize guest upload");
+      if (!isMultipart) {
+        // --- Single Part Upload (<= 5MB) ---
+        setStatusText("Creating upload session...");
+        const res = await fetch("/api/v1/ephemeral/upload-session", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            filename: file.name,
+            file_size: file.size,
+            content_type: file.type || "application/octet-stream",
+            password: password || undefined,
+          }),
+        });
+
+        const json = await res.json();
+        if (!res.ok) {
+          throw new Error(json.detail || json.error || "Failed to initialize guest upload");
+        }
+
+        const { token, upload_url } = json.data;
+        setStatusText("Uploading to storage...");
+
+        await uploadChunkWithProgress(
+          upload_url,
+          file,
+          file.type || "application/octet-stream",
+          (loaded, total) => {
+            const pct = Math.min(98, Math.round((loaded / total) * 100));
+            setProgress(pct);
+            setStatusText(`Uploading: ${formatBytes(loaded)} / ${formatBytes(total)} (${pct}%)`);
+          }
+        );
+
+        setProgress(100);
+        setStatusText("Complete!");
+        const generatedUrl = `${window.location.origin}/s/instant/${token}`;
+        setShareUrl(generatedUrl);
+        toast.success("Self-destruct link generated!");
+      } else {
+        // --- Chunked Multipart Upload (> 5MB, up to 2GB) ---
+        const totalParts = Math.ceil(file.size / CHUNK_SIZE);
+        setStatusText(`Initializing multipart transfer (${totalParts} parts)...`);
+
+        const sessionRes = await fetch("/api/v1/ephemeral/multipart-session", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            filename: file.name,
+            file_size: file.size,
+            content_type: file.type || "application/octet-stream",
+            password: password || undefined,
+            part_count: totalParts,
+          }),
+        });
+
+        const sessionJson = await sessionRes.json();
+        if (!sessionRes.ok) {
+          throw new Error(sessionJson.detail || sessionJson.error || "Failed to initialize multipart session");
+        }
+
+        const { token, upload_id, part_urls } = sessionJson.data;
+
+        // Byte-level tracking across all parallel chunk uploads
+        const chunkLoadedBytes = new Array(totalParts).fill(0);
+        const updateProgress = () => {
+          const totalLoaded = chunkLoadedBytes.reduce((acc, bytes) => acc + bytes, 0);
+          const pct = Math.min(98, Math.round((totalLoaded / file.size) * 100));
+          setProgress(pct);
+          setStatusText(`Uploading: ${formatBytes(totalLoaded)} / ${formatBytes(file.size)} (${pct}%)`);
+        };
+
+        const completedParts: { part_number: number; etag: string }[] = [];
+        const activeXhrs = new Set<XMLHttpRequest>();
+        let nextPartIdx = 0;
+        let workerError: Error | null = null;
+
+        const worker = async () => {
+          while (nextPartIdx < part_urls.length && !workerError) {
+            const currentIdx = nextPartIdx++;
+            const partInfo = part_urls[currentIdx];
+            const partNum = partInfo.part_number;
+            const start = (partNum - 1) * CHUNK_SIZE;
+            const end = Math.min(start + CHUNK_SIZE, file.size);
+            const chunkBlob = file.slice(start, end);
+            const chunkSize = end - start;
+
+            let currentXhr: XMLHttpRequest | null = null;
+
+            try {
+              const etag = await uploadChunkWithProgress(
+                partInfo.url,
+                chunkBlob,
+                file.type || "application/octet-stream",
+                (loaded) => {
+                  chunkLoadedBytes[currentIdx] = loaded;
+                  updateProgress();
+                },
+                (xhr) => {
+                  currentXhr = xhr;
+                  activeXhrs.add(xhr);
+                }
+              );
+
+              if (currentXhr) {
+                activeXhrs.delete(currentXhr);
+              }
+
+              chunkLoadedBytes[currentIdx] = chunkSize;
+              updateProgress();
+              completedParts.push({ part_number: partNum, etag });
+            } catch (err: any) {
+              if (currentXhr) {
+                activeXhrs.delete(currentXhr);
+              }
+              workerError = err;
+              // Abort all remaining in-flight chunk uploads immediately
+              activeXhrs.forEach((xhr) => {
+                try {
+                  xhr.abort();
+                } catch (_) {}
+              });
+              activeXhrs.clear();
+              throw err;
+            }
+          }
+        };
+
+        const workers = Array.from(
+          { length: Math.min(CONCURRENT_WORKERS, totalParts) },
+          () => worker()
+        );
+
+        await Promise.all(workers);
+
+        if (workerError) {
+          fetch(`/api/v1/ephemeral/abort-multipart/${token}`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ upload_id }),
+          }).catch(() => {});
+          throw workerError;
+        }
+
+        // Sort parts by part_number ascending before completing
+        completedParts.sort((a, b) => a.part_number - b.part_number);
+
+        setStatusText("Assembling file parts on storage...");
+        const completeRes = await fetch(`/api/v1/ephemeral/complete-multipart/${token}`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            upload_id,
+            parts: completedParts,
+          }),
+        });
+
+        const completeJson = await completeRes.json();
+        if (!completeRes.ok) {
+          throw new Error(completeJson.detail || completeJson.error || "Failed to finalize multipart upload");
+        }
+
+        setProgress(100);
+        setStatusText("Upload complete!");
+        const generatedUrl = `${window.location.origin}/s/instant/${token}`;
+        setShareUrl(generatedUrl);
+        toast.success("Self-destruct link generated!");
       }
-
-      const { token, upload_url } = json.data;
-      setProgress(50);
-
-      const uploadRes = await fetch(upload_url, {
-        method: "PUT",
-        headers: { "Content-Type": file.type || "application/octet-stream" },
-        body: file,
-      });
-
-      if (!uploadRes.ok) {
-        throw new Error("Storage upload failed.");
-      }
-
-      setProgress(100);
-      const generatedUrl = `${window.location.origin}/s/instant/${token}`;
-      setShareUrl(generatedUrl);
-      toast.success("Self-destruct link generated!");
     } catch (err: any) {
-      toast.error(err.message || "Guest upload rate limit reached or failed.");
+      const errorMsg =
+        err?.name === "AbortError"
+          ? "Upload was aborted."
+          : err?.message?.includes("Failed to fetch")
+            ? "Network connection interrupted. Please check your connection."
+            : err?.message || "Upload failed. Please try again.";
+      toast.error(errorMsg);
     } finally {
       setUploading(false);
     }
@@ -210,11 +393,11 @@ export default function InstantUploadPage() {
                   {uploading && (
                     <div className="space-y-1">
                       <div className="flex justify-between text-[10px] text-ink-muted font-mono">
-                        <span>Uploading to Storage...</span>
-                        <span>{progress}%</span>
+                        <span className="truncate max-w-[300px]">{statusText || "Uploading to Storage..."}</span>
+                        <span className="font-bold text-amber-500">{progress}%</span>
                       </div>
                       <div className="w-full bg-bg-raised rounded-full h-1.5 overflow-hidden border border-border">
-                        <div className="bg-amber-500 h-full transition-all duration-300" style={{ width: `${progress}%` }} />
+                        <div className="bg-amber-500 h-full transition-all duration-200" style={{ width: `${progress}%` }} />
                       </div>
                     </div>
                   )}
