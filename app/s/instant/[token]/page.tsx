@@ -107,15 +107,40 @@ export default function GuestDownloadPage() {
 
   const remaining = Math.max(0, share.max_downloads - share.download_count);
 
+  // APK/IPA detection
+  const ext = (share.filename || "").split(".").pop()?.toLowerCase() || "";
+  const isAPK = ext === "apk";
+  const isIPA = ext === "ipa";
+  const isAppFile = isAPK || isIPA;
+
+  // Device detection for install guidance
+  const [isAndroid, setIsAndroid] = useState(false);
+  useEffect(() => {
+    setIsAndroid(/Android/i.test(navigator.userAgent));
+  }, []);
+
   return (
     <div className="flex min-h-screen items-center justify-center p-6 bg-bg-base font-sans">
       <Card className="w-full max-w-md border-border-strong bg-bg-surface shadow-2xl">
         <CardHeader className="text-center pb-4 border-b border-border">
-          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-amber-500/10 text-amber-500 mx-auto mb-2">
+          <div className={`flex h-10 w-10 items-center justify-center rounded-full mx-auto mb-2 ${
+            isAPK ? "bg-green-500/10 text-green-500" :
+            isIPA ? "bg-blue-500/10 text-blue-500" :
+            "bg-amber-500/10 text-amber-500"
+          }`}>
             <Flame className="h-5 w-5" />
           </div>
           <CardTitle className="text-base font-bold text-ink truncate">{share.filename}</CardTitle>
-          <p className="text-xs text-ink-muted font-mono">{formatBytes(share.file_size)}</p>
+          <p className="text-xs text-ink-muted font-mono">
+            {formatBytes(share.file_size)}
+            {isAppFile && (
+              <span className={`ml-2 px-1.5 py-0.5 rounded text-[10px] font-semibold ${
+                isAPK ? "bg-green-500/10 text-green-500" : "bg-blue-500/10 text-blue-500"
+              }`}>
+                {isAPK ? "Android App" : "iOS App"}
+              </span>
+            )}
+          </p>
         </CardHeader>
         <CardContent className="pt-6">
           <form onSubmit={handleDownload} className="space-y-4">
@@ -141,10 +166,34 @@ export default function GuestDownloadPage() {
               </div>
             )}
 
-            <Button type="submit" className="w-full text-xs font-semibold" disabled={downloading || remaining <= 0}>
+            <Button
+              type="submit"
+              className={`w-full text-xs font-semibold ${isAPK && isAndroid ? "!bg-green-600 hover:!bg-green-700 !text-white" : ""}`}
+              disabled={downloading || remaining <= 0}
+            >
               <Download className="h-4 w-4 mr-2" />
-              {downloading ? "Preparing Download..." : "Download File"}
+              {downloading
+                ? "Preparing Download..."
+                : isAPK && isAndroid
+                  ? "📲 Install App"
+                  : isAPK
+                    ? "Download APK"
+                    : isIPA
+                      ? "Download IPA"
+                      : "Download File"
+              }
             </Button>
+
+            {isAPK && isAndroid && (
+              <p className="text-[11px] text-ink-muted text-center">
+                After downloading, open the file to install. Enable "Install from unknown sources" if prompted.
+              </p>
+            )}
+            {isIPA && (
+              <p className="text-[11px] text-ink-muted text-center">
+                Use AltStore or Sideloadly to install the IPA on your iPhone.
+              </p>
+            )}
           </form>
         </CardContent>
       </Card>
