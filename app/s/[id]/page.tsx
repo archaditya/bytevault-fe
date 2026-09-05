@@ -27,6 +27,24 @@ export default function PublicSharePage({
   const [isLoading, setIsLoading] = useState(true);
   const [textContent, setTextContent] = useState<string | null>(null);
   const [loadingText, setLoadingText] = useState(false);
+  const [deviceInfo, setDeviceInfo] = useState({ isAndroid: false, isIOS: false, isMobile: false });
+  const [pageUrl, setPageUrl] = useState("");
+
+  // Device detection (client-side only)
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const ua = navigator.userAgent || "";
+    const isAndroid = /Android/i.test(ua);
+    const isIOS = /iPhone|iPad|iPod/i.test(ua);
+    setDeviceInfo({ isAndroid, isIOS, isMobile: isAndroid || isIOS });
+  }, []);
+
+  // QR code generation for desktop users
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      setPageUrl(window.location.href);
+    }
+  }, []);
 
   // Fetch metadata on component mount
   useEffect(() => {
@@ -149,24 +167,6 @@ export default function PublicSharePage({
   const isAPK = ext === "apk" || mimeType === "application/vnd.android.package-archive";
   const isIPA = ext === "ipa" || (mimeType === "application/octet-stream" && ext === "ipa");
   const isAppFile = isAPK || isIPA;
-
-  // Device detection (client-side only)
-  const [deviceInfo, setDeviceInfo] = useState({ isAndroid: false, isIOS: false, isMobile: false });
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    const ua = navigator.userAgent || "";
-    const isAndroid = /Android/i.test(ua);
-    const isIOS = /iPhone|iPad|iPod/i.test(ua);
-    setDeviceInfo({ isAndroid, isIOS, isMobile: isAndroid || isIOS });
-  }, []);
-
-  // QR code generation for desktop users
-  const [pageUrl, setPageUrl] = useState("");
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      setPageUrl(window.location.href);
-    }
-  }, []);
 
   const appName = isAPK
     ? filename.replace(/\.apk$/i, "").replace(/[-_]/g, " ")

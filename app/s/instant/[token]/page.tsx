@@ -10,40 +10,73 @@ import { Flame, Download, Lock } from "lucide-react";
 import { formatBytes } from "@/lib/utils";
 import toast from "react-hot-toast";
 
+interface EphemeralShare {
+  filename: string;
+  file_size: number;
+  max_downloads: number;
+  download_count: number;
+  has_password: boolean;
+}
+
 export default function GuestDownloadPage() {
   const params = useParams();
-  const token = params.token as string;
+  const token = (params?.token as string) || "";
 
-  const [share, setShare] = useState<any>(null);
+  const [share, setShare] = useState<EphemeralShare | null>(null);
   const [loading, setLoading] = useState(true);
   const [password, setPassword] = useState("");
   const [downloading, setDownloading] = useState(false);
   const [burned, setBurned] = useState(false);
+  const [isAndroid, setIsAndroid] = useState(false);
+
+  // Device detection for install guidance (must be at top level before early returns)
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      setIsAndroid(/Android/i.test(navigator.userAgent || ""));
+    }
+  }, []);
 
   useEffect(() => {
-    async function fetchMetadata() {
-      try {
-        const res = await fetch(`/api/v1/ephemeral/metadata/${token}`);
-        const json = await res.json();
-        if (!res.ok) {
-          throw new Error(json.detail || "File not found or self-destructed");
-        }
-        setShare(json.data.share);
-      } catch (err: any) {
-        setBurned(true);
-      } finally {
-        setLoading(false);
-      }
+    if (!token) {
+      setBurned(true);
+      setLoading(false);
+      return;
     }
-    fetchMetadata();
+
+    fetch(`/api/v1/ephemeral/metadata/${encodeURIComponent(token)}`)
+      .then(async (res) => {
+        if (!res.ok) {
+          throw new Error("File expired or unavailable");
+        }
+        return res.json();
+      })
+      .then((json) => {
+        const shareData = json?.data?.share;
+        if (
+          shareData &&
+          typeof shareData.filename === "string" &&
+          typeof shareData.file_size === "number"
+        ) {
+          setShare(shareData);
+        } else {
+          setBurned(true);
+        }
+      })
+      .catch(() => {
+        setBurned(true);
+      })
+      .finally(() => {
+        setLoading(false);
+      });
   }, [token]);
 
   const handleDownload = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!token) return;
     setDownloading(true);
 
     try {
-      const res = await fetch(`/api/v1/ephemeral/download/${token}`, {
+      const res = await fetch(`/api/v1/ephemeral/download/${encodeURIComponent(token)}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ password: password || undefined }),
@@ -65,7 +98,7 @@ export default function GuestDownloadPage() {
       toast.success("Download started!");
 
       // Update remaining download count locally
-      setShare((prev: any) => {
+      setShare((prev) => {
         if (!prev) return prev;
         const newCount = prev.download_count + 1;
         if (newCount >= prev.max_downloads) {
@@ -105,7 +138,7 @@ export default function GuestDownloadPage() {
     );
   }
 
-  const remaining = Math.max(0, (share?.max_downloads ?? 0) - (share?.download_count ?? 0));
+  const remaining = Math.max(0, share.max_downloads - share.download_count);
 
   // Safe APK/IPA detection
   const safeFilename = share?.filename || "";
@@ -114,14 +147,6 @@ export default function GuestDownloadPage() {
   const isAPK = ext === "apk";
   const isIPA = ext === "ipa";
   const isAppFile = isAPK || isIPA;
-
-  // Device detection for install guidance
-  const [isAndroid, setIsAndroid] = useState(false);
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      setIsAndroid(/Android/i.test(navigator.userAgent || ""));
-    }
-  }, []);
 
   return (
     <div className="flex min-h-screen items-center justify-center p-6 bg-bg-base font-sans">
