@@ -12,7 +12,8 @@ import toast from "react-hot-toast";
 
 export default function GuestDownloadPage() {
   const params = useParams();
-  const token = (params?.token as string) || "";
+  const rawToken = params?.token;
+  const token = typeof rawToken === "string" ? rawToken : Array.isArray(rawToken) ? rawToken[0] : "";
 
   const [share, setShare] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -29,15 +30,32 @@ export default function GuestDownloadPage() {
   }, []);
 
   useEffect(() => {
-    if (!token) return;
+    if (!token || !token.trim()) {
+      setBurned(true);
+      setLoading(false);
+      return;
+    }
     async function fetchMetadata() {
       try {
-        const res = await fetch(`/api/v1/ephemeral/metadata/${token}`);
+        const res = await fetch(`/api/v1/ephemeral/metadata/${encodeURIComponent(token)}`);
         const json = await res.json();
-        if (!res.ok || !json?.data?.share) {
-          throw new Error(json?.detail || "File not found or self-destructed");
+        const shareData = json?.data?.share;
+        const fileSize = Number(shareData?.file_size);
+
+        if (
+          !res.ok ||
+          !shareData ||
+          typeof shareData.filename !== "string" ||
+          isNaN(fileSize) ||
+          fileSize < 0
+        ) {
+          throw new Error(json?.detail || "File not found, expired, or invalid metadata");
         }
-        setShare(json.data.share);
+
+        setShare({
+          ...shareData,
+          file_size: fileSize,
+        });
       } catch (err: any) {
         setBurned(true);
       } finally {
@@ -49,10 +67,14 @@ export default function GuestDownloadPage() {
 
   const handleDownload = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!token || !token.trim()) {
+      toast.error("Invalid or missing download token");
+      return;
+    }
     setDownloading(true);
 
     try {
-      const res = await fetch(`/api/v1/ephemeral/download/${token}`, {
+      const res = await fetch(`/api/v1/ephemeral/download/${encodeURIComponent(token)}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ password: password || undefined }),
@@ -135,9 +157,9 @@ export default function GuestDownloadPage() {
           }`}>
             <Flame className="h-5 w-5" />
           </div>
-          <CardTitle className="text-base font-bold text-ink truncate">{share?.filename || "Secure File"}</CardTitle>
+          <CardTitle className="text-base font-bold text-ink truncate">{share.filename}</CardTitle>
           <p className="text-xs text-ink-muted font-mono">
-            {formatBytes(Number(share?.file_size) || 0)}
+            {formatBytes(share.file_size)}
             {isAppFile && (
               <span className={`ml-2 px-1.5 py-0.5 rounded text-[10px] font-semibold ${
                 isAPK ? "bg-green-500/10 text-green-500" : "bg-blue-500/10 text-blue-500"
