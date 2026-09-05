@@ -12,21 +12,30 @@ import toast from "react-hot-toast";
 
 export default function GuestDownloadPage() {
   const params = useParams();
-  const token = params.token as string;
+  const token = (params?.token as string) || "";
 
   const [share, setShare] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [password, setPassword] = useState("");
   const [downloading, setDownloading] = useState(false);
   const [burned, setBurned] = useState(false);
+  const [isAndroid, setIsAndroid] = useState(false);
+
+  // Device detection for install guidance (must be at top level before early returns)
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      setIsAndroid(/Android/i.test(navigator.userAgent || ""));
+    }
+  }, []);
 
   useEffect(() => {
+    if (!token) return;
     async function fetchMetadata() {
       try {
         const res = await fetch(`/api/v1/ephemeral/metadata/${token}`);
         const json = await res.json();
-        if (!res.ok) {
-          throw new Error(json.detail || "File not found or self-destructed");
+        if (!res.ok || !json?.data?.share) {
+          throw new Error(json?.detail || "File not found or self-destructed");
         }
         setShare(json.data.share);
       } catch (err: any) {
@@ -115,14 +124,6 @@ export default function GuestDownloadPage() {
   const isIPA = ext === "ipa";
   const isAppFile = isAPK || isIPA;
 
-  // Device detection for install guidance
-  const [isAndroid, setIsAndroid] = useState(false);
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      setIsAndroid(/Android/i.test(navigator.userAgent || ""));
-    }
-  }, []);
-
   return (
     <div className="flex min-h-screen items-center justify-center p-6 bg-bg-base font-sans">
       <Card className="w-full max-w-md border-border-strong bg-bg-surface shadow-2xl">
@@ -134,9 +135,9 @@ export default function GuestDownloadPage() {
           }`}>
             <Flame className="h-5 w-5" />
           </div>
-          <CardTitle className="text-base font-bold text-ink truncate">{share.filename}</CardTitle>
+          <CardTitle className="text-base font-bold text-ink truncate">{share?.filename || "Secure File"}</CardTitle>
           <p className="text-xs text-ink-muted font-mono">
-            {formatBytes(share.file_size)}
+            {formatBytes(Number(share?.file_size) || 0)}
             {isAppFile && (
               <span className={`ml-2 px-1.5 py-0.5 rounded text-[10px] font-semibold ${
                 isAPK ? "bg-green-500/10 text-green-500" : "bg-blue-500/10 text-blue-500"
