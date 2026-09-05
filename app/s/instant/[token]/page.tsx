@@ -10,12 +10,19 @@ import { Flame, Download, Lock } from "lucide-react";
 import { formatBytes } from "@/lib/utils";
 import toast from "react-hot-toast";
 
+interface EphemeralShare {
+  filename: string;
+  file_size: number;
+  max_downloads: number;
+  download_count: number;
+  has_password: boolean;
+}
+
 export default function GuestDownloadPage() {
   const params = useParams();
-  const rawToken = params?.token;
-  const token = typeof rawToken === "string" ? rawToken : Array.isArray(rawToken) ? rawToken[0] : "";
+  const token = (params?.token as string) || "";
 
-  const [share, setShare] = useState<any>(null);
+  const [share, setShare] = useState<EphemeralShare | null>(null);
   const [loading, setLoading] = useState(true);
   const [password, setPassword] = useState("");
   const [downloading, setDownloading] = useState(false);
@@ -30,47 +37,42 @@ export default function GuestDownloadPage() {
   }, []);
 
   useEffect(() => {
-    if (!token || !token.trim()) {
+    if (!token) {
       setBurned(true);
       setLoading(false);
       return;
     }
-    async function fetchMetadata() {
-      try {
-        const res = await fetch(`/api/v1/ephemeral/metadata/${encodeURIComponent(token)}`);
-        const json = await res.json();
-        const shareData = json?.data?.share;
-        const fileSize = Number(shareData?.file_size);
 
-        if (
-          !res.ok ||
-          !shareData ||
-          typeof shareData.filename !== "string" ||
-          isNaN(fileSize) ||
-          fileSize < 0
-        ) {
-          throw new Error(json?.detail || "File not found, expired, or invalid metadata");
+    fetch(`/api/v1/ephemeral/metadata/${encodeURIComponent(token)}`)
+      .then(async (res) => {
+        if (!res.ok) {
+          throw new Error("File expired or unavailable");
         }
-
-        setShare({
-          ...shareData,
-          file_size: fileSize,
-        });
-      } catch (err: any) {
+        return res.json();
+      })
+      .then((json) => {
+        const shareData = json?.data?.share;
+        if (
+          shareData &&
+          typeof shareData.filename === "string" &&
+          typeof shareData.file_size === "number"
+        ) {
+          setShare(shareData);
+        } else {
+          setBurned(true);
+        }
+      })
+      .catch(() => {
         setBurned(true);
-      } finally {
+      })
+      .finally(() => {
         setLoading(false);
-      }
-    }
-    fetchMetadata();
+      });
   }, [token]);
 
   const handleDownload = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!token || !token.trim()) {
-      toast.error("Invalid or missing download token");
-      return;
-    }
+    if (!token) return;
     setDownloading(true);
 
     try {
@@ -96,7 +98,7 @@ export default function GuestDownloadPage() {
       toast.success("Download started!");
 
       // Update remaining download count locally
-      setShare((prev: any) => {
+      setShare((prev) => {
         if (!prev) return prev;
         const newCount = prev.download_count + 1;
         if (newCount >= prev.max_downloads) {
@@ -136,7 +138,7 @@ export default function GuestDownloadPage() {
     );
   }
 
-  const remaining = Math.max(0, (share?.max_downloads ?? 0) - (share?.download_count ?? 0));
+  const remaining = Math.max(0, share.max_downloads - share.download_count);
 
   // Safe APK/IPA detection
   const safeFilename = share?.filename || "";
