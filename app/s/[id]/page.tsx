@@ -1,6 +1,6 @@
 "use client";
 
-import { use, useEffect, useState } from "react";
+import { use, useEffect, useMemo, useState } from "react";
 import { Download, File as FileIcon, Eye, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { formatBytes } from "@/lib/utils";
@@ -27,17 +27,21 @@ export default function PublicSharePage({
   const [isLoading, setIsLoading] = useState(true);
   const [textContent, setTextContent] = useState<string | null>(null);
   const [loadingText, setLoadingText] = useState(false);
-  const [deviceInfo, setDeviceInfo] = useState({ isAndroid: false, isIOS: false, isMobile: false });
+  const [mounted, setMounted] = useState(false);
   const [pageUrl, setPageUrl] = useState("");
 
-  // Device detection (client-side only)
-  useEffect(() => {
-    if (typeof window === "undefined") return;
+  useEffect(() => { setMounted(true); }, []);
+
+  // Device detection — computed synchronously on every client render (no useEffect delay)
+  const deviceInfo = useMemo(() => {
+    if (!mounted || typeof window === "undefined") {
+      return { isAndroid: false, isIOS: false, isMobile: false };
+    }
     const ua = navigator.userAgent || "";
     const isAndroid = /Android/i.test(ua);
     const isIOS = /iPhone|iPad|iPod/i.test(ua);
-    setDeviceInfo({ isAndroid, isIOS, isMobile: isAndroid || isIOS });
-  }, []);
+    return { isAndroid, isIOS, isMobile: isAndroid || isIOS };
+  }, [mounted]);
 
   // QR code generation for desktop users
   useEffect(() => {
