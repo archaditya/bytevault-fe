@@ -1,10 +1,11 @@
 "use client";
 
-import { Folder, MoreVertical, Edit2, Move, Trash2 } from "lucide-react";
+import { Folder, MoreVertical, Edit2, Move, Trash2, Share2, Link2 } from "lucide-react";
 import { FolderRecord } from "@/types";
 import { useFilesStore } from "@/store/files.store";
-import { useDeleteFolderMutation, useRenameFolderMutation } from "@/services";
-import { cn } from "@/lib/utils";
+import { useDeleteFolderMutation, useRenameFolderMutation, useToggleFolderShareMutation } from "@/services";
+import { cn, formatRelativeTime } from "@/lib/utils";
+import toast from "react-hot-toast";
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -12,7 +13,6 @@ import {
   DropdownMenuItem,
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
-import { formatRelativeTime } from "@/lib/utils";
 import { useState } from "react";
 import { MoveItemModal } from "./move-item-modal";
 
@@ -20,6 +20,7 @@ export function FolderListRow({ folder }: { folder: FolderRecord }) {
   const { pushFolder, selectedItems, toggleSelectItem } = useFilesStore();
   const deleteMutation = useDeleteFolderMutation(folder.parent_id);
   const renameMutation = useRenameFolderMutation(folder.parent_id);
+  const toggleShareMutation = useToggleFolderShareMutation(folder.parent_id);
 
   const [isMoveModalOpen, setIsMoveModalOpen] = useState(false);
 
@@ -30,11 +31,9 @@ export function FolderListRow({ folder }: { folder: FolderRecord }) {
   };
 
   const handleRowClick = (e: React.MouseEvent) => {
-    if (selectedItems.length > 0) {
-      e.preventDefault();
-      e.stopPropagation();
-      toggleSelectItem(folder.id, "folder");
-    }
+    e.preventDefault();
+    e.stopPropagation();
+    toggleSelectItem(folder.id, "folder");
   };
 
   const handleRename = () => {
@@ -48,6 +47,27 @@ export function FolderListRow({ folder }: { folder: FolderRecord }) {
     if (confirm(`Are you sure you want to delete folder "${folder.name}" and all its contents?`)) {
       deleteMutation.mutate(folder.id);
     }
+  };
+
+  const handleToggleShare = () => {
+    const newState = !folder.is_public;
+    toggleShareMutation.mutate(
+      { id: folder.id, isPublic: newState },
+      {
+        onSuccess: () => {
+          if (newState) {
+            const shareUrl = `${window.location.origin}/s/folder/${folder.id}`;
+            navigator.clipboard.writeText(shareUrl);
+            toast.success("Folder is now public! Share link copied.");
+          } else {
+            toast.success("Folder is now private.");
+          }
+        },
+        onError: () => {
+          toast.error("Failed to update folder sharing settings.");
+        },
+      }
+    );
   };
 
   return (
@@ -86,6 +106,21 @@ export function FolderListRow({ folder }: { folder: FolderRecord }) {
               </button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="bg-bg-surface border-border-strong">
+              <DropdownMenuItem
+                onClick={handleToggleShare}
+                disabled={toggleShareMutation.isPending}
+                className="cursor-pointer hover:bg-bg-overlay"
+              >
+                {folder.is_public ? (
+                  <>
+                    <Link2 className="h-3.5 w-3.5 mr-2 text-ink-muted" /> Make Private
+                  </>
+                ) : (
+                  <>
+                    <Share2 className="h-3.5 w-3.5 mr-2 text-accent" /> Share Link
+                  </>
+                )}
+              </DropdownMenuItem>
               <DropdownMenuItem onClick={handleRename} className="cursor-pointer hover:bg-bg-overlay">
                 <Edit2 className="h-3.5 w-3.5 mr-2" /> Rename
               </DropdownMenuItem>
