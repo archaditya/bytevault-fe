@@ -32,6 +32,7 @@ import {
 } from "@/services";
 import { FolderRecord } from "@/types";
 import { cn, formatBytes } from "@/lib/utils";
+import { useFilesStore } from "@/store/files.store";
 import toast from "react-hot-toast";
 
 interface UploadModalProps {
@@ -146,6 +147,7 @@ function FolderTreeItem({
 }
 
 export function UploadModal({ open, onOpenChange }: UploadModalProps) {
+  const currentFolderId = useFilesStore((s) => s.currentFolderId);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { data: allFolders, isLoading: foldersLoading } = useFoldersFlat();
   const uploadMutation = useUploadFileMutation();
@@ -156,7 +158,7 @@ export function UploadModal({ open, onOpenChange }: UploadModalProps) {
   const maxFileSizeBytes = quota?.max_file_size_bytes || 100 * 1024 * 1024;
   const maxFileSizeMb = Math.round(maxFileSizeBytes / (1024 * 1024));
 
-  const [selectedFolderId, setSelectedFolderId] = useState<string | null>(null);
+  const [selectedFolderId, setSelectedFolderId] = useState<string | null>(currentFolderId);
   const [isCreatingFolder, setIsCreatingFolder] = useState(false);
   const [newFolderName, setNewFolderName] = useState("");
 
@@ -168,6 +170,13 @@ export function UploadModal({ open, onOpenChange }: UploadModalProps) {
   const [isWindowDragging, setIsWindowDragging] = useState(false);
 
   const dragCounter = useRef(0);
+
+  // Sync folder selection when modal opens or user navigates to a new folder
+  useEffect(() => {
+    if (open) {
+      setSelectedFolderId(currentFolderId);
+    }
+  }, [open, currentFolderId]);
 
   const folderTree = useMemo(() => {
     if (!allFolders) return [];

@@ -1,9 +1,9 @@
 "use client";
 
 import { use, useEffect, useMemo, useState } from "react";
-import { Download, File as FileIcon, Eye, AlertCircle } from "lucide-react";
+import { Download, File as FileIcon, Eye, AlertCircle, ExternalLink, Maximize2, Minimize2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { formatBytes } from "@/lib/utils";
+import { cn, formatBytes } from "@/lib/utils";
 
 interface FileMetadata {
   filename: string;
@@ -29,6 +29,7 @@ export default function PublicSharePage({
   const [loadingText, setLoadingText] = useState(false);
   const [mounted, setMounted] = useState(false);
   const [pageUrl, setPageUrl] = useState("");
+  const [isFullscreen, setIsFullscreen] = useState(false);
 
   useEffect(() => { setMounted(true); }, []);
 
@@ -119,8 +120,8 @@ export default function PublicSharePage({
   if (isLoading) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-bg p-4 md:p-8">
-        <div className="flex w-full max-w-4xl flex-col md:flex-row gap-6 rounded-xl border border-border-strong bg-bg-surface p-6 shadow-sm">
-          <div className="flex-1 min-h-[400px] bg-bg-raised animate-pulse rounded-lg" />
+        <div className="flex w-full max-w-6xl flex-col md:flex-row gap-6 rounded-xl border border-border-strong bg-bg-surface p-6 shadow-sm">
+          <div className="flex-1 min-h-[550px] md:min-h-[700px] bg-bg-raised animate-pulse rounded-lg" />
           <div className="w-full md:w-80 flex flex-col items-center justify-center gap-4 py-8">
             <div className="h-16 w-16 rounded-full bg-accent/10 animate-pulse" />
             <div className="h-6 w-32 bg-border animate-pulse rounded" />
@@ -180,16 +181,38 @@ export default function PublicSharePage({
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-bg p-4 md:p-8">
-      <div className="flex w-full max-w-4xl flex-col md:flex-row gap-6 rounded-xl border border-border-strong bg-bg-surface p-6 shadow-sm overflow-hidden">
+      <div className="flex w-full max-w-6xl flex-col md:flex-row gap-6 rounded-xl border border-border-strong bg-bg-surface p-6 shadow-sm overflow-hidden">
         {/* Left Side: Preview Area */}
-        <div className="flex-1 flex flex-col rounded-lg border border-border bg-bg-raised overflow-hidden min-h-[400px] relative">
-          <div className="absolute top-0 w-full bg-black/40 backdrop-blur-md p-2 flex items-center justify-center z-10 border-b border-white/10">
+        <div className={cn(
+          "flex-1 flex flex-col rounded-lg border border-border bg-bg-raised overflow-hidden min-h-[550px] md:min-h-[700px] relative transition-all",
+          isFullscreen && "fixed inset-0 z-50 rounded-none border-none bg-bg-surface"
+        )}>
+          <div className="absolute top-0 w-full bg-black/50 backdrop-blur-md px-3 py-2 flex items-center justify-between z-10 border-b border-white/10">
             <span className="text-xs font-medium text-white flex items-center gap-1.5">
               <Eye className="h-3.5 w-3.5" /> File Preview
             </span>
+            <div className="flex items-center gap-1.5">
+              <a
+                href={`${fileUrl}?inline=true`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="p-1 rounded text-white/70 hover:text-white hover:bg-white/10 transition-colors inline-flex items-center"
+                title="Open in new tab"
+              >
+                <ExternalLink className="h-3.5 w-3.5" />
+              </a>
+              <button
+                type="button"
+                onClick={() => setIsFullscreen((prev) => !prev)}
+                className="p-1 rounded text-white/70 hover:text-white hover:bg-white/10 transition-colors inline-flex items-center"
+                title={isFullscreen ? "Exit fullscreen" : "Fullscreen"}
+              >
+                {isFullscreen ? <Minimize2 className="h-3.5 w-3.5" /> : <Maximize2 className="h-3.5 w-3.5" />}
+              </button>
+            </div>
           </div>
 
-          <div className="flex-1 flex w-full h-full pt-8 min-h-[400px] overflow-hidden">
+          <div className="flex-1 flex w-full h-full pt-10 min-h-[500px] md:min-h-[660px] overflow-hidden">
             {isAppFile ? (
               /* App file: show branded install preview */
               <div className="flex-1 flex flex-col items-center justify-center p-8 text-center bg-bg-surface">

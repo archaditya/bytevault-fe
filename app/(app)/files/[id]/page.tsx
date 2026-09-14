@@ -1,6 +1,6 @@
 "use client";
 
-import { use, useEffect, useState } from "react";
+import { use, useEffect, useMemo, useState } from "react";
 import { getAccessToken } from "@/lib/api-client";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -16,6 +16,10 @@ import {
   Calendar,
   Trash2,
   Globe,
+  Eye,
+  ExternalLink,
+  Maximize2,
+  Minimize2,
 } from "lucide-react";
 import {
   useFile,
@@ -28,6 +32,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { FileKindIcon } from "@/components/shared/file-kind-icon";
 import {
+  cn,
   formatBytes,
   formatRelativeTime,
   truncateMiddle,
@@ -57,6 +62,10 @@ export default function FileDetailsPage({
   useEffect(() => {
     setToken(getAccessToken() || "");
   }, []);
+
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const [textContent, setTextContent] = useState<string | null>(null);
+  const [loadingText, setLoadingText] = useState(false);
 
   const { data: file, isLoading } = useFile(id);
   const { data: history = [] } = useFileHistory(id);
@@ -126,6 +135,60 @@ export default function FileDetailsPage({
   };
 
   const previewUrl = `/api/v1/files/${file.id}/download?token=${token}&inline=true`;
+
+  const isTextType = useMemo(() => {
+    if (!file) return false;
+    const ct = (file.mimeType || "").toLowerCase();
+    const fn = (file.name || "").toLowerCase();
+    return (
+      ct.startsWith("text/") ||
+      ct.includes("json") ||
+      ct.includes("javascript") ||
+      ct.includes("typescript") ||
+      ct.includes("xml") ||
+      fn.endsWith(".txt") ||
+      fn.endsWith(".md") ||
+      fn.endsWith(".json") ||
+      fn.endsWith(".js") ||
+      fn.endsWith(".ts") ||
+      fn.endsWith(".tsx") ||
+      fn.endsWith(".jsx") ||
+      fn.endsWith(".css") ||
+      fn.endsWith(".html") ||
+      fn.endsWith(".yaml") ||
+      fn.endsWith(".yml") ||
+      fn.endsWith(".go") ||
+      fn.endsWith(".py") ||
+      fn.endsWith(".sql") ||
+      fn.endsWith(".sh") ||
+      fn.endsWith(".env") ||
+      fn.endsWith(".log")
+    );
+  }, [file]);
+
+  useEffect(() => {
+    if (isTextType && token && file?.id) {
+      setLoadingText(true);
+      fetch(`/api/v1/files/${file.id}/download?token=${token}&inline=true`)
+        .then((res) => {
+          if (!res.ok) throw new Error("Failed to load text preview");
+          return res.text();
+        })
+        .then((text) => {
+          if (text.length > 100 * 1024) {
+            setTextContent(text.substring(0, 100 * 1024) + "\n\n... [Content truncated for preview] ...");
+          } else {
+            setTextContent(text);
+          }
+        })
+        .catch(() => {
+          setTextContent("Preview not available. Please download the file to view its contents.");
+        })
+        .finally(() => {
+          setLoadingText(false);
+        });
+    }
+  }, [isTextType, token, file?.id]);
 
   return (
     <div className="flex flex-col gap-5">
@@ -206,16 +269,45 @@ export default function FileDetailsPage({
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
         {/* PREVIEW CARD */}
-        <Card className="lg:col-span-2 bg-bg-surface border-border-strong overflow-hidden flex flex-col">
+        <Card className={cn(
+          "lg:col-span-2 bg-bg-surface border-border-strong overflow-hidden flex flex-col transition-all",
+          isFullscreen && "fixed inset-0 z-50 rounded-none border-none bg-bg-surface"
+        )}>
           <div className="bg-bg-raised border-b border-border p-2 px-4 flex items-center justify-between">
-            <span className="text-xs font-semibold text-ink-muted">
-              File Preview
+            <span className="text-xs font-semibold text-ink-muted flex items-center gap-1.5">
+              <Eye className="h-3.5 w-3.5" /> File Preview
             </span>
-            <Badge variant="muted" className="font-mono">
-              {file.downloads} Downloads
-            </Badge>
+            <div className="flex items-center gap-2">
+              <Badge variant="muted" className="font-mono">
+                {file.downloads} Downloads
+              </Badge>
+              {token && (
+                <a
+                  href={previewUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="p-1 rounded text-ink-muted hover:text-ink hover:bg-bg-overlay transition-colors inline-flex items-center"
+                  title="Open in new tab"
+                >
+                  <ExternalLink className="h-3.5 w-3.5" />
+                </a>
+              )}
+              <button
+                type="button"
+                onClick={() => setIsFullscreen(!isFullscreen)}
+                className="p-1 rounded text-ink-muted hover:text-ink hover:bg-bg-overlay transition-colors inline-flex items-center"
+                title={isFullscreen ? "Exit fullscreen" : "Fullscreen"}
+              >
+                {isFullscreen ? <Minimize2 className="h-3.5 w-3.5" /> : <Maximize2 className="h-3.5 w-3.5" />}
+              </button>
+            </div>
           </div>
-          <div className="flex-1 w-full min-h-[350px] max-h-[60vh] bg-bg-surface relative">
+          <div className={cn(
+            "flex-1 w-full bg-bg-surface relative overflow-hidden",
+            isFullscreen
+              ? "h-[calc(100vh-48px)] min-h-0"
+              : "min-h-[550px] lg:min-h-[750px] lg:h-[calc(100vh-220px)]"
+          )}>
             {token ? (
               file.mimeType.startsWith("image/") ? (
                 <img
@@ -235,6 +327,20 @@ export default function FileDetailsPage({
                   className="w-full h-full absolute inset-0 border-0"
                   title="Preview"
                 />
+              ) : file.mimeType.startsWith("audio/") ? (
+                <div className="absolute inset-0 flex items-center justify-center p-6 bg-bg-surface">
+                  <audio src={previewUrl} controls className="w-full max-w-md" />
+                </div>
+              ) : isTextType ? (
+                loadingText ? (
+                  <div className="absolute inset-0 flex items-center justify-center p-6 text-sm text-ink-muted">
+                    Loading preview...
+                  </div>
+                ) : (
+                  <pre className="absolute inset-0 p-4 text-xs font-mono overflow-auto w-full text-ink bg-bg-surface text-left whitespace-pre-wrap select-text">
+                    {textContent}
+                  </pre>
+                )
               ) : (
                 <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 text-ink-muted">
                   <FileKindIcon kind={file.kind} className="h-16 w-16 opacity-30" />

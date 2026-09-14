@@ -70,15 +70,9 @@ export function FileCard({ file }: { file: FileRecord }) {
   };
 
   const handleCardClick = (e: React.MouseEvent) => {
-    // If in multi-select mode, clicking anywhere selects/deselects
-    if (selectedItems.length > 0) {
-      e.preventDefault();
-      e.stopPropagation();
-      toggleSelectItem(file.id, "file");
-    } else {
-      // Direct open on 1 click
-      handleOpenFile();
-    }
+    e.preventDefault();
+    e.stopPropagation();
+    toggleSelectItem(file.id, "file");
   };
 
   const handleSelectToggle = (e: React.MouseEvent) => {

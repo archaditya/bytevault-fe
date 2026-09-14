@@ -633,6 +633,22 @@ export function useToggleShareMutation() {
   });
 }
 
+export function useToggleFolderShareMutation(currentParentId?: string | null) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, isPublic }: { id: string; isPublic: boolean }) => {
+      return apiClient(`/api/v1/folders/${id}/share`, {
+        method: "PATCH",
+        body: JSON.stringify({ is_public: isPublic }),
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["folders", currentParentId] });
+      queryClient.invalidateQueries({ queryKey: ["folders", "flat"] });
+    },
+  });
+}
+
 export function useDeleteFileMutation() {
   const queryClient = useQueryClient();
   return useMutation({
