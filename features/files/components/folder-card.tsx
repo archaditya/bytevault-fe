@@ -14,7 +14,7 @@ import {
   DropdownMenuItem,
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { MoveItemModal } from "./move-item-modal";
 
 export function FolderCard({ folder }: { folder: FolderRecord }) {
@@ -27,14 +27,40 @@ export function FolderCard({ folder }: { folder: FolderRecord }) {
 
   const isSelected = selectedItems.some((item) => item.id === folder.id);
 
-  const handleOpenFolder = () => {
+  const clickTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (clickTimerRef.current) {
+        clearTimeout(clickTimerRef.current);
+      }
+    };
+  }, []);
+
+  const handleOpenFolder = (e?: React.MouseEvent) => {
+    e?.preventDefault();
+    e?.stopPropagation();
+
+    if (clickTimerRef.current) {
+      clearTimeout(clickTimerRef.current);
+      clickTimerRef.current = null;
+    }
+
     pushFolder(folder.id, folder.name);
   };
 
   const handleCardClick = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    toggleSelectItem(folder.id, "folder");
+
+    if (clickTimerRef.current) {
+      clearTimeout(clickTimerRef.current);
+    }
+
+    clickTimerRef.current = setTimeout(() => {
+      toggleSelectItem(folder.id, "folder");
+      clickTimerRef.current = null;
+    }, 280);
   };
 
   const handleRename = () => {
@@ -70,18 +96,28 @@ export function FolderCard({ folder }: { folder: FolderRecord }) {
 
   return (
     <>
-      <Card className={cn(
-        "group relative flex flex-col overflow-hidden bg-bg-surface p-4 transition-all duration-150 hover:border-border-strong select-none cursor-pointer",
-        isSelected && "ring-2 ring-accent border-accent"
-      )} onClick={handleCardClick}>
-        
+      <Card 
+        className={cn(
+          "group relative flex flex-col overflow-hidden bg-bg-surface p-4 transition-all duration-150 hover:border-border-strong select-none cursor-pointer",
+          isSelected && "ring-2 ring-accent border-accent"
+        )}
+        onClick={handleCardClick}
+        onDoubleClick={handleOpenFolder}
+      >
         {/* Checkbox overlay */}
         <div
           className={cn(
             "absolute left-2.5 top-2.5 z-10 transition-opacity duration-150",
             isSelected ? "opacity-100" : "opacity-0 group-hover:opacity-100"
           )}
-          onClick={(e) => e.stopPropagation()}
+          onClick={(e) => {
+            e.stopPropagation();
+
+            if (clickTimerRef.current) {
+              clearTimeout(clickTimerRef.current);
+              clickTimerRef.current = null;
+            }
+          }}
         >
           <input
             type="checkbox"
