@@ -73,6 +73,60 @@ export default function FileDetailsPage({
   const deleteMutation = useDeleteFileMutation();
   const toggleShareMutation = useToggleShareMutation();
 
+  const isTextType = useMemo(() => {
+    if (!file) return false;
+    const ct = (file.mimeType || "").toLowerCase();
+    const fn = (file.name || "").toLowerCase();
+    return (
+      ct.startsWith("text/") ||
+      ct.includes("json") ||
+      ct.includes("javascript") ||
+      ct.includes("typescript") ||
+      ct.includes("xml") ||
+      fn.endsWith(".txt") ||
+      fn.endsWith(".md") ||
+      fn.endsWith(".json") ||
+      fn.endsWith(".js") ||
+      fn.endsWith(".ts") ||
+      fn.endsWith(".tsx") ||
+      fn.endsWith(".jsx") ||
+      fn.endsWith(".css") ||
+      fn.endsWith(".html") ||
+      fn.endsWith(".yaml") ||
+      fn.endsWith(".yml") ||
+      fn.endsWith(".go") ||
+      fn.endsWith(".py") ||
+      fn.endsWith(".sql") ||
+      fn.endsWith(".sh") ||
+      fn.endsWith(".env") ||
+      fn.endsWith(".log")
+    );
+  }, [file]);
+
+  useEffect(() => {
+    if (isTextType && token && file?.id) {
+      setLoadingText(true);
+      fetch(`/api/v1/files/${file.id}/download?token=${token}&inline=true`)
+        .then((res) => {
+          if (!res.ok) throw new Error("Failed to load text preview");
+          return res.text();
+        })
+        .then((text) => {
+          if (text.length > 100 * 1024) {
+            setTextContent(text.substring(0, 100 * 1024) + "\n\n... [Content truncated for preview] ...");
+          } else {
+            setTextContent(text);
+          }
+        })
+        .catch(() => {
+          setTextContent("Preview not available. Please download the file to view its contents.");
+        })
+        .finally(() => {
+          setLoadingText(false);
+        });
+    }
+  }, [isTextType, token, file?.id]);
+
   if (isLoading) {
     return (
       <div className="flex h-64 items-center justify-center bg-bg">
@@ -135,60 +189,6 @@ export default function FileDetailsPage({
   };
 
   const previewUrl = `/api/v1/files/${file.id}/download?token=${token}&inline=true`;
-
-  const isTextType = useMemo(() => {
-    if (!file) return false;
-    const ct = (file.mimeType || "").toLowerCase();
-    const fn = (file.name || "").toLowerCase();
-    return (
-      ct.startsWith("text/") ||
-      ct.includes("json") ||
-      ct.includes("javascript") ||
-      ct.includes("typescript") ||
-      ct.includes("xml") ||
-      fn.endsWith(".txt") ||
-      fn.endsWith(".md") ||
-      fn.endsWith(".json") ||
-      fn.endsWith(".js") ||
-      fn.endsWith(".ts") ||
-      fn.endsWith(".tsx") ||
-      fn.endsWith(".jsx") ||
-      fn.endsWith(".css") ||
-      fn.endsWith(".html") ||
-      fn.endsWith(".yaml") ||
-      fn.endsWith(".yml") ||
-      fn.endsWith(".go") ||
-      fn.endsWith(".py") ||
-      fn.endsWith(".sql") ||
-      fn.endsWith(".sh") ||
-      fn.endsWith(".env") ||
-      fn.endsWith(".log")
-    );
-  }, [file]);
-
-  useEffect(() => {
-    if (isTextType && token && file?.id) {
-      setLoadingText(true);
-      fetch(`/api/v1/files/${file.id}/download?token=${token}&inline=true`)
-        .then((res) => {
-          if (!res.ok) throw new Error("Failed to load text preview");
-          return res.text();
-        })
-        .then((text) => {
-          if (text.length > 100 * 1024) {
-            setTextContent(text.substring(0, 100 * 1024) + "\n\n... [Content truncated for preview] ...");
-          } else {
-            setTextContent(text);
-          }
-        })
-        .catch(() => {
-          setTextContent("Preview not available. Please download the file to view its contents.");
-        })
-        .finally(() => {
-          setLoadingText(false);
-        });
-    }
-  }, [isTextType, token, file?.id]);
 
   return (
     <div className="flex flex-col gap-5">
