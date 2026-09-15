@@ -21,7 +21,7 @@ import {
   useRenameFileMutation,
 } from "@/services";
 import { useFilesStore } from "@/store/files.store";
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import {
   Dialog,
   DialogContent,
@@ -65,14 +65,40 @@ export function FileCard({ file }: { file: FileRecord }) {
   const isSelected = selectedItems.some((item) => item.id === file.id);
   const [imgError, setImgError] = useState(false);
 
-  const handleOpenFile = () => {
+  const clickTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (clickTimerRef.current) {
+        clearTimeout(clickTimerRef.current);
+      }
+    };
+  }, []);
+
+  const handleOpenFile = (e?: React.MouseEvent) => {
+    e?.preventDefault();
+    e?.stopPropagation();
+
+    if (clickTimerRef.current) {
+      clearTimeout(clickTimerRef.current);
+      clickTimerRef.current = null;
+    }
+
     router.push(`/files/${file.id}`);
   };
 
   const handleCardClick = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    toggleSelectItem(file.id, "file");
+
+    if (clickTimerRef.current) {
+      clearTimeout(clickTimerRef.current);
+    }
+
+    clickTimerRef.current = setTimeout(() => {
+      toggleSelectItem(file.id, "file");
+      clickTimerRef.current = null;
+    }, 280);
   };
 
   const handleSelectToggle = (e: React.MouseEvent) => {
