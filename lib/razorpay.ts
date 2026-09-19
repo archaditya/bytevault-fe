@@ -65,9 +65,9 @@ export async function openRazorpaySubscriptionCheckout(options: RazorpayCheckout
   const rzp = new window.Razorpay({
     key: options.key,
     subscription_id: options.subscription_id,
-    name: options.name || "PushPortVault",
+    name: options.name || "PushPostVault",
     description: options.description || "Cloud Storage Subscription",
-    image: options.image || "/pushportvault-icon.png",
+    image: options.image || "/PushPostVault-icon.png",
     prefill: options.prefill,
     theme: options.theme || {
       color: "#6366f1",

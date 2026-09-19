@@ -40,13 +40,13 @@ export function Navbar({ onMenuClick }: { onMenuClick?: () => void }) {
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
   const uploadMutation = useUploadFileMutation();
 
-  const title = titleMap[pathname] || (pathname.startsWith("/admin") ? "Admin Console" : "PushPortVault");
+  const title = titleMap[pathname] || (pathname.startsWith("/admin") ? "Admin Console" : "PushPostVault");
   const isAdmin = user?.role === "super_admin" || user?.role === "admin";
 
   return (
     <header className="sticky top-0 z-30 flex h-14 items-center justify-between border-b border-border bg-bg-surface px-4 md:px-6">
       <div className="flex items-center gap-3">
-        <button 
+        <button
           onClick={onMenuClick}
           className="md:hidden text-ink-muted hover:text-ink transition-colors"
           aria-label="Toggle Navigation menu"
@@ -126,7 +126,7 @@ export function Navbar({ onMenuClick }: { onMenuClick?: () => void }) {
               </Link>
             </DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem 
+            <DropdownMenuItem
               onClick={() => logout()}
               className="text-danger focus:bg-danger/10 focus:text-danger flex items-center gap-2 text-[13px] cursor-pointer"
             >
@@ -137,9 +137,9 @@ export function Navbar({ onMenuClick }: { onMenuClick?: () => void }) {
       </div>
 
       {!isAdmin && (
-        <UploadModal 
-          open={isUploadModalOpen} 
-          onOpenChange={setIsUploadModalOpen} 
+        <UploadModal
+          open={isUploadModalOpen}
+          onOpenChange={setIsUploadModalOpen}
         />
       )}
     </header>

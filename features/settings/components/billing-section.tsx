@@ -2,11 +2,11 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { 
-  useCurrentSubscription, 
-  usePackages, 
-  useTransactions, 
-  useSubscribe, 
+import {
+  useCurrentSubscription,
+  usePackages,
+  useTransactions,
+  useSubscribe,
   useVerifySubscription,
   useUpgradeSubscription,
   useDowngradeSubscription,
@@ -72,7 +72,7 @@ export function BillingSection() {
             await openRazorpaySubscriptionCheckout({
               key: subData.razorpay_key_id,
               subscription_id: subData.razorpay_subscription_id,
-              name: "PushPortVault",
+              name: "PushPostVault",
               description: `Subscribe to ${targetPkg.display_name}`,
               prefill: {
                 email: currentUser?.email,
@@ -165,8 +165,8 @@ export function BillingSection() {
               )}
             </div>
             <p className="text-xs text-ink-muted mt-1">
-              {activePkg.price_paise === 0 
-                ? "You are currently on the Free tier." 
+              {activePkg.price_paise === 0
+                ? "You are currently on the Free tier."
                 : `₹${(activePkg.price_paise / 100).toFixed(0)}/month + 18% GST`}
             </p>
           </div>
@@ -195,7 +195,7 @@ export function BillingSection() {
             <div className="p-4 rounded-lg bg-bg-overlay border border-border">
               <p className="text-xs text-ink-muted uppercase font-semibold">Billing Status</p>
               <p className="text-sm font-medium mt-2 text-ink">
-                {currentSub?.current_period_end 
+                {currentSub?.current_period_end
                   ? `${currentSub.cancel_at_cycle_end ? "Access until" : "Renews on"} ${new Date(currentSub.current_period_end).toLocaleDateString()}`
                   : "Free tier — no renewal required"}
               </p>
@@ -242,7 +242,7 @@ export function BillingSection() {
                     <tr key={txn.id} className="hover:bg-bg-overlay transition-colors">
                       <td className="py-3 text-ink-muted">{new Date(txn.created_at).toLocaleDateString()}</td>
                       <td className="py-3 font-mono text-xs font-semibold">{txn.invoice_number || "PV-PENDING"}</td>
-                      <td className="py-3 font-medium">{txn.description || "PushPortVault Subscription"}</td>
+                      <td className="py-3 font-medium">{txn.description || "PushPostVault Subscription"}</td>
                       <td className="py-3 font-semibold">₹{(txn.total_paise / 100).toFixed(2)}</td>
                       <td className="py-3">
                         <Badge variant={txn.status === "captured" ? "success" : "muted"}>
@@ -250,9 +250,9 @@ export function BillingSection() {
                         </Badge>
                       </td>
                       <td className="py-3 text-right">
-                        <Button 
-                          variant="outline" 
-                          size="sm" 
+                        <Button
+                          variant="outline"
+                          size="sm"
                           onClick={() => handleOpenInvoice(txn.id)}
                           className="h-8 gap-1.5 border-border hover:border-accent hover:text-accent"
                         >
@@ -289,13 +289,12 @@ export function BillingSection() {
                 const isHigher = pkg.price_paise > activePkg.price_paise;
 
                 return (
-                  <div 
-                    key={pkg.id} 
-                    className={`rounded-lg p-5 border flex flex-col justify-between transition-all ${
-                      isCurrent 
-                        ? "border-accent bg-accent/5 ring-1 ring-accent" 
+                  <div
+                    key={pkg.id}
+                    className={`rounded-lg p-5 border flex flex-col justify-between transition-all ${isCurrent
+                        ? "border-accent bg-accent/5 ring-1 ring-accent"
                         : "border-border bg-bg-surface hover:border-border-strong"
-                    }`}
+                      }`}
                   >
                     <div>
                       <div className="flex justify-between items-start mb-2">
@@ -349,17 +348,17 @@ export function BillingSection() {
 
           <p className="mt-4 text-center text-[11px] text-ink-muted leading-relaxed border-t border-border pt-3">
             By subscribing or changing plans, you authorize recurring monthly charges via Razorpay and agree to our{" "}
-            <Link 
-              href="/subscription-policy" 
-              target="_blank" 
+            <Link
+              href="/subscription-policy"
+              target="_blank"
               className="text-accent underline hover:text-accent-bright font-medium"
             >
               Subscription Terms &amp; Policy
             </Link>{" "}
             (including the strict No-Refund &amp; Anti-Ping-Pong Policy) and{" "}
-            <Link 
-              href="/terms" 
-              target="_blank" 
+            <Link
+              href="/terms"
+              target="_blank"
               className="text-accent underline hover:text-accent-bright font-medium"
             >
               Terms of Service

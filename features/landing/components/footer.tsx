@@ -27,8 +27,8 @@ export function Footer() {
           <div>
             <div className="flex items-center gap-2">
               <Image
-                src="/pushportvault-logo.svg"
-                alt="PushPortVault"
+                src="/PushPostVault-logo.svg"
+                alt="PushPostVault"
                 width={136}
                 height={27}
                 className="h-6 w-auto object-contain"
@@ -54,7 +54,7 @@ export function Footer() {
           ))}
         </div>
         <div className="mt-12 flex flex-col items-center justify-between gap-3 border-t border-border pt-6 text-[12px] text-ink-faint sm:flex-row">
-          <span>&copy; {new Date().getFullYear()} PushPortVault. All rights reserved.</span>
+          <span>&copy; {new Date().getFullYear()} PushPostVault. All rights reserved.</span>
           <div className="flex gap-5">
             <Link href="/terms" className="hover:text-ink">Terms &amp; Conditions</Link>
             <Link href="/subscription-policy" className="hover:text-ink">Subscription Policy</Link>
