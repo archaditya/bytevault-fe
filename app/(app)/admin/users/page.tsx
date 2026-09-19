@@ -201,10 +201,11 @@ export default function AdminUsersPage() {
           ) : (
             <div className="w-full overflow-x-auto">
               <div className="flex flex-col min-w-[800px]">
-                <div className="grid grid-cols-[2fr_1.5fr_1fr_1fr_1.2fr_1.2fr] gap-4 items-center bg-bg-raised border-y border-border px-4 py-2.5 text-[11px] font-semibold uppercase tracking-wider text-ink-faint">
+                <div className="grid grid-cols-[2fr_1.5fr_1fr_1fr_1fr_1.2fr_1.2fr] gap-4 items-center bg-bg-raised border-y border-border px-4 py-2.5 text-[11px] font-semibold uppercase tracking-wider text-ink-faint">
                   <span>Name</span>
                   <span>Email</span>
                   <span>Role</span>
+                  <span>Plan</span>
                   <span>Status</span>
                   <span>Joined Date</span>
                   <span className="text-right">Actions</span>
@@ -214,13 +215,18 @@ export default function AdminUsersPage() {
                   return (
                     <div
                       key={u.id}
-                      className="grid grid-cols-[2fr_1.5fr_1fr_1fr_1.2fr_1.2fr] gap-4 items-center border-b border-border px-4 py-3 text-[13px] hover:bg-bg-overlay/20 transition-colors"
+                      className="grid grid-cols-[2fr_1.5fr_1fr_1fr_1fr_1.2fr_1.2fr] gap-4 items-center border-b border-border px-4 py-3 text-[13px] hover:bg-bg-overlay/20 transition-colors"
                     >
                       <span className="font-medium text-ink truncate">{name}</span>
                       <span className="text-ink-muted truncate font-mono">{u.email}</span>
                       <span>
                         <Badge variant="muted" className="text-[10px] capitalize px-1.5 py-0.2">
                           {u.role || "user"}
+                        </Badge>
+                      </span>
+                      <span>
+                        <Badge variant="default" className="text-[10px] font-semibold px-2 py-0.5">
+                          {u.package_name || "Free"}
                         </Badge>
                       </span>
                       <span>
@@ -326,15 +332,15 @@ export default function AdminUsersPage() {
                   <span className="font-mono font-semibold">
                     {detailsData.user.storage_limit_bytes
                       ? `${Math.round(detailsData.user.storage_limit_bytes / (1024 * 1024 * 1024))} GB`
-                      : "1 GB"}
+                      : "5 GB"}
                   </span>
                 </div>
                 <div className="flex items-center justify-between border-b border-border pb-2.5">
                   <span className="text-ink-muted">Max File Size</span>
                   <span className="font-mono font-semibold">
                     {detailsData.user.max_file_size_bytes
-                      ? `${Math.round(detailsData.user.max_file_size_bytes / (1024 * 1024))} MB`
-                      : "100 MB"}
+                      ? `${Math.round(detailsData.user.max_file_size_bytes / (1024 * 1024 * 1024))} GB`
+                      : "2 GB"}
                   </span>
                 </div>
                 <div className="flex items-center justify-between border-b border-border pb-2.5">

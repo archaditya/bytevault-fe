@@ -155,7 +155,7 @@ export function Hero() {
             </span>
           </h1>
           <p className="mt-5 max-w-xl text-[15px] sm:text-[16px] leading-relaxed text-ink-muted px-2">
-            PushPort resumes every upload exactly where it stopped, retries only the
+            PushPortVault resumes every upload exactly where it stopped, retries only the
             piece that failed, and shows you precisely which chunk is in flight.
           </p>
 
@@ -301,7 +301,7 @@ export function Hero() {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-[18px]">
               <Sparkles className="h-5 w-5 text-accent animate-pulse" />
-              Vault Your File in PushPort
+              Upload Your File in PushPortVault
             </DialogTitle>
           </DialogHeader>
           <div className="py-4 text-center">

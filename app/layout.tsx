@@ -20,15 +20,34 @@ const fontMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "PushPort — Push files in. Pull links out.",
+  title: "PushPortVault — Store • Share • Anywhere",
   description:
-    "PushPort is a high-performance file transfer and storage platform. Push files in, pull links out.",
-  keywords: ["file transfer", "resumable upload", "storage", "Cloudflare R2", "AWS S3", "pushport"],
+    "PushPortVault is a high-performance cloud storage and secure file sharing platform. Store, share, anywhere.",
+  keywords: ["file transfer", "resumable upload", "cloud storage", "Cloudflare R2", "AWS S3", "pushportvault"],
+  icons: {
+    icon: [
+      { url: "/favicon.ico" },
+      { url: "/pushportvault-icon.svg", type: "image/svg+xml" },
+    ],
+    shortcut: "/favicon.ico",
+    apple: "/icon-192.png",
+  },
+  openGraph: {
+    title: "PushPortVault — Store • Share • Anywhere",
+    description: "High-performance cloud storage and parallel transfer engine.",
+    images: [{ url: "/pushportvault-icon.png", width: 512, height: 512, alt: "PushPortVault" }],
+  },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" className={`${fontSans.variable} ${fontMono.variable}`}>
+      <head>
+        <link rel="icon" href="/favicon.ico" sizes="any" />
+        <link rel="icon" href="/pushportvault-icon.svg" type="image/svg+xml" />
+        <link rel="shortcut icon" href="/favicon.ico" />
+        <link rel="apple-touch-icon" href="/icon-192.png" />
+      </head>
       <body className="bg-bg text-ink font-sans antialiased">
         <QueryProvider>
           <TooltipProvider>

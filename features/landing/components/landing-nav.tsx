@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { Box, Flame, Menu, X, ArrowRight, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuthStore } from "@/store";
@@ -16,10 +17,14 @@ export function LandingNav() {
     <header className="sticky top-0 z-40 border-b border-border bg-bg/95 backdrop-blur-md font-sans">
       <div className="container flex h-14 items-center justify-between">
         <Link href="/" className="flex items-center gap-2" onClick={closeMenu}>
-          <div className="flex h-6 w-6 items-center justify-center rounded-sm bg-accent">
-            <Box className="h-3.5 w-3.5 text-white" />
-          </div>
-          <span className="text-[14px] font-semibold tracking-tight text-ink">PushPort</span>
+          <Image
+            src="/pushportvault-logo.svg"
+            alt="PushPortVault"
+            width={140}
+            height={28}
+            priority
+            className="h-7 w-auto object-contain"
+          />
         </Link>
 
         {/* Desktop Navigation Links */}
@@ -32,6 +37,7 @@ export function LandingNav() {
             Instant Share 🔥
           </Link>
           <Link href="/#features" className="hover:text-ink transition-colors">Features</Link>
+          <Link href="/pricing" className="hover:text-ink transition-colors">Pricing</Link>
           <Link href="/#architecture" className="hover:text-ink transition-colors">Architecture</Link>
           <Link href="/#faq" className="hover:text-ink transition-colors">FAQ</Link>
           <Link href="/contact" className="hover:text-ink transition-colors">Contact</Link>
@@ -105,6 +111,13 @@ export function LandingNav() {
                 className="rounded-md px-3 py-2 text-ink-muted hover:bg-bg-overlay hover:text-ink transition-colors"
               >
                 Features
+              </Link>
+              <Link
+                href="/pricing"
+                onClick={closeMenu}
+                className="rounded-md px-3 py-2 text-ink-muted hover:bg-bg-overlay hover:text-ink transition-colors"
+              >
+                Pricing
               </Link>
               <Link
                 href="/#architecture"

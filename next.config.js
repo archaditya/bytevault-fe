@@ -18,6 +18,10 @@ const nextConfig = {
         // VPS deployment fallback (uncomment this if hosting on your own VPS and running the API on port 8080 locally):
         // destination: "http://localhost:8080/api/:path*",
       },
+      {
+        source: "/static/:path*",
+        destination: `${apiUrl}/static/:path*`,
+      },
     ];
   },
 };

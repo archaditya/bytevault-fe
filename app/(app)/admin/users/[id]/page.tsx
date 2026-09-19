@@ -13,7 +13,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import toast from "react-hot-toast";
-import { ArrowLeft, User, Activity, ShieldCheck, HardDrive, Edit2 } from "lucide-react";
+import { ArrowLeft, User, Activity, ShieldCheck, HardDrive, Edit2, CreditCard } from "lucide-react";
 import { formatBytes, formatRelativeTime } from "@/lib/utils";
 
 export default function AdminUserDetailPage() {
@@ -67,8 +67,8 @@ export default function AdminUserDetailPage() {
     setEditStatus(u.status || "active");
     setEditIsVerified(u.is_verified || false);
     setEditRoleId(u.role_id || "");
-    setEditStorageLimitGb((u.storage_limit_bytes || 1073741824) / (1024 * 1024 * 1024));
-    setEditMaxFileSizeMb((u.max_file_size_bytes || 104857600) / (1024 * 1024));
+    setEditStorageLimitGb((u.storage_limit_bytes || 5368709120) / (1024 * 1024 * 1024));
+    setEditMaxFileSizeMb((u.max_file_size_bytes || 2147483648) / (1024 * 1024));
     setEditOpen(true);
   };
 
@@ -140,6 +140,47 @@ export default function AdminUserDetailPage() {
             <div className="flex items-center gap-2">
               <User className="h-4 w-4 text-accent" />
               <span>Joined: <strong>{formatRelativeTime(u.created_at)}</strong></span>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Subscription & Billing Card */}
+      {u && (
+        <Card className="bg-bg-surface border-border-strong">
+          <CardHeader className="pb-3 border-b border-border flex flex-row items-center justify-between">
+            <CardTitle className="text-sm font-semibold flex items-center gap-2">
+              <CreditCard className="h-4 w-4 text-accent" /> Active Subscription &amp; Billing
+            </CardTitle>
+            <Badge variant="default" className="text-xs">
+              {userDetail?.subscription?.package?.display_name || "Free Tier"}
+            </Badge>
+          </CardHeader>
+          <CardContent className="pt-4 grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
+            <div>
+              <span className="text-ink-muted block mb-0.5">Subscription Status</span>
+              <span className="font-semibold capitalize text-emerald-400">
+                {userDetail?.subscription?.status || "Active (Free)"}
+              </span>
+              {userDetail?.subscription?.cancel_at_cycle_end && (
+                <span className="block text-[10px] text-amber-400 mt-0.5">Cancelling at cycle end</span>
+              )}
+            </div>
+
+            <div>
+              <span className="text-ink-muted block mb-0.5">Razorpay Gateway ID</span>
+              <span className="font-mono text-ink">
+                {userDetail?.subscription?.razorpay_subscription_id || "None (Direct/Free)"}
+              </span>
+            </div>
+
+            <div>
+              <span className="text-ink-muted block mb-0.5">Current Cycle End</span>
+              <span className="text-ink font-mono">
+                {userDetail?.subscription?.current_period_end 
+                  ? new Date(userDetail.subscription.current_period_end).toLocaleDateString() 
+                  : "Indefinite"}
+              </span>
             </div>
           </CardContent>
         </Card>

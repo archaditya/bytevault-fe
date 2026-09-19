@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiClient, getAccessToken } from "@/lib/api-client";
+import { Subscription } from "@/types/subscription";
 
 export interface AdminStats {
   total_users: number;
@@ -24,6 +25,8 @@ export interface AdminUser {
   is_verified: boolean;
   status: string;
   role?: string;
+  package_name?: string;
+  subscription_status?: string;
   storage_limit_bytes?: number | null;
   max_file_size_bytes?: number | null;
   created_at: string;
@@ -211,7 +214,12 @@ export function useAdminUsers(params: {
 }
 
 export function useAdminUser(id: string) {
-  return useQuery<{ user: AdminUser & { role_id?: string }; total_files: number; total_storage: number }>({
+  return useQuery<{
+    user: AdminUser & { role_id?: string };
+    subscription?: Subscription | null;
+    total_files: number;
+    total_storage: number;
+  }>({
     queryKey: ["admin", "users", id],
     queryFn: async () => {
       return apiClient(`/api/v1/admin/users/${id}`);
@@ -359,3 +367,90 @@ export function useAdminSharedFiles(params: {
     },
   });
 }
+
+export interface TelemetryData {
+  uptime_seconds: number;
+  total_requests: number;
+  success_2xx: number;
+  client_err_4xx: number;
+  server_err_5xx: number;
+  error_rate_pct: number;
+  current_rps: number;
+  latency: {
+    p50_ms: number;
+    p95_ms: number;
+    p99_ms: number;
+    avg_ms: number;
+    max_ms: number;
+  };
+  resources: {
+    alloc_mb: number;
+    sys_mb: number;
+    goroutines: number;
+    num_gc: number;
+  };
+  database: {
+    total_conns: number;
+    idle_conns: number;
+    acquired_conns: number;
+    max_conns: number;
+  };
+  top_routes: Array<{
+    route: string;
+    count: number;
+    errors: number;
+    avg_ms: number;
+  }>;
+}
+
+export interface BandwidthData {
+  total_bytes_transferred: number;
+  total_transfer_count: number;
+  breakdown: Record<string, number>;
+  top_consumers: Array<{
+    user_id: string | null;
+    user_email: string | null;
+    total_bytes: number;
+    transfer_count: number;
+  }>;
+}
+
+export function useAdminTelemetry(options?: { refetchInterval?: number; enabled?: boolean }) {
+  return useQuery<TelemetryData>({
+    queryKey: ["admin", "telemetry"],
+    queryFn: async () => {
+      const token = getAccessToken();
+      const res = await fetch("/api/v1/admin/telemetry", {
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+      });
+      if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+      const json = await res.json();
+      return json.data;
+    },
+    refetchInterval: options?.refetchInterval ?? 5000,
+    enabled: options?.enabled ?? true,
+  });
+}
+
+export function useAdminBandwidth(timeframe: string = "today", options?: { enabled?: boolean }) {
+  return useQuery<BandwidthData>({
+    queryKey: ["admin", "bandwidth", timeframe],
+    queryFn: async () => {
+      const token = getAccessToken();
+      const res = await fetch(`/api/v1/admin/bandwidth?timeframe=${timeframe}`, {
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+      });
+      if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+      const json = await res.json();
+      return json.data;
+    },
+    enabled: options?.enabled ?? true,
+  });
+}
+
