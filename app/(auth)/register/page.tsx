@@ -127,16 +127,16 @@ function RegisterPage() {
           >
             Sign in
           </Link>
-          <div className="mt-3 flex justify-center text-[11px] text-ink-faint">
-            By Signing up, you agree to our
-            <Link href="/terms" className="hover:text-ink">
+          <p className="mt-3 text-center text-[11px] text-ink-faint">
+            By signing up, you agree to our{" "}
+            <Link href="/terms" className="underline hover:text-ink">
               Terms of Service
-            </Link>
-            &{/* <span>&middot;</span> */}
-            <Link href="/subscription-policy" className="hover:text-ink">
+            </Link>{" "}
+            and{" "}
+            <Link href="/subscription-policy" className="underline hover:text-ink">
               Subscription Policy
-            </Link>
-          </div>
+            </Link>.
+          </p>
         </div>
       </CardContent>
     </Card>

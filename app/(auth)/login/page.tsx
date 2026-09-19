@@ -154,7 +154,7 @@ function LoginPage() {
           <Box className="h-6 w-6 text-white" />
         </div>
         <CardTitle className="text-xl font-bold tracking-tight text-ink">
-          Sign in to PushPort
+          Sign in to PushPortVault
         </CardTitle>
         <p className="text-[13px] text-ink-muted">
           Enter your credentials to access your storage

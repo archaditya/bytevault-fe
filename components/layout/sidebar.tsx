@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 import {
   LayoutDashboard,
@@ -17,6 +18,8 @@ import {
   ArrowUpDown,
   MessageSquare,
   Flame,
+  CreditCard,
+  Receipt,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuthStore } from "@/store";
@@ -36,6 +39,7 @@ const userNavItems = [
 
 const adminNavItems = [
   { href: "/admin", label: "Dashboard", icon: LayoutDashboard, exact: true },
+  { href: "/admin/packages", label: "Packages & Billing", icon: CreditCard },
   { href: "/admin/users", label: "Users", icon: Users },  
   { href: "/admin/files", label: "Files", icon: Files },
   { href: "/admin/instant-shares", label: "Instant Shares", icon: Flame },
@@ -81,10 +85,14 @@ export function Sidebar({ mobileOpen, setMobileOpen }: SidebarProps) {
       )}>
         <div className="flex h-14 items-center justify-between border-b border-border px-5">
           <Link href={"/"} className="flex items-center gap-2">
-            <span className="flex h-6 w-6 items-center justify-center rounded-sm bg-accent">
-              <Box className="h-3.5 w-3.5 text-white" />
-            </span>
-            <span className="text-[14px] font-semibold tracking-tight text-ink">PushPort</span>
+            <Image
+              src="/pushportvault-logo.svg"
+              alt="PushPortVault"
+              width={140}
+              height={28}
+              priority
+              className="h-7 w-auto object-contain"
+            />
           </Link>
           
           <button 
@@ -134,21 +142,38 @@ export function Sidebar({ mobileOpen, setMobileOpen }: SidebarProps) {
           <p className="label-eyebrow px-2 pb-2 pt-6">Account</p>
           <ul className="flex flex-col gap-0.5">
             {!isAdmin && (
-              <li>
-                <Link
-                  href="/settings"
-                  onClick={handleNavClick}
-                  className={cn(
-                    "flex items-center gap-2.5 rounded-sm px-2.5 py-1.5 text-[13px] font-medium transition-colors",
-                    pathname.startsWith("/settings")
-                      ? "bg-accent/10 text-accent-bright"
-                      : "text-ink-muted hover:bg-bg-overlay hover:text-ink"
-                  )}
-                >
-                  <Settings className="h-[15px] w-[15px]" strokeWidth={2} />
-                  Settings
-                </Link>
-              </li>
+              <>
+                <li>
+                  <Link
+                    href="/settings?tab=billing"
+                    onClick={handleNavClick}
+                    className={cn(
+                      "flex items-center gap-2.5 rounded-sm px-2.5 py-1.5 text-[13px] font-medium transition-colors",
+                      pathname.startsWith("/settings")
+                        ? "text-ink-muted hover:bg-bg-overlay hover:text-ink"
+                        : "text-ink-muted hover:bg-bg-overlay hover:text-ink"
+                    )}
+                  >
+                    <Receipt className="h-[15px] w-[15px] text-accent" strokeWidth={2} />
+                    Billing &amp; Invoices
+                  </Link>
+                </li>
+                <li>
+                  <Link
+                    href="/settings"
+                    onClick={handleNavClick}
+                    className={cn(
+                      "flex items-center gap-2.5 rounded-sm px-2.5 py-1.5 text-[13px] font-medium transition-colors",
+                      pathname === "/settings"
+                        ? "bg-accent/10 text-accent-bright"
+                        : "text-ink-muted hover:bg-bg-overlay hover:text-ink"
+                    )}
+                  >
+                    <Settings className="h-[15px] w-[15px]" strokeWidth={2} />
+                    Settings
+                  </Link>
+                </li>
+              </>
             )}
             <li>
               <button

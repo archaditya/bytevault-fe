@@ -40,7 +40,7 @@ export function Navbar({ onMenuClick }: { onMenuClick?: () => void }) {
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
   const uploadMutation = useUploadFileMutation();
 
-  const title = titleMap[pathname] || (pathname.startsWith("/admin") ? "Admin Console" : "PushPort");
+  const title = titleMap[pathname] || (pathname.startsWith("/admin") ? "Admin Console" : "PushPortVault");
   const isAdmin = user?.role === "super_admin" || user?.role === "admin";
 
   return (

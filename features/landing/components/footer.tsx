@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import { Box } from "lucide-react";
 
 const columns = [
@@ -6,6 +7,7 @@ const columns = [
     title: "Product",
     links: [
       { label: "Dashboard", href: "/dashboard" },
+      { label: "Pricing", href: "/pricing" },
       { label: "Transfers", href: "/transfers" },
     ],
   },
@@ -24,13 +26,16 @@ export function Footer() {
         <div className="grid grid-cols-2 gap-8 sm:grid-cols-3">
           <div>
             <div className="flex items-center gap-2">
-              <div className="flex h-6 w-6 items-center justify-center rounded-sm bg-accent">
-                <Box className="h-3.5 w-3.5 text-white" />
-              </div>
-              <span className="text-[14px] font-semibold text-ink">PushPort</span>
+              <Image
+                src="/pushportvault-logo.svg"
+                alt="PushPortVault"
+                width={136}
+                height={27}
+                className="h-6 w-auto object-contain"
+              />
             </div>
             <p className="mt-3 max-w-[180px] text-[12px] text-ink-muted">
-              Resumable file transfer with binary signature checks.
+              Secure cloud storage with zero-knowledge encryption and instant sharing.
             </p>
           </div>
           {columns.map((col) => (
@@ -49,7 +54,7 @@ export function Footer() {
           ))}
         </div>
         <div className="mt-12 flex flex-col items-center justify-between gap-3 border-t border-border pt-6 text-[12px] text-ink-faint sm:flex-row">
-          <span>&copy; {new Date().getFullYear()} PushPort.</span>
+          <span>&copy; {new Date().getFullYear()} PushPortVault. All rights reserved.</span>
           <div className="flex gap-5">
             <Link href="/terms" className="hover:text-ink">Terms &amp; Conditions</Link>
             <Link href="/subscription-policy" className="hover:text-ink">Subscription Policy</Link>
