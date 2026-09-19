@@ -18,8 +18,8 @@ export function LandingNav() {
       <div className="container flex h-14 items-center justify-between">
         <Link href="/" className="flex items-center gap-2" onClick={closeMenu}>
           <Image
-            src="/pushportvault-logo.svg"
-            alt="PushPortVault"
+            src="/PushPostVault-logo.svg"
+            alt="PushPostVault"
             width={140}
             height={28}
             priority

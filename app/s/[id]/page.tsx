@@ -224,7 +224,7 @@ export default function PublicSharePage({
             <div className="flex items-center justify-between px-2 text-xs">
               <div className="flex items-center gap-2 text-ink-muted">
                 <span className="flex h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
-                <span className="font-semibold text-ink">PushPortVault Secure Share</span>
+                <span className="font-semibold text-ink">PushPostVault Secure Share</span>
                 <span>•</span>
                 <span className="font-mono text-ink-muted">End-to-End Encrypted</span>
               </div>
@@ -284,9 +284,8 @@ export default function PublicSharePage({
                 <div className="flex-1 flex w-full h-full items-center justify-center min-h-[460px] md:min-h-[580px] overflow-hidden bg-bg-surface/50">
                   {isAppFile ? (
                     <div className="flex-1 flex flex-col items-center justify-center p-8 text-center bg-bg-surface">
-                      <div className={`flex h-20 w-20 items-center justify-center rounded-3xl mb-4 shadow-xl ${
-                        isAPK ? "bg-green-500/10 text-green-500 border border-green-500/20" : "bg-blue-500/10 text-blue-500 border border-blue-500/20"
-                      }`}>
+                      <div className={`flex h-20 w-20 items-center justify-center rounded-3xl mb-4 shadow-xl ${isAPK ? "bg-green-500/10 text-green-500 border border-green-500/20" : "bg-blue-500/10 text-blue-500 border border-blue-500/20"
+                        }`}>
                         <Smartphone className="h-10 w-10" />
                       </div>
                       <h3 className="text-lg font-bold text-ink">{appName}</h3>
@@ -372,7 +371,7 @@ export default function PublicSharePage({
                   <div className="p-3.5 rounded-xl bg-bg-raised/70 border border-border text-xs space-y-2">
                     <div className="flex items-center gap-2 text-ink">
                       <ShieldCheck className="h-4 w-4 text-emerald-400 flex-shrink-0" />
-                      <span className="font-semibold text-[11px]">PushPortVault Security Shield</span>
+                      <span className="font-semibold text-[11px]">PushPostVault Security Shield</span>
                     </div>
                     <p className="text-[11px] text-ink-muted leading-relaxed">
                       Scanned against malware and injected scripts. Transport secured with TLS 1.3 encryption.
@@ -396,11 +395,10 @@ export default function PublicSharePage({
                   {/* Primary Download Button */}
                   <Button
                     onClick={handleDownload}
-                    className={`w-full text-xs font-semibold h-11 rounded-xl shadow-lg transition-all ${
-                      isAPK && deviceInfo.isAndroid
+                    className={`w-full text-xs font-semibold h-11 rounded-xl shadow-lg transition-all ${isAPK && deviceInfo.isAndroid
                         ? "bg-green-600 hover:bg-green-500 text-white shadow-green-600/20"
                         : "bg-accent hover:bg-accent/90 text-white shadow-accent/20"
-                    }`}
+                      }`}
                     size="lg"
                   >
                     <Download className="mr-2 h-4 w-4" />
@@ -435,7 +433,7 @@ export default function PublicSharePage({
                     <Sparkles className="h-3.5 w-3.5 text-amber-400" /> Want to share large files?
                   </p>
                   <p className="text-[11px] text-ink-muted leading-relaxed">
-                    Send files up to 10GB with zero-knowledge encryption on PushPortVault.
+                    Send files up to 10GB with zero-knowledge encryption on PushPostVault.
                   </p>
                   <Button
                     asChild

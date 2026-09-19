@@ -43,7 +43,7 @@ export default function ContactPage() {
         <div className="absolute inset-0 bg-grid-pattern bg-[size:40px_40px] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,black_40%,transparent_100%)] pointer-events-none" />
 
         <div className="mx-auto max-w-4xl grid grid-cols-1 md:grid-cols-12 gap-8 items-start relative z-10">
-          
+
           {/* Left Column: Creator Portfolio & Links */}
           <div className="md:col-span-5 flex flex-col gap-6">
             <div>
@@ -95,7 +95,7 @@ export default function ContactPage() {
                   <span className="text-[11px] font-mono text-ink-muted">@archaditya</span>
                 </a>
                 <a href="https://github.com/archaditya/bytevault" target="_blank" rel="noreferrer" className="flex items-center justify-between text-ink hover:text-accent transition-colors">
-                  <span className="flex items-center gap-1.5"><Github className="h-3.5 w-3.5" /> PushPortVault Codebase</span>
+                  <span className="flex items-center gap-1.5"><Github className="h-3.5 w-3.5" /> PushPostVault Codebase</span>
                   <span className="text-[11px] font-mono text-ink-muted">repository</span>
                 </a>
               </div>

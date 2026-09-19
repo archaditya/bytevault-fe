@@ -3,7 +3,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { HardDrive } from "lucide-react";
 
 export const metadata: Metadata = {
-  title: "Storage providers — PushPortVault",
+  title: "Storage providers — PushPostVault",
 };
 
 export default function StoragePage() {

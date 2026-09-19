@@ -40,7 +40,7 @@ const userNavItems = [
 const adminNavItems = [
   { href: "/admin", label: "Dashboard", icon: LayoutDashboard, exact: true },
   { href: "/admin/packages", label: "Packages & Billing", icon: CreditCard },
-  { href: "/admin/users", label: "Users", icon: Users },  
+  { href: "/admin/users", label: "Users", icon: Users },
   { href: "/admin/files", label: "Files", icon: Files },
   { href: "/admin/instant-shares", label: "Instant Shares", icon: Flame },
   { href: "/admin/shared", label: "Shared Links", icon: Share2 },
@@ -72,9 +72,9 @@ export function Sidebar({ mobileOpen, setMobileOpen }: SidebarProps) {
     <>
       {/* Mobile Backdrop Overlay */}
       {mobileOpen && (
-        <div 
+        <div
           className="fixed inset-0 z-40 bg-black/50 backdrop-blur-sm md:hidden"
-          onClick={() => setMobileOpen?.(false)} 
+          onClick={() => setMobileOpen?.(false)}
         />
       )}
 
@@ -86,16 +86,16 @@ export function Sidebar({ mobileOpen, setMobileOpen }: SidebarProps) {
         <div className="flex h-14 items-center justify-between border-b border-border px-5">
           <Link href={"/"} className="flex items-center gap-2">
             <Image
-              src="/pushportvault-logo.svg"
-              alt="PushPortVault"
+              src="/PushPostVault-logo.svg"
+              alt="PushPostVault"
               width={140}
               height={28}
               priority
               className="h-7 w-auto object-contain"
             />
           </Link>
-          
-          <button 
+
+          <button
             className="md:hidden text-ink-muted hover:text-ink"
             onClick={() => setMobileOpen?.(false)}
           >
@@ -120,8 +120,8 @@ export function Sidebar({ mobileOpen, setMobileOpen }: SidebarProps) {
                       active
                         ? "bg-accent/10 text-accent-bright"
                         : isHighlighted
-                        ? "text-amber-400 hover:bg-amber-500/10 hover:text-amber-300"
-                        : "text-ink-muted hover:bg-bg-overlay hover:text-ink"
+                          ? "text-amber-400 hover:bg-amber-500/10 hover:text-amber-300"
+                          : "text-ink-muted hover:bg-bg-overlay hover:text-ink"
                     )}
                   >
                     <span className="flex items-center gap-2.5">

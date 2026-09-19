@@ -19,7 +19,7 @@ async function validateDemoFileSignature(file: File): Promise<void> {
   const isPE = arr[0] === 0x4D && arr[1] === 0x5A; // MZ
   const isELF = arr[0] === 0x7F && arr[1] === 0x45 && arr[2] === 0x4C && arr[3] === 0x46; // ELF
   const isMachO = (arr[0] === 0xCF && arr[1] === 0xFA && arr[2] === 0xED && arr[3] === 0xFE) ||
-                  (arr[0] === 0xCE && arr[1] === 0xFA && arr[2] === 0xED && arr[3] === 0xFE);
+    (arr[0] === 0xCE && arr[1] === 0xFA && arr[2] === 0xED && arr[3] === 0xFE);
 
   if (isPE || isELF || isMachO) {
     throw new Error("Security Violation: Executable binary files (.exe, .dll, ELF) are strictly prohibited.");
@@ -79,12 +79,12 @@ export function Hero() {
 
     try {
       await validateDemoFileSignature(file);
-      
+
       // Start upload simulation
       setStatus('uploading');
       let currentProgress = 0;
       if (progressInterval.current) clearInterval(progressInterval.current);
-      
+
       progressInterval.current = setInterval(() => {
         currentProgress += 5;
         if (currentProgress >= 100) {
@@ -155,7 +155,7 @@ export function Hero() {
             </span>
           </h1>
           <p className="mt-5 max-w-xl text-[15px] sm:text-[16px] leading-relaxed text-ink-muted px-2">
-            PushPortVault resumes every upload exactly where it stopped, retries only the
+            PushPostVault resumes every upload exactly where it stopped, retries only the
             piece that failed, and shows you precisely which chunk is in flight.
           </p>
 
@@ -191,16 +191,15 @@ export function Hero() {
         {/* Interactive Sandbox Showcase */}
         <div className="mx-auto mt-16 max-w-2xl">
           {status === 'idle' && (
-            <div 
+            <div
               onDragOver={handleDragOver}
               onDragLeave={handleDragLeave}
               onDrop={handleDrop}
               onClick={triggerFileSelect}
-              className={`rounded-md border p-5 cursor-pointer transition-all ${
-                isDragging
+              className={`rounded-md border p-5 cursor-pointer transition-all ${isDragging
                   ? "border-accent bg-accent/5 scale-[1.01]"
                   : "border-border bg-bg-surface hover:border-accent/40"
-              }`}
+                }`}
             >
               <div className="mb-3 flex items-center justify-between font-mono text-[12px] text-ink-muted">
                 <span className="flex items-center gap-1.5">
@@ -301,7 +300,7 @@ export function Hero() {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-[18px]">
               <Sparkles className="h-5 w-5 text-accent animate-pulse" />
-              Upload Your File in PushPortVault
+              Upload Your File in PushPostVault
             </DialogTitle>
           </DialogHeader>
           <div className="py-4 text-center">

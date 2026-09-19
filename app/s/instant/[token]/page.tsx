@@ -183,7 +183,7 @@ export default function GuestDownloadPage() {
               </div>
               <h3 className="text-base font-bold text-ink">Retrieving Secure Transfer...</h3>
               <p className="text-xs text-ink-muted mt-1 font-mono">
-                Decrypting ephemeral metadata from PushPortVault
+                Decrypting ephemeral metadata from PushPostVault
               </p>
             </Card>
           ) : burned || !share ? (
@@ -196,7 +196,7 @@ export default function GuestDownloadPage() {
               </span>
               <h2 className="text-xl font-bold text-ink">File Burned &amp; Purged</h2>
               <p className="text-xs text-ink-muted mt-2 max-w-sm mx-auto leading-relaxed">
-                This file reached its download quota or expiry threshold and has been permanently wiped from PushPortVault storage.
+                This file reached its download quota or expiry threshold and has been permanently wiped from PushPostVault storage.
               </p>
 
               <div className="mt-6 pt-6 border-t border-border flex flex-col gap-2">
@@ -206,7 +206,7 @@ export default function GuestDownloadPage() {
                   </Link>
                 </Button>
                 <Button variant="ghost" asChild className="w-full text-xs text-ink-muted hover:text-ink">
-                  <Link href="/">Back to PushPortVault Home</Link>
+                  <Link href="/">Back to PushPostVault Home</Link>
                 </Button>
               </div>
             </Card>
@@ -304,11 +304,10 @@ export default function GuestDownloadPage() {
                   {/* Primary Download Button */}
                   <Button
                     type="submit"
-                    className={`w-full text-xs font-semibold h-11 rounded-xl shadow-lg transition-all ${
-                      isAPK && isAndroid
+                    className={`w-full text-xs font-semibold h-11 rounded-xl shadow-lg transition-all ${isAPK && isAndroid
                         ? "bg-green-600 hover:bg-green-500 text-white shadow-green-600/20"
                         : "bg-amber-500 hover:bg-amber-400 text-black shadow-amber-500/20"
-                    }`}
+                      }`}
                     disabled={downloading || share.max_downloads - share.download_count <= 0}
                   >
                     <Download className="h-4 w-4 mr-2" />
@@ -334,7 +333,7 @@ export default function GuestDownloadPage() {
                   {/* Trust Footer */}
                   <div className="pt-2 flex items-center justify-center gap-1.5 text-[11px] text-ink-muted">
                     <ShieldCheck className="h-3.5 w-3.5 text-emerald-400" />
-                    <span>Protected by PushPortVault zero-knowledge delivery</span>
+                    <span>Protected by PushPostVault zero-knowledge delivery</span>
                   </div>
                 </form>
               </CardContent>

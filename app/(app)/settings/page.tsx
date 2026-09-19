@@ -3,7 +3,7 @@ import { Suspense } from "react";
 import { SettingsTabs } from "@/features/settings/components/settings-tabs";
 
 export const metadata: Metadata = {
-  title: "Settings — PushPortVault",
+  title: "Settings — PushPostVault",
 };
 
 export default function SettingsPage() {
