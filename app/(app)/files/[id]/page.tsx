@@ -1,6 +1,7 @@
 "use client";
 
 import { use, useEffect, useMemo, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { getAccessToken } from "@/lib/api-client";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -56,6 +57,7 @@ export default function FileDetailsPage({
   const id = resolvedParams.id;
 
   const router = useRouter();
+  const queryClient = useQueryClient();
 
   // Load token for iframe preview
   const [token, setToken] = useState("");
@@ -159,6 +161,10 @@ export default function FileDetailsPage({
 
   const handleDownload = () => {
     window.open(`/api/v1/files/${file.id}/download?token=${token}`, "_blank");
+    setTimeout(() => {
+      queryClient.invalidateQueries({ queryKey: ["files", file.id] });
+      queryClient.invalidateQueries({ queryKey: ["files"] });
+    }, 1200);
   };
 
   const handleToggleShare = () => {
