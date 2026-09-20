@@ -3,7 +3,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Database } from "lucide-react";
 
 export const metadata: Metadata = {
-  title: "Manage storage providers — PushPort",
+  title: "Manage storage providers — PushPostVault",
 };
 
 export default function ProviderManagementPage() {

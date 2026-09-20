@@ -6,28 +6,28 @@ import { cn } from "@/lib/utils";
 
 const faqs = [
   {
-    q: "What happens if my connection drops mid-upload?",
-    a: "PushPostVault tracks completion at the chunk level, not the file level. When you reconnect, the transfer resumes from the last completed chunk — nothing already uploaded gets sent again.",
+    q: "Do I need an account to send a file?",
+    a: "No. Instant Share lets you upload a file of up to 2 GB and share a link without signing up. Create an account if you want to keep, organise and manage files over time.",
   },
-  // {
-  //   q: "Can I move files between storage providers later?",
-  //   a: "Yes. Files can be replicated or moved across Object Storage without re-uploading from your machine — PushPostVault transfers between storage targets directly.",
-  // },
   {
-    q: "Is there a limit on file size or storage quota?",
-    a: "Yes. There is a maximum file upload cap of 2GB per file and a total storage quota limit of 5GB. (for free users).",
+    q: "What happens to a file after it is shared?",
+    a: "Instant Share links expire automatically and can be limited to a single download, after which the file is deleted. Signed-in users can also set passwords, cap downloads and revoke a link at any time.",
+  },
+  {
+    q: "What happens if my connection drops mid-upload?",
+    a: "Uploads are tracked chunk by chunk. When you reconnect, the transfer resumes from the last completed chunk and nothing already uploaded is sent again.",
+  },
+  {
+    q: "Is there a limit on file size?",
+    a: "Yes. Free accounts can upload files of up to 2 GB each and use up to 5 GB in total. See the pricing page for paid plans.",
+  },
+  {
+    q: "When can I collect files from my clients?",
+    a: "Collecting files through an upload link is coming soon. Use the contact page to be notified when it is ready.",
   },
   {
     q: "Does PushPostVault rate limit requests?",
-    a: "Yes. To prevent abuse and ensure fair resource sharing, API endpoints are rate limited. If you exceed the rate limits, requests will temporarily return a 429 status code.",
-  },
-  {
-    q: "How are failed chunks retried?",
-    a: "Each chunk has its own retry counter and backoff schedule. A failure on one chunk never restarts the rest of the transfer; you can see retry counts per chunk in the transfer detail view.",
-  },
-  {
-    q: "How are shared links secured?",
-    a: "Links can require a password, expire on a schedule, and cap total downloads. Revoking a link takes effect immediately and doesn't touch the underlying file.",
+    a: "Yes. To prevent abuse and keep things fair, API endpoints are rate limited. If you exceed the limit, requests temporarily return a 429 status code.",
   },
 ];
 
@@ -38,13 +38,12 @@ export function FAQ() {
     <section className="border-b border-border py-20">
       <div className="container">
         <div className="mb-10 max-w-xl">
-          <p className="label-eyebrow">Questions</p>
           <h2 className="mt-2 text-2xl font-semibold tracking-tight text-ink sm:text-3xl">
             Frequently asked
           </h2>
         </div>
 
-        <div className="mx-auto max-w-2xl divide-y divide-border rounded-md border border-border bg-bg-surface">
+        <div className="max-w-2xl divide-y divide-border rounded-md border border-border bg-bg-surface">
           {faqs.map((item, i) => {
             const isOpen = openIndex === i;
             return (
@@ -65,7 +64,7 @@ export function FAQ() {
                 <div
                   className={cn(
                     "overflow-hidden transition-all duration-200",
-                    isOpen ? "max-h-40 pb-4 opacity-100" : "max-h-0 opacity-0"
+                    isOpen ? "max-h-56 pb-4 opacity-100" : "max-h-0 opacity-0"
                   )}
                 >
                   <p className="text-[13px] leading-relaxed text-ink-muted">{item.a}</p>

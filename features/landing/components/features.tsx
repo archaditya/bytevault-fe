@@ -1,61 +1,43 @@
-import { RefreshCw, GitCommitHorizontal, Gauge, ShieldCheck, Share2, BarChart3, Flame } from "lucide-react";
-
-const features = [
+const points = [
   {
-    icon: Flame,
-    title: "Instant Ephemeral Sharing",
-    desc: "Send files up to 2GB instantly with zero account or signup required. Features one-time download limits, password encryption, and auto self-destruction.",
-    highlight: true,
+    title: "No account to send",
+    desc: "Upload up to 2 GB and share the link. Neither you nor the recipient signs up for anything.",
   },
   {
-    icon: RefreshCw,
-    title: "Resumable by design",
-    desc: "Every upload is chunked and checksummed. Drop your connection mid-transfer and PushPort picks up at the last completed chunk — never the start.",
+    title: "Expires on its own",
+    desc: "Links expire automatically and can be limited to a single download, after which the file is deleted.",
   },
   {
-    icon: GitCommitHorizontal,
-    title: "Chunk-level retries",
-    desc: "When one piece fails, only that piece retries. Watch retry counts climb on individual chunks instead of restarting the whole file.",
+    title: "Password when you need it",
+    desc: "Add a password before you share. Signed-in users can also cap downloads and revoke a link at any time.",
   },
   {
-    icon: Gauge,
-    title: "Live speed telemetry",
-    desc: "Real-time throughput, ETA, and per-session speed graphs so you know exactly when a 40GB dataset will actually land.",
-  },
-  {
-    icon: ShieldCheck,
-    title: "Provider-aware routing",
-    desc: "Send files to Object Storage based on latency, cost, or your own policy — switch providers without re-uploading.",
-  },
-  {
-    icon: Share2,
-    title: "Controlled sharing",
-    desc: "Password-protect links, cap download counts, set expirations. Revoke access instantly without touching the underlying file.",
+    title: "Survives a bad connection",
+    desc: "Uploads are split into chunks and checksummed. If the connection drops, only the unfinished chunk is sent again.",
   },
 ];
 
 export function Features() {
   return (
     <section className="border-b border-border py-20">
-      <div className="container">
-        <div className="mb-12 max-w-xl">
-          <p className="label-eyebrow">Built for transfer, not storage</p>
-          <h2 className="mt-2 text-2xl font-semibold tracking-tight text-ink sm:text-3xl">
-            Every layer is visible, all the way down to one chunk.
+      <div className="container grid gap-10 lg:grid-cols-[minmax(0,2fr)_minmax(0,3fr)] lg:gap-16">
+        <div>
+          <h2 className="max-w-sm text-2xl font-semibold tracking-tight text-ink sm:text-3xl">
+            Sending a big file shouldn&rsquo;t need a signup.
           </h2>
+          <p className="mt-4 max-w-sm text-[14px] leading-relaxed text-ink-muted">
+            Instant Share is live today. Drop a file, copy the link, done.
+          </p>
         </div>
-        <div className="grid grid-cols-1 gap-px overflow-hidden rounded-md border border-border bg-border sm:grid-cols-2 lg:grid-cols-3">
-          {features.map((f) => {
-            const Icon = f.icon;
-            return (
-              <div key={f.title} className="bg-bg-surface p-6">
-                <Icon className="h-5 w-5 text-accent-bright" strokeWidth={1.75} />
-                <h3 className="mt-4 text-[15px] font-medium text-ink">{f.title}</h3>
-                <p className="mt-2 text-[13px] leading-relaxed text-ink-muted">{f.desc}</p>
-              </div>
-            );
-          })}
-        </div>
+
+        <dl className="divide-y divide-border border-y border-border">
+          {points.map((p) => (
+            <div key={p.title} className="grid gap-1 py-5 sm:grid-cols-[minmax(0,2fr)_minmax(0,3fr)] sm:gap-6">
+              <dt className="text-[15px] font-medium text-ink">{p.title}</dt>
+              <dd className="text-[14px] leading-relaxed text-ink-muted">{p.desc}</dd>
+            </div>
+          ))}
+        </dl>
       </div>
     </section>
   );

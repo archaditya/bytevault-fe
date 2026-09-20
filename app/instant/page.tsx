@@ -4,8 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import { LandingNav } from "@/features/landing/components/landing-nav";
 import { Footer } from "@/features/landing/components/footer";
 import { Button } from "@/components/ui/button";
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-import { Flame, UploadCloud, Copy, Check, Lock, Zap, File as FileIcon, X, ShieldCheck } from "lucide-react";
+import { UploadCloud, Copy, Check, Lock, Download, Clock, Loader2, File as FileIcon, X } from "lucide-react";
 import toast from "react-hot-toast";
 import { formatBytes } from "@/lib/utils";
 
@@ -13,6 +12,18 @@ interface EphemeralConfig {
   max_file_size_gb: number;
   max_downloads_cap: number;
   expiry_minutes: number;
+}
+
+function formatExpiry(mins: number): string {
+  if (mins % 1440 === 0) {
+    const d = mins / 1440;
+    return `${d} day${d > 1 ? "s" : ""}`;
+  }
+  if (mins % 60 === 0) {
+    const h = mins / 60;
+    return `${h} hour${h > 1 ? "s" : ""}`;
+  }
+  return `${mins} minutes`;
 }
 
 export default function InstantUploadPage() {
@@ -209,7 +220,7 @@ export default function InstantUploadPage() {
         setStatusText("Complete!");
         const generatedUrl = `${window.location.origin}/s/instant/${token}`;
         setShareUrl(generatedUrl);
-        toast.success("Self-destruct link generated!");
+        toast.success("Link created");
       } else {
         // --- Chunked Multipart Upload (> 5MB, up to 2GB) ---
         const totalParts = Math.ceil(file.size / CHUNK_SIZE);
@@ -337,7 +348,7 @@ export default function InstantUploadPage() {
         setStatusText("Upload complete!");
         const generatedUrl = `${window.location.origin}/s/instant/${token}`;
         setShareUrl(generatedUrl);
-        toast.success("Self-destruct link generated!");
+        toast.success("Link created");
       }
     } catch (err: any) {
       const errorMsg =
@@ -356,189 +367,180 @@ export default function InstantUploadPage() {
     if (!shareUrl) return;
     navigator.clipboard.writeText(shareUrl);
     setCopied(true);
-    toast.success("Burn link copied!");
+    toast.success("Link copied");
     setTimeout(() => setCopied(false), 2000);
   };
 
+  const expiryLabel = formatExpiry(config.expiry_minutes);
+  const usesLabel = config.max_downloads_cap === 1 ? "once" : `${config.max_downloads_cap} times`;
+
   return (
-    <div className="min-h-screen flex flex-col bg-bg-base font-sans relative">
-      {/* Full-Screen Drag-and-Drop Overlay */}
+    <div className="relative flex min-h-screen flex-col bg-bg font-sans">
+      {/* Full-screen drag-and-drop overlay */}
       {isDraggingOver && (
-        <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-bg-base/90 backdrop-blur-md border-4 border-dashed border-amber-500/80 animate-in fade-in duration-200 pointer-events-none p-6">
-          <div className="flex h-24 w-24 items-center justify-center rounded-3xl bg-amber-500/20 border border-amber-500/50 text-amber-500 shadow-2xl shadow-amber-500/30 animate-bounce mb-6">
-            <Flame className="h-12 w-12" />
-          </div>
-          <h2 className="text-3xl font-extrabold text-ink tracking-tight">Drop file anywhere to burn</h2>
-          <p className="mt-2 text-sm text-amber-400 font-mono">
-            Single-use encrypted transfer · Up to {formatBytes(maxSizeBytes)}
-          </p>
-          <div className="mt-6 px-4 py-1.5 rounded-full bg-bg-raised border border-border text-xs text-ink-muted">
-            Release your cursor to select file
-          </div>
+        <div className="pointer-events-none fixed inset-0 z-50 flex flex-col items-center justify-center border-4 border-dashed border-accent/70 bg-bg/90 p-6 backdrop-blur-md animate-in fade-in duration-200">
+          <UploadCloud className="h-14 w-14 text-accent" strokeWidth={1.5} />
+          <h2 className="mt-5 text-3xl font-semibold tracking-tight text-ink">Drop your file to send it</h2>
+          <p className="mt-2 text-sm text-ink-muted">Up to {formatBytes(maxSizeBytes)}</p>
         </div>
       )}
 
       <LandingNav />
 
-      <main className="flex-1 flex items-center justify-center p-6 relative overflow-hidden">
-        <div className="absolute top-1/4 left-1/3 -z-10 h-96 w-96 rounded-full bg-amber-500/10 blur-[120px]" />
-        <div className="absolute bottom-1/4 right-1/3 -z-10 h-96 w-96 rounded-full bg-accent/10 blur-[120px]" />
+      <main className="relative flex flex-1 items-center justify-center overflow-hidden px-4 py-14">
+        <div className="pointer-events-none absolute inset-0 bg-brand-glow" />
 
-        <div className="w-full max-w-lg">
-          <Card className="border-border-strong bg-bg-surface/90 backdrop-blur-xl shadow-2xl">
-            <CardHeader className="text-center pb-4 border-b border-border">
-              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-500 mx-auto mb-3">
-                <Flame className="h-6 w-6 animate-pulse" />
-              </div>
-              <CardTitle className="text-xl font-bold tracking-tight text-ink">
-                Burn-After-Reading Upload
-              </CardTitle>
-              <p className="text-xs text-ink-muted mt-1">
-                Anonymous single-use transfer. Auto-purged permanently after download or expiration.
-              </p>
-            </CardHeader>
+        <div className="relative w-full max-w-xl">
+          <h1 className="text-3xl font-semibold tracking-tight text-ink sm:text-4xl">Send a file</h1>
+          <p className="mt-3 max-w-md text-[15px] leading-relaxed text-ink-muted">
+            No account needed. The link works {usesLabel} and expires in {expiryLabel}, whichever comes
+            first. Then the file is deleted.
+          </p>
 
-            <CardContent className="pt-6">
-              {shareUrl ? (
-                <div className="flex flex-col items-center gap-4 text-center">
-                  <div className="flex h-12 w-12 items-center justify-center rounded-full bg-green-500/10 text-green-500 border border-green-500/20">
-                    <Check className="h-6 w-6" />
-                  </div>
+          <div className="mt-8 rounded-lg border border-border-strong bg-bg-surface p-5 sm:p-6">
+            {shareUrl ? (
+              <div className="flex flex-col gap-5">
+                <div className="flex items-start gap-3">
+                  <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-success/15 text-success">
+                    <Check className="h-5 w-5" />
+                  </span>
                   <div>
-                    <h3 className="text-base font-semibold text-ink">Self-Destruct Link Ready!</h3>
-                    <p className="text-xs text-ink-muted mt-0.5">
-                      This file will be permanently deleted from cloud storage as soon as it is downloaded.
+                    <h2 className="text-[16px] font-medium text-ink">Your link is ready</h2>
+                    <p className="mt-1 text-[13px] leading-relaxed text-ink-muted">
+                      It works {usesLabel} and expires in {expiryLabel}. The file is deleted as soon as it is
+                      downloaded.
                     </p>
                   </div>
-
-                  <div className="flex w-full items-center gap-2 bg-bg-raised border border-border p-2 rounded-lg font-mono text-xs text-ink">
-                    <span className="truncate flex-1 px-1">{shareUrl}</span>
-                    <Button size="sm" onClick={copyToClipboard}>
-                      {copied ? <Check className="h-4 w-4 text-green-400" /> : <Copy className="h-4 w-4" />}
-                    </Button>
-                  </div>
-
-                  <Button variant="outline" className="mt-2 text-xs w-full" onClick={() => { setShareUrl(null); setFile(null); }}>
-                    Upload Another Instant File
-                  </Button>
                 </div>
-              ) : (
-                <form onSubmit={handleUpload} className="space-y-4">
-                  {/* Dropzone / File Selected View */}
-                  <input
-                    type="file"
-                    id="guest-file"
-                    onChange={(e) => {
-                      const selected = e.target.files?.[0] || null;
-                      if (selected && selected.size > maxSizeBytes) {
-                        toast.error(`File exceeds guest limit of ${formatBytes(maxSizeBytes)}.`);
-                        return;
-                      }
-                      setFile(selected);
-                    }}
-                    className="hidden"
-                  />
 
-                  {!file ? (
-                    <label
-                      htmlFor="guest-file"
-                      className="flex flex-col items-center justify-center border-2 border-dashed border-border hover:border-amber-500/50 rounded-2xl p-8 transition-all bg-bg-raised/40 hover:bg-bg-raised/80 group cursor-pointer text-center"
-                    >
-                      <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-amber-500/10 text-amber-500 group-hover:scale-110 transition-transform mb-3">
-                        <UploadCloud className="h-6 w-6" />
-                      </div>
-                      <p className="text-sm font-semibold text-ink group-hover:text-amber-500 transition-colors">
-                        Drag &amp; drop anywhere, or <span className="text-amber-500 underline underline-offset-2">browse</span>
-                      </p>
-                      <p className="text-[11px] text-ink-muted mt-1 font-mono">
-                        Instant guest transfer · Maximum {formatBytes(maxSizeBytes)}
-                      </p>
-                    </label>
-                  ) : (
-                    <div className="flex items-center justify-between p-3.5 rounded-xl border border-amber-500/30 bg-amber-500/5 transition-all">
-                      <div className="flex items-center gap-3 overflow-hidden">
-                        <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-amber-500/10 text-amber-500 border border-amber-500/20">
-                          <FileIcon className="h-5 w-5" />
-                        </div>
-                        <div className="truncate">
-                          <p className="text-xs font-semibold text-ink truncate" title={file.name}>
-                            {file.name}
-                          </p>
-                          <p className="text-[11px] text-ink-muted font-mono mt-0.5">
-                            {formatBytes(file.size)} · Ready to burn
-                          </p>
-                        </div>
-                      </div>
-                      <Button
-                        type="button"
-                        size="sm"
-                        variant="ghost"
-                        className="h-8 w-8 p-0 text-ink-muted hover:text-danger hover:bg-danger/10 rounded-lg flex-shrink-0"
-                        onClick={() => setFile(null)}
-                        title="Remove file"
-                      >
-                        <X className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  )}
-
-                  {/* Real-time Dynamic Config Badges */}
-                  <div className="grid grid-cols-2 gap-2 text-[11px] font-mono">
-                    <div className="flex items-center gap-1.5 p-2 rounded-lg bg-bg-raised border border-border text-ink-muted">
-                      <Flame className="h-3.5 w-3.5 text-amber-500 flex-shrink-0" />
-                      <span className="truncate">Limit: {config.max_downloads_cap} Download</span>
-                    </div>
-                    <div className="flex items-center gap-1.5 p-2 rounded-lg bg-bg-raised border border-border text-ink-muted">
-                      <Zap className="h-3.5 w-3.5 text-accent flex-shrink-0" />
-                      <span className="truncate">Expiry: {config.expiry_minutes} Mins</span>
-                    </div>
-                  </div>
-
-                  {/* Optional Passcode */}
-                  <div className="space-y-1.5">
-                    <label className="text-xs text-ink-muted flex items-center gap-1">
-                      <Lock className="h-3 w-3 text-ink-faint" /> Optional Passcode
-                    </label>
-                    <input
-                      type="password"
-                      placeholder="Lock with passcode (optional)"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      className="w-full h-8 rounded-lg border border-border bg-bg-raised px-3 text-xs text-ink outline-none focus:border-amber-500/50 transition-colors font-mono"
-                    />
-                  </div>
-
-                  {uploading && (
-                    <div className="space-y-1.5 pt-1">
-                      <div className="flex justify-between text-[10px] text-ink-muted font-mono">
-                        <span className="truncate max-w-[300px]">{statusText || "Securing & Transmitting..."}</span>
-                        <span className="font-bold text-amber-500">{progress}%</span>
-                      </div>
-                      <div className="w-full bg-bg-raised rounded-full h-2 overflow-hidden border border-border">
-                        <div className="bg-gradient-to-r from-amber-500 to-amber-400 h-full transition-all duration-200" style={{ width: `${progress}%` }} />
-                      </div>
-                    </div>
-                  )}
-
-                  <Button
-                    type="submit"
-                    className="w-full text-xs font-semibold bg-amber-500 hover:bg-amber-600 text-black shadow-lg shadow-amber-500/20 h-10 rounded-xl"
-                    disabled={uploading || !file}
-                  >
-                    {uploading ? (
-                      <span className="flex items-center gap-2">
-                        <Flame className="h-4 w-4 animate-spin" /> Securing &amp; Transmitting...
-                      </span>
+                <div className="flex items-center gap-2 rounded-md border border-border bg-bg-raised p-2">
+                  <span className="flex-1 truncate px-2 font-mono text-[13px] text-ink">{shareUrl}</span>
+                  <Button size="sm" onClick={copyToClipboard}>
+                    {copied ? (
+                      <>
+                        <Check className="h-4 w-4" /> Copied
+                      </>
                     ) : (
-                      <span className="flex items-center gap-1.5">
-                        <Flame className="h-4 w-4" /> Generate Burn Link
-                      </span>
+                      <>
+                        <Copy className="h-4 w-4" /> Copy link
+                      </>
                     )}
                   </Button>
-                </form>
-              )}
-            </CardContent>
-          </Card>
+                </div>
+
+                <Button
+                  variant="secondary"
+                  onClick={() => {
+                    setShareUrl(null);
+                    setFile(null);
+                  }}
+                >
+                  Send another file
+                </Button>
+              </div>
+            ) : (
+              <form onSubmit={handleUpload} className="flex flex-col gap-5">
+                <input
+                  type="file"
+                  id="guest-file"
+                  onChange={(e) => {
+                    const selected = e.target.files?.[0] || null;
+                    if (selected && selected.size > maxSizeBytes) {
+                      toast.error(`File exceeds guest limit of ${formatBytes(maxSizeBytes)}.`);
+                      return;
+                    }
+                    setFile(selected);
+                  }}
+                  className="sr-only"
+                />
+
+                {!file ? (
+                  <label
+                    htmlFor="guest-file"
+                    className="flex cursor-pointer flex-col items-center justify-center rounded-md border border-dashed border-border-strong bg-bg-raised/40 px-6 py-10 text-center transition-colors hover:border-accent/60 hover:bg-accent/5 focus-within:border-accent"
+                  >
+                    <UploadCloud className="h-7 w-7 text-accent" strokeWidth={1.75} />
+                    <p className="mt-3 text-[15px] font-medium text-ink">
+                      Drop a file here, or{" "}
+                      <span className="text-accent-bright underline underline-offset-4">browse</span>
+                    </p>
+                    <p className="mt-1 text-[12px] text-ink-muted">Up to {formatBytes(maxSizeBytes)}</p>
+                  </label>
+                ) : (
+                  <div className="flex items-center justify-between gap-3 rounded-md border border-accent/30 bg-accent/5 p-3.5">
+                    <div className="flex min-w-0 items-center gap-3">
+                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-accent/10 text-accent">
+                        <FileIcon className="h-5 w-5" />
+                      </div>
+                      <div className="min-w-0">
+                        <p className="truncate text-[14px] font-medium text-ink" title={file.name}>
+                          {file.name}
+                        </p>
+                        <p className="mt-0.5 font-mono text-[12px] text-ink-muted">{formatBytes(file.size)}</p>
+                      </div>
+                    </div>
+                    <Button
+                      type="button"
+                      size="icon"
+                      variant="ghost"
+                      className="shrink-0 hover:bg-danger/10 hover:text-danger"
+                      onClick={() => setFile(null)}
+                      title="Remove file"
+                      aria-label="Remove file"
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
+                )}
+
+                <ul className="flex flex-col gap-2 text-[13px] text-ink-muted sm:flex-row sm:gap-6">
+                  <li className="flex items-center gap-2">
+                    <Download className="h-4 w-4 text-ink-faint" /> Link works {usesLabel}
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <Clock className="h-4 w-4 text-ink-faint" /> Expires in {expiryLabel}
+                  </li>
+                </ul>
+
+                <div className="space-y-1.5">
+                  <label htmlFor="guest-passcode" className="flex items-center gap-1.5 text-[13px] text-ink-muted">
+                    <Lock className="h-3.5 w-3.5 text-ink-faint" /> Passcode (optional)
+                  </label>
+                  <input
+                    id="guest-passcode"
+                    type="password"
+                    autoComplete="new-password"
+                    placeholder="Use password to generate more secure Shareable URL"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className="h-10 w-full rounded-md border border-border-strong bg-bg-raised px-3 text-[14px] text-ink outline-none transition-colors placeholder:text-ink-faint focus:border-accent"
+                  />
+                </div>
+
+                {uploading && (
+                  <div className="space-y-2" role="status" aria-live="polite">
+                    <div className="flex justify-between text-[12px] text-ink-muted">
+                      <span className="truncate">{statusText || "Uploading…"}</span>
+                      <span className="font-mono text-ink">{progress}%</span>
+                    </div>
+                    <div className="h-1.5 w-full overflow-hidden rounded-full bg-bg-overlay">
+                      <div className="h-full bg-brand-gradient transition-all duration-200" style={{ width: `${progress}%` }} />
+                    </div>
+                  </div>
+                )}
+
+                <Button type="submit" size="lg" className="w-full" disabled={uploading || !file}>
+                  {uploading ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin" /> Uploading…
+                    </>
+                  ) : (
+                    "Create link"
+                  )}
+                </Button>
+              </form>
+            )}
+          </div>
         </div>
       </main>
 

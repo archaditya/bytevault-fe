@@ -4,8 +4,8 @@ import Link from "next/link";
 import { ShieldCheck, ArrowRight, AlertTriangle, RefreshCw, FileText } from "lucide-react";
 
 export const metadata = {
-  title: "Subscription Terms & Policy — ByteVault",
-  description: "Official subscription terms, billing cycles, upgrade/downgrade safeguards, and refund policy for ByteVault Cloud Storage.",
+  title: "Subscription Terms & Policy — PushPostVault",
+  description: "Official subscription terms, billing cycles, upgrade/downgrade safeguards, and refund policy for PushPostVault.",
 };
 
 export default function SubscriptionPolicyPage() {
@@ -23,7 +23,7 @@ export default function SubscriptionPolicyPage() {
             Subscription Terms & Conditions
           </h1>
           <p className="text-sm text-ink-muted">
-            Last Updated: September 2026 • Applies to all ByteVault Free, Pro, and Premium Accounts
+            Last Updated: September 2026 • Applies to all PushPostVault Free, Pro, and Premium Accounts
           </p>
         </div>
 
@@ -57,7 +57,7 @@ export default function SubscriptionPolicyPage() {
               <span>1. Subscription Plans & Storage Limits</span>
             </h2>
             <p>
-              ByteVault provides three tiered subscription packages. All fees are denominated in Indian Rupees (INR) and are inclusive of applicable Goods and Services Tax (GST):
+              PushPostVault provides three tiered subscription packages. All fees are denominated in Indian Rupees (INR) and are inclusive of applicable Goods and Services Tax (GST):
             </p>
             <div className="overflow-x-auto rounded-lg border border-border mt-3">
               <table className="w-full text-left text-xs border-collapse">
@@ -97,7 +97,7 @@ export default function SubscriptionPolicyPage() {
           <section className="space-y-3">
             <h2 className="text-lg font-semibold text-ink">2. Billing Cycle & Automatic Recurring Renewal</h2>
             <p>
-              Subscriptions are billed in advance on a recurring monthly schedule. By authenticating your payment method (Credit Card, Debit Card, UPI e-Mandate, or Net Banking) via our payment gateway partner, <strong>Razorpay</strong>, you authorize ByteVault to initiate automated recurring debits on each renewal date.
+              Subscriptions are billed in advance on a recurring monthly schedule. By authenticating your payment method (Credit Card, Debit Card, UPI e-Mandate, or Net Banking) via our payment gateway partner, <strong>Razorpay</strong>, you authorize PushPostVault to initiate automated recurring debits on each renewal date.
             </p>
             <p>
               Under Reserve Bank of India (RBI) regulatory directives for recurring e-mandates, you will receive pre-debit SMS/email notifications from Razorpay and your card-issuing bank at least 24 to 48 hours prior to each charge.
@@ -111,7 +111,7 @@ export default function SubscriptionPolicyPage() {
               <span>3. Plan Upgrades, Downgrades & Anti-Ping-Pong Safeguards</span>
             </h2>
             <p>
-              To maintain financial consistency and resource availability, ByteVault implements strict safeguards against rapid plan changes:
+              To maintain financial consistency and resource availability, PushPostVault implements strict safeguards against rapid plan changes:
             </p>
             <ul className="space-y-2 list-disc list-inside text-ink-muted">
               <li>
@@ -141,7 +141,7 @@ export default function SubscriptionPolicyPage() {
                 <div className="space-y-1">
                   <p className="font-medium text-ink">Safe File Preservation Guarantee</p>
                   <p className="text-xs text-ink-muted">
-                    ByteVault <strong>will not immediately delete or purge your existing files</strong> if your stored data exceeds your new plan quota. However, your account will enter an <strong>Upload-Restricted state</strong>.
+                    PushPostVault <strong>will not immediately delete or purge your existing files</strong> if your stored data exceeds your new plan quota. However, your account will enter an <strong>Upload-Restricted state</strong>.
                   </p>
                 </div>
               </div>
@@ -159,7 +159,7 @@ export default function SubscriptionPolicyPage() {
               All subscription charges, recurring renewals, and upgrade fees are final and strictly non-refundable.
             </p>
             <p className="text-xs text-ink-muted">
-              Because cloud storage allocations and bandwidth infrastructure are provisioned immediately upon transaction confirmation, ByteVault does not grant cash refunds, prorated credits, or partial chargebacks for early cancellations or unused storage allocations.
+              Because storage allocations and bandwidth infrastructure are provisioned immediately upon transaction confirmation, PushPostVault does not grant cash refunds, prorated credits, or partial chargebacks for early cancellations or unused storage allocations.
             </p>
           </section>
 

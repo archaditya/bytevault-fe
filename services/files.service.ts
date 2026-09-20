@@ -362,9 +362,9 @@ function getThumbnailColor(kind: FileKind): string {
     case "video":
       return "#E5484D";
     case "audio":
-      return "#F5A623";
+      return "#FFC53D";
     case "document":
-      return "#5E6AD2";
+      return "#FF6A00";
     case "code":
       return "#5E9DD2";
     case "archive":
@@ -372,7 +372,7 @@ function getThumbnailColor(kind: FileKind): string {
     case "dataset":
       return "#10B981";
     default:
-      return "#5C5F66";
+      return "#857C72";
   }
 }
 

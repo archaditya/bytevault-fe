@@ -160,7 +160,7 @@ export function FileCard({ file }: { file: FileRecord }) {
             className={cn(
               "flex h-7 w-7 shrink-0 items-center justify-center rounded-lg shadow-sm transition-all cursor-pointer",
               isSelected
-                ? "bg-accent text-white"
+                ? "bg-accent text-bg"
                 : "hover:ring-2 hover:ring-accent/50 group-hover:scale-105"
             )}
             style={

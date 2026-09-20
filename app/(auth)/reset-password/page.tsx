@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useState, useEffect, Suspense } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -71,9 +72,7 @@ function ResetPasswordForm() {
   return (
     <Card className="border border-border-strong bg-bg-surface">
       <CardHeader className="flex flex-col items-center gap-2 pb-6">
-        <div className="flex h-10 w-10 items-center justify-center rounded-sm bg-accent mb-2">
-          <Box className="h-6 w-6 text-white" />
-        </div>
+        <Image src="/PushPostVault-icon-1024.png" alt="" width={40} height={40} className="mb-2 h-10 w-10 object-contain" />
         <CardTitle className="text-xl font-bold tracking-tight text-ink">
           Choose a new password
         </CardTitle>

@@ -63,7 +63,7 @@ export default function PricingPage() {
         await openRazorpaySubscriptionCheckout({
           key: subData.razorpay_key_id,
           subscription_id: subData.razorpay_subscription_id,
-          name: "ByteVault",
+          name: "PushPostVault",
           description: `Subscribe to ${targetPkg.display_name}`,
           handler: async (response) => {
             try {
@@ -110,13 +110,13 @@ export default function PricingPage() {
         <div className="relative z-10 max-w-6xl mx-auto">
           <div className="text-center max-w-2xl mx-auto mb-16">
             <Badge variant="default" className="mb-4 px-3 py-1 font-semibold text-xs bg-accent/15 text-accent border border-accent/25">
-              Transparent Cloud Storage
+              Plans
             </Badge>
             <h1 className="text-4xl font-extrabold tracking-tight sm:text-5xl text-ink">
-              Predictable, High-Capacity Storage
+              Simple plans for sending and collecting files
             </h1>
             <p className="mt-4 text-sm sm:text-base text-ink-muted leading-relaxed">
-              Resumable, chunk-level verified cloud storage powered by Cloudflare R2 with zero egress fees and automated integrity shields.
+              Pick the storage and file-size limits that fit your work. Uploads are resumable and verified chunk by chunk.
             </p>
           </div>
 
@@ -149,7 +149,7 @@ export default function PricingPage() {
                     }`}
                   >
                     {isPro && (
-                      <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 px-3 py-1 bg-accent text-white text-[11px] font-bold rounded-full uppercase tracking-wider flex items-center gap-1 shadow-md">
+                      <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 px-3 py-1 bg-accent text-bg text-[11px] font-bold rounded-full uppercase tracking-wider flex items-center gap-1 shadow-md">
                         <Sparkles className="h-3 w-3" /> Most Popular
                       </div>
                     )}
@@ -171,7 +171,7 @@ export default function PricingPage() {
                       </div>
 
                       <p className="text-xs text-ink-muted mb-6 min-h-[36px]">
-                        {pkg.description || `Optimized for users requiring ${formatBytes(pkg.storage_limit_bytes)} of cloud storage.`}
+                        {pkg.description || `Optimized for users requiring ${formatBytes(pkg.storage_limit_bytes)} of storage.`}
                       </p>
 
                       <div className="border-t border-border pt-6 mb-8 space-y-3">
@@ -243,7 +243,7 @@ export default function PricingPage() {
               <Link href="/settings" className="underline underline-offset-4 text-ink hover:text-accent">
                 Settings &amp; Billing
               </Link>{" "}
-              dashboard. Per ByteVault policies, payments are non-refundable.
+              dashboard. Per PushPostVault policies, payments are non-refundable.
             </p>
           </div>
         </div>

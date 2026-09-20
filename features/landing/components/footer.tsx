@@ -1,14 +1,13 @@
 import Link from "next/link";
 import Image from "next/image";
-import { Box } from "lucide-react";
 
 const columns = [
   {
     title: "Product",
     links: [
+      { label: "Instant Share", href: "/instant" },
       { label: "Dashboard", href: "/dashboard" },
       { label: "Pricing", href: "/pricing" },
-      { label: "Transfers", href: "/transfers" },
     ],
   },
   {
@@ -34,8 +33,8 @@ export function Footer() {
                 className="h-6 w-auto object-contain"
               />
             </div>
-            <p className="mt-3 max-w-[180px] text-[12px] text-ink-muted">
-              Secure cloud storage with zero-knowledge encryption and instant sharing.
+            <p className="mt-3 max-w-[220px] text-[12px] text-ink-muted">
+              Send large files and collect files from anyone.
             </p>
           </div>
           {columns.map((col) => (

@@ -21,7 +21,7 @@ export function UsageWidget({ providers }: { providers: StorageProvider[] }) {
               ))}
             </Pie>
             <Tooltip
-              contentStyle={{ background: "#1A1A1E", border: "1px solid #2C2C32", borderRadius: 8, fontSize: 12 }}
+              contentStyle={{ background: "#1A1714", border: "1px solid #382F28", borderRadius: 8, fontSize: 12 }}
               formatter={(value: number) => formatBytes(value)}
             />
           </PieChart>

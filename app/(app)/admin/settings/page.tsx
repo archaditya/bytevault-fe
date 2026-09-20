@@ -40,7 +40,7 @@ export default function AdminSettingsPage() {
           <Settings className="h-5 w-5 text-accent-bright" /> Administrative Settings
         </h1>
         <p className="text-[13px] text-ink-muted mt-0.5">
-          Configure system limits, storage permissions, and maintenance status for PushPort.
+          Configure system limits, storage permissions, and maintenance status for PushPostVault.
         </p>
       </div>
 
@@ -120,7 +120,7 @@ export default function AdminSettingsPage() {
               <div className="flex flex-col gap-1">
                 <span className="font-semibold text-ink">System Maintenance Mode</span>
                 <span className="text-[11px] text-ink-faint max-w-md">
-                  Puts PushPort into read-only mode. All non-admin logins and file uploads are paused until deactivated.
+                  Puts PushPostVault into read-only mode. All non-admin logins and file uploads are paused until deactivated.
                 </span>
               </div>
               <input

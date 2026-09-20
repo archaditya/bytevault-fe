@@ -397,7 +397,7 @@ export default function PublicSharePage({
                     onClick={handleDownload}
                     className={`w-full text-xs font-semibold h-11 rounded-xl shadow-lg transition-all ${isAPK && deviceInfo.isAndroid
                         ? "bg-green-600 hover:bg-green-500 text-white shadow-green-600/20"
-                        : "bg-accent hover:bg-accent/90 text-white shadow-accent/20"
+                        : "bg-accent hover:bg-accent/90 text-bg shadow-accent/20"
                       }`}
                     size="lg"
                   >
@@ -433,7 +433,7 @@ export default function PublicSharePage({
                     <Sparkles className="h-3.5 w-3.5 text-amber-400" /> Want to share large files?
                   </p>
                   <p className="text-[11px] text-ink-muted leading-relaxed">
-                    Send files up to 10GB with zero-knowledge encryption on PushPostVault.
+                    Send large files with links you control, on PushPostVault.
                   </p>
                   <Button
                     asChild

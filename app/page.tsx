@@ -1,10 +1,9 @@
 import { LandingNav } from "@/features/landing/components/landing-nav";
 import { Hero } from "@/features/landing/components/hero";
 import { Features } from "@/features/landing/components/features";
-import { ArchitectureOverview } from "@/features/landing/components/architecture-overview";
+import { Collect } from "@/features/landing/components/collect";
 import { TransferEngineShowcase } from "@/features/landing/components/transfer-engine-showcase";
-import { StorageProvidersShowcase } from "@/features/landing/components/storage-providers-showcase";
-import { Testimonials } from "@/features/landing/components/testimonials";
+import { UseCases } from "@/features/landing/components/use-cases";
 import { FAQ } from "@/features/landing/components/faq";
 import { CTA } from "@/features/landing/components/cta";
 import { Footer } from "@/features/landing/components/footer";
@@ -14,15 +13,14 @@ export default function HomePage() {
     <div className="min-h-screen bg-bg">
       <LandingNav />
       <Hero />
-      <div id="features">
+      <div id="send">
         <Features />
       </div>
-      <div id="architecture">
-        <ArchitectureOverview />
+      <div id="collect">
+        <Collect />
       </div>
       <TransferEngineShowcase />
-      {/* <StorageProvidersShowcase /> */}
-      <Testimonials />
+      <UseCases />
       <div id="faq">
         <FAQ />
       </div>
