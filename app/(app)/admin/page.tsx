@@ -142,15 +142,15 @@ export default function AdminPage() {
           </span>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
           {/* Latency Card */}
           <Card className="bg-bg-surface border-border-strong">
             <CardHeader className="pb-2">
-              <div className="flex items-center justify-between">
-                <CardTitle className="text-xs font-semibold uppercase tracking-wider text-ink-muted flex items-center gap-1.5">
+              <div className="flex items-center justify-between gap-2">
+                <CardTitle className="text-xs font-semibold uppercase tracking-wider text-ink-muted flex items-center gap-1.5 shrink-0">
                   <Zap className="h-3.5 w-3.5 text-amber-500" /> Response Latency
                 </CardTitle>
-                <Badge variant="muted" className={`text-[10px] px-1.5 py-0 font-mono ${latencyBadgeColor}`}>
+                <Badge variant="muted" className={`text-[10px] px-1.5 py-0 font-mono whitespace-nowrap ${latencyBadgeColor}`}>
                   p95: {p95.toFixed(1)}ms
                 </Badge>
               </div>
@@ -186,11 +186,11 @@ export default function AdminPage() {
           {/* Error Rate & Throughput */}
           <Card className="bg-bg-surface border-border-strong">
             <CardHeader className="pb-2">
-              <div className="flex items-center justify-between">
-                <CardTitle className="text-xs font-semibold uppercase tracking-wider text-ink-muted flex items-center gap-1.5">
+              <div className="flex items-center justify-between gap-2">
+                <CardTitle className="text-xs font-semibold uppercase tracking-wider text-ink-muted flex items-center gap-1.5 shrink-0">
                   <Activity className="h-3.5 w-3.5 text-blue-500" /> Error Rate & RPS
                 </CardTitle>
-                <Badge variant="muted" className={`text-[10px] px-1.5 py-0 font-mono ${errorBadgeColor}`}>
+                <Badge variant="muted" className={`text-[10px] px-1.5 py-0 font-mono whitespace-nowrap ${errorBadgeColor}`}>
                   5xx: {errorRate.toFixed(2)}%
                 </Badge>
               </div>
@@ -207,7 +207,7 @@ export default function AdminPage() {
                   Total: {telemetry?.total_requests.toLocaleString() || 0}
                 </div>
               </div>
-              <div className="flex items-center gap-1.5 text-[11px] font-mono">
+              <div className="flex flex-wrap items-center gap-1.5 text-[11px] font-mono">
                 <span className="text-emerald-500 bg-emerald-500/10 px-1.5 py-0.5 rounded">
                   2xx: {telemetry?.success_2xx || 0}
                 </span>
@@ -299,9 +299,9 @@ export default function AdminPage() {
             <CardContent className="p-0">
               <div className="divide-y divide-border text-xs">
                 {telemetry.top_routes.slice(0, 5).map((route) => (
-                  <div key={route.route} className="flex items-center justify-between px-4 py-2.5 hover:bg-bg-elevated/40">
-                    <span className="font-mono text-ink font-medium truncate max-w-sm">{route.route}</span>
-                    <div className="flex items-center gap-6 font-mono text-[11px]">
+                  <div key={route.route} className="flex flex-col sm:flex-row sm:items-center sm:justify-between px-4 py-2.5 gap-1.5 sm:gap-4 hover:bg-bg-elevated/40">
+                    <span className="font-mono text-ink font-medium truncate min-w-0">{route.route}</span>
+                    <div className="flex items-center gap-4 sm:gap-6 font-mono text-[11px] shrink-0">
                       <span className="text-ink-muted">{route.count.toLocaleString()} calls</span>
                       <span className={route.errors > 0 ? "text-danger font-semibold" : "text-ink-faint"}>
                         {route.errors} errors

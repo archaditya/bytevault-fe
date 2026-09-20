@@ -18,8 +18,10 @@ import {
   ArrowUpDown,
   MessageSquare,
   Zap,
+  Inbox,
   CreditCard,
   Receipt,
+  ShieldAlert,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuthStore } from "@/store";
@@ -34,14 +36,16 @@ const userNavItems = [
   { href: "/files", label: "Files", icon: FolderClosed },
   { href: "/transfers", label: "Transfers", icon: ArrowUpDown },
   { href: "/instant", label: "Instant Share", icon: Zap, highlight: true },
+  { href: "/collect", label: "Collect", icon: Inbox },
   { href: "/shared", label: "Shared links", icon: Share2 },
 ];
 
 const adminNavItems = [
   { href: "/admin", label: "Dashboard", icon: LayoutDashboard, exact: true },
-  // { href: "/admin/packages", label: "Packages & Billing", icon: CreditCard },
+  { href: "/admin/packages", label: "Packages & Billing", icon: CreditCard },
   { href: "/admin/users", label: "Users", icon: Users },
   { href: "/admin/files", label: "Files", icon: Files },
+  { href: "/admin/moderation", label: "Moderation", icon: ShieldAlert },
   { href: "/admin/instant-shares", label: "Instant Shares", icon: Zap },
   { href: "/admin/shared", label: "Shared Links", icon: Share2 },
   { href: "/admin/contact-queries", label: "Contact Queries", icon: MessageSquare },

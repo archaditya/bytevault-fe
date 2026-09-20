@@ -1,52 +1,34 @@
-# PushPostVault UI redesign - final (cumulative)
+# PushPostVault UI - Client File Portal (frontend) + everything before it
 
-Drop-in overwrite on your original project. It replaces all earlier zips.
-No `.env`, no dependencies, no backend or API code touched. `tsc --noEmit` passes.
-Only markup, classes and copy changed; request/response logic is untouched.
+Drop-in overwrite on your original project. It replaces all earlier UI zips.
+No `.env`, no new dependencies. `tsc --noEmit` passes.
 
-## Theme (whole app)
-- `tailwind.config.js`, `app/globals.css`: indigo accent -> logo orange (#FF6A00), warm near-black
-  surfaces, yellow `live` state, `bg-brand-gradient`, `bg-brand-glow`, `shadow-glow`.
-- Native checkboxes / radios / range inputs use the brand colour instead of browser blue.
-- `components/ui/button.tsx`: primary button = logo gradient with dark text
-  (white on orange fails WCAG at 2.87:1; dark text is 6.89:1).
-- Hard-coded chart and file-kind colours mapped to the new tokens.
+## New in this round: Collect (guest upload invites)
+Matches the backend contract in your walkthrough exactly.
 
-## Public pages
-- Landing (`app/page.tsx` + `features/landing/*`): "Send large files. Collect them from anyone."
-  Send is live; Collect is labelled "Coming soon". Placeholder testimonials replaced by use cases.
-- `app/instant` (sender) and `app/s/instant/[token]` (recipient): plain language, brand styling,
-  keyboard-accessible drop zone, expiry shown as "1 hour".
-- `app/contact`: product-facing copy (no more "chunking architectures" / "support ticket");
-  "Get notified" links from the landing page open it with the subject pre-filled
-  (`/contact?topic=collect`).
-- `app/pricing`, `app/terms`, `app/subscription-policy`: old names (ByteVault / cloud storage)
-  replaced with PushPostVault so the legal pages match the site.
-- `app/layout.tsx`: send-and-collect metadata + `metadataBase`
-  (set `NEXT_PUBLIC_SITE_URL=https://www.pushpostvault.com` in Vercel).
+- `services/upload-invites.service.ts`: types, owner hooks (list / create / revoke), guest API
+  (public info, passcode verify, upload session, complete) and a progress-reporting PUT helper.
+  Blocked extensions mirror the backend list.
+- `app/(app)/collect/page.tsx` + `features/collect/components/*`: owner screen.
+  Create a request link (name, total size, max files, expiry, optional passcode), copy the link,
+  see usage and time left, revoke with a confirm step. Shows the 10-active-links limit and asks
+  unverified users to verify their email first.
+- `app/collect/[token]/page.tsx`: guest page. No account needed. Handles: not found, revoked,
+  expired, passcode gate (session token kept in sessionStorage, re-asks if it expires), multi-file
+  drag and drop, per-file progress, 2 uploads in parallel, retry, friendly error messages,
+  client-side checks (blocked types, empty files, space left), and a warning if the tab is closed
+  during an upload.
+- Sidebar gets a "Collect" item; `route-guard.tsx` makes `/collect/<token>` public.
+- Landing page: "Coming soon" labels removed, Collect card / section / FAQ / footer now link to
+  `/collect`. **Deploy the backend first**, otherwise the button leads to a page that cannot work.
 
-## Signed-in app and admin
-- Sidebar, auth screens (real logo icon), admin pages: brand names and colours updated.
-- `lib/razorpay.ts`: checkout description is now "PushPostVault subscription"
-  (was "Cloud Storage Subscription"). Change this only if your new gateway needs a different text.
-- `app/s/[id]/page.tsx`: removed the "10GB with zero-knowledge encryption" line (not accurate).
-
-## Checked, no changes needed
-Dashboard, Files, Transfers, Shared links, Settings, Profile, and all admin pages render correctly
-with the new theme. No horizontal overflow at 390px on any main page.
-
-## Intentionally left alone
-- localStorage key `PushPort-transfers` (renaming it would drop users' saved transfer history).
-- `lib/mock/*` sample data and one code comment that still say PushPort.
-- Cloudflare R2 / AWS S3 tag colours (vendor brand colours).
-
-## Safe to delete (no longer imported)
-- `features/landing/components/testimonials.tsx`
-- `features/landing/components/architecture-overview.tsx`
+## Also included (from earlier rounds)
+Brand theme, "Send and collect" landing, redesigned Instant Share (sender + recipient), auth screens,
+contact page, brand-name cleanup, native control colours. See the file list in this zip.
 
 ## Before you deploy
-- Collect is a placeholder. Remove the "Coming soon" labels only when the feature ships.
-- Free-plan numbers in the FAQ (2 GB per file, 5 GB total) come from your old FAQ; confirm they
-  match your live plan settings.
-- Success screen after an Instant Share upload and the payment flow were not exercised (they need
-  the real backend). Test both once.
+1. Read `BACKEND_FIXES.md`. Item 1 is a real security hole (a guest can complete or delete any
+   file of the owner through `/complete/:fileId`). Fix it before making the feature public.
+2. Test one upload of about 1 GB on a slow connection: guest uploads are a single PUT per file.
+3. R2 must allow the site origin in its CORS rules for PUT (Instant Share already needs this).
+4. Optional: add `max_file_bytes` to the public invite info; the guest page uses it when present.

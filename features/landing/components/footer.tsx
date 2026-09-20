@@ -6,9 +6,9 @@ const columns = [
     title: "Product",
     links: [
       { label: "Instant Share", href: "/instant" },
+      { label: "Collect files", href: "/collect" },
       { label: "Dashboard", href: "/dashboard" },
       // { label: "Pricing", href: "/pricing" },
-      { label: "Transfers", href: "/transfers" },
     ],
   },
   {
@@ -31,7 +31,7 @@ export function Footer() {
                 alt="PushPostVault"
                 width={136}
                 height={27}
-                className="h-6 w-auto object-contain"
+                className="h-8 w-auto object-contain"
               />
             </div>
             <p className="mt-3 max-w-[220px] text-[12px] text-ink-muted">

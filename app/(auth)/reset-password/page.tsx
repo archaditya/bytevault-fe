@@ -62,7 +62,7 @@ function ResetPasswordForm() {
     } catch (err: any) {
       toast.error(
         err.message ||
-          "Failed to reset password. Please verify the code and try again.",
+        "Failed to reset password. Please verify the code and try again.",
       );
     } finally {
       setLoading(false);
@@ -72,7 +72,7 @@ function ResetPasswordForm() {
   return (
     <Card className="border border-border-strong bg-bg-surface">
       <CardHeader className="flex flex-col items-center gap-2 pb-6">
-        <Image src="/PushPostVault-icon-1024.png" alt="" width={40} height={40} className="mb-2 h-10 w-10 object-contain" />
+        <Image src="/PushPostVault-logo-dark.svg" alt="" width={40} height={40} className="mb-2 h-20 w-60 object-contain" />
         <CardTitle className="text-xl font-bold tracking-tight text-ink">
           Choose a new password
         </CardTitle>

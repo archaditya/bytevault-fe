@@ -26,6 +26,7 @@ const titleMap: Record<string, string> = {
   "/transfers": "Transfers",
   "/storage": "Storage providers",
   "/shared": "Shared links",
+  "/collect": "Collect files",
   "/analytics": "Analytics",
   "/settings": "Settings",
   "/profile": "Profile",
