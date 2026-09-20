@@ -9,11 +9,11 @@ const sampleChunks = Array.from({ length: 96 }, (_, i) => {
 });
 
 const chunkColor: Record<string, string> = {
-  complete: "#5E6AD2",
-  uploading: "#F5A623",
-  retrying: "#F5A623",
+  complete: "#FF6A00",
+  uploading: "#FFC53D",
+  retrying: "#FFC53D",
   failed: "#E5484D",
-  pending: "#1F1F23",
+  pending: "#241F1B",
 };
 
 export function TransferEngineShowcase() {
@@ -21,12 +21,11 @@ export function TransferEngineShowcase() {
     <section className="border-b border-border py-20">
       <div className="container grid grid-cols-1 gap-10 lg:grid-cols-2 lg:items-center">
         <div>
-          <p className="label-eyebrow">The transfer engine</p>
-          <h2 className="mt-2 text-2xl font-semibold tracking-tight text-ink sm:text-3xl">
-            See the chunk that's actually moving.
+          <h2 className="text-2xl font-semibold tracking-tight text-ink sm:text-3xl">
+            Big transfers shouldn't restart from zero.
           </h2>
           <p className="mt-4 max-w-md text-[14px] leading-relaxed text-ink-muted">
-            Most tools show you a percentage. PushPort shows you the grid: which
+            Most tools show you a percentage. PushPostVault shows you the grid: which
             chunks landed, which one is in flight, which one is retrying after a
             timeout, and which one needs your attention.
           </p>

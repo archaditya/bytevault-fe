@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { LandingNav } from "@/features/landing/components/landing-nav";
 import { Footer } from "@/features/landing/components/footer";
 import { Button } from "@/components/ui/button";
@@ -14,6 +14,14 @@ export default function ContactPage() {
   const [formData, setFormData] = useState({ name: "", email: "", subject: "", message: "" });
   const [success, setSuccess] = useState(false);
   const submitMutation = useSubmitContactQueryMutation();
+
+  // "Get notified" links from the landing page arrive with ?topic=collect
+  useEffect(() => {
+    const topic = new URLSearchParams(window.location.search).get("topic");
+    if (topic === "collect") {
+      setFormData((prev) => ({ ...prev, subject: "Notify me when Collect is available" }));
+    }
+  }, []);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -32,7 +40,7 @@ export default function ContactPage() {
 
   // WhatsApp Prepopulated message redirect
   const whatsappUrl = `https://wa.me/919334106744?text=${encodeURIComponent(
-    "Hi Archaditya, I'm reaching out about PushPort!"
+    "Hi Archaditya, I'm reaching out about PushPostVault!"
   )}`;
 
   return (
@@ -47,10 +55,9 @@ export default function ContactPage() {
           {/* Left Column: Creator Portfolio & Links */}
           <div className="md:col-span-5 flex flex-col gap-6">
             <div>
-              <p className="label-eyebrow">Connect</p>
-              <h1 className="text-3xl font-semibold tracking-tight text-ink mt-2">Get in Touch</h1>
+              <h1 className="text-3xl font-semibold tracking-tight text-ink">Contact us</h1>
               <p className="text-xs text-ink-muted mt-2 leading-relaxed">
-                Have questions about chunking architectures, binary signature safety, or integration? Connect with us directly.
+                Questions about sending files, plans or billing? Write to us and we will reply by email.
               </p>
             </div>
 
@@ -60,10 +67,10 @@ export default function ContactPage() {
                 <MessageSquare className="h-5 w-5" />
               </div>
               <div className="min-w-0">
-                <p className="text-[13px] font-semibold text-ink">WhatsApp Direct Support</p>
-                <p className="text-[11px] text-ink-muted mt-0.5">Quick questions and developer discussions.</p>
+                <p className="text-[13px] font-semibold text-ink">WhatsApp</p>
+                <p className="text-[11px] text-ink-muted mt-0.5">For quick questions.</p>
                 <a href={whatsappUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-[11px] text-accent mt-2 hover:underline">
-                  Send WhatsApp Message <ExternalLink className="h-3 w-3" />
+                  Message us on WhatsApp <ExternalLink className="h-3 w-3" />
                 </a>
               </div>
             </Card>
@@ -74,8 +81,8 @@ export default function ContactPage() {
                 <Mail className="h-5 w-5" />
               </div>
               <div className="min-w-0">
-                <p className="text-[13px] font-semibold text-ink">Direct Email</p>
-                <p className="text-[11px] text-ink-muted mt-0.5">For queries and assistance.</p>
+                <p className="text-[13px] font-semibold text-ink">Email</p>
+                <p className="text-[11px] text-ink-muted mt-0.5">For billing and account help.</p>
                 <a href="mailto:akkpk933@gmail.com" className="inline-flex items-center gap-1 text-[11px] text-accent mt-2 hover:underline">
                   akkpk933@gmail.com <ExternalLink className="h-3 w-3" />
                 </a>
@@ -84,7 +91,7 @@ export default function ContactPage() {
 
             {/* Creator Links Card */}
             <Card className="bg-bg-surface border-border-strong p-4 flex flex-col gap-3">
-              <p className="text-[11px] font-mono uppercase tracking-wider text-ink-muted">Developer Profiles</p>
+              <p className="text-[11px] font-mono uppercase tracking-wider text-ink-muted">Built by</p>
               <div className="flex flex-col gap-2.5 pt-1 text-[12px]">
                 <a href="http://archadi.dev" target="_blank" rel="noreferrer" className="flex items-center justify-between text-ink hover:text-accent transition-colors">
                   <span>Creator Portfolio</span>
@@ -110,24 +117,24 @@ export default function ContactPage() {
                   <div className="h-12 w-12 rounded-full bg-success/15 flex items-center justify-center text-success mb-4 animate-bounce">
                     <Sparkles className="h-6 w-6" />
                   </div>
-                  <h3 className="text-base font-semibold text-ink">Query Submitted Successfully</h3>
+                  <h3 className="text-base font-semibold text-ink">Message sent</h3>
                   <p className="text-xs text-ink-muted mt-2 max-w-xs">
-                    We've stored your contact details and message in our queries backlog. We'll get back to you shortly.
+                    Thanks. We will reply to the email address you provided.
                   </p>
                   <Button size="sm" variant="secondary" className="mt-5" onClick={() => setSuccess(false)}>
-                    Send another query
+                    Send another message
                   </Button>
                 </div>
               ) : (
                 <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-                  <h3 className="text-base font-semibold text-ink">Submit a Support Ticket</h3>
+                  <h3 className="text-base font-semibold text-ink">Send us a message</h3>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="flex flex-col gap-1.5">
-                      <label className="text-[11px] font-semibold text-ink-muted">Your Name</label>
+                      <label className="text-[11px] font-semibold text-ink-muted">Your name</label>
                       <Input
                         required
                         name="name"
-                        placeholder="John Doe"
+                        placeholder="Your name"
                         value={formData.name}
                         onChange={handleInputChange}
                         className="h-9 text-[12px]"
@@ -139,7 +146,7 @@ export default function ContactPage() {
                         required
                         type="email"
                         name="email"
-                        placeholder="john@example.com"
+                        placeholder="you@example.com"
                         value={formData.email}
                         onChange={handleInputChange}
                         className="h-9 text-[12px]"
@@ -151,19 +158,19 @@ export default function ContactPage() {
                     <Input
                       required
                       name="subject"
-                      placeholder="e.g. Magic bytes checking verification error"
+                      placeholder="e.g. Question about my plan"
                       value={formData.subject}
                       onChange={handleInputChange}
                       className="h-9 text-[12px]"
                     />
                   </div>
                   <div className="flex flex-col gap-1.5">
-                    <label className="text-[11px] font-semibold text-ink-muted">Message details</label>
+                    <label className="text-[11px] font-semibold text-ink-muted">Message</label>
                     <Textarea
                       required
                       rows={5}
                       name="message"
-                      placeholder="Provide all context about your support request..."
+                      placeholder="How can we help?"
                       value={formData.message}
                       onChange={handleInputChange}
                       className="text-[12px]"
@@ -171,7 +178,7 @@ export default function ContactPage() {
                   </div>
 
                   <Button type="submit" className="mt-2 w-full h-9" disabled={submitMutation.isPending}>
-                    {submitMutation.isPending ? "Submitting Query..." : "Submit Ticket"}
+                    {submitMutation.isPending ? "Sending…" : "Send message"}
                   </Button>
 
                   {submitMutation.isError && (

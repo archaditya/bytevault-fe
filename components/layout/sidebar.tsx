@@ -17,7 +17,7 @@ import {
   ScrollText,
   ArrowUpDown,
   MessageSquare,
-  Flame,
+  Zap,
   CreditCard,
   Receipt,
 } from "lucide-react";
@@ -33,7 +33,7 @@ const userNavItems = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/files", label: "Files", icon: FolderClosed },
   { href: "/transfers", label: "Transfers", icon: ArrowUpDown },
-  { href: "/instant", label: "Instant Share", icon: Flame, highlight: true },
+  { href: "/instant", label: "Instant Share", icon: Zap, highlight: true },
   { href: "/shared", label: "Shared links", icon: Share2 },
 ];
 
@@ -42,7 +42,7 @@ const adminNavItems = [
   // { href: "/admin/packages", label: "Packages & Billing", icon: CreditCard },
   { href: "/admin/users", label: "Users", icon: Users },
   { href: "/admin/files", label: "Files", icon: Files },
-  { href: "/admin/instant-shares", label: "Instant Shares", icon: Flame },
+  { href: "/admin/instant-shares", label: "Instant Shares", icon: Zap },
   { href: "/admin/shared", label: "Shared Links", icon: Share2 },
   { href: "/admin/contact-queries", label: "Contact Queries", icon: MessageSquare },
   { href: "/admin/notifications", label: "Notifications", icon: BellRing },
@@ -120,16 +120,16 @@ export function Sidebar({ mobileOpen, setMobileOpen }: SidebarProps) {
                       active
                         ? "bg-accent/10 text-accent-bright"
                         : isHighlighted
-                          ? "text-amber-400 hover:bg-amber-500/10 hover:text-amber-300"
+                          ? "text-accent-bright hover:bg-accent/10 hover:text-accent-bright"
                           : "text-ink-muted hover:bg-bg-overlay hover:text-ink"
                     )}
                   >
                     <span className="flex items-center gap-2.5">
-                      <Icon className={cn("h-[15px] w-[15px]", isHighlighted && "text-amber-400")} strokeWidth={2} />
+                      <Icon className={cn("h-[15px] w-[15px]", isHighlighted && "text-accent-bright")} strokeWidth={2} />
                       {item.label}
                     </span>
                     {isHighlighted && (
-                      <span className="rounded-full bg-amber-500/20 px-1.5 py-0.2 text-[9px] font-bold text-amber-400 border border-amber-500/30 uppercase tracking-wider">
+                      <span className="rounded-full bg-accent/15 px-1.5 py-0.5 text-[10px] font-medium text-accent-bright border border-accent/30">
                         Quick
                       </span>
                     )}

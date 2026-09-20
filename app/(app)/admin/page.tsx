@@ -335,7 +335,7 @@ export default function AdminPage() {
                 onClick={() => setBandwidthTimeframe(t.value)}
                 className={`px-3 py-1 rounded-md text-xs font-medium transition-all ${
                   bandwidthTimeframe === t.value
-                    ? "bg-accent text-white shadow-sm"
+                    ? "bg-accent text-bg shadow-sm"
                     : "text-ink-muted hover:text-ink hover:bg-bg-elevated"
                 }`}
               >

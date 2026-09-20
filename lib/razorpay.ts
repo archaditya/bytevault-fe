@@ -66,7 +66,7 @@ export async function openRazorpaySubscriptionCheckout(options: RazorpayCheckout
     key: options.key,
     subscription_id: options.subscription_id,
     name: options.name || "PushPostVault",
-    description: options.description || "Cloud Storage Subscription",
+    description: options.description || "PushPostVault subscription",
     image: options.image || "/PushPostVault-icon.png",
     prefill: options.prefill,
     theme: options.theme || {

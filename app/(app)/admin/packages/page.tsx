@@ -216,7 +216,7 @@ export default function AdminPackagesPage() {
       {
         name: "free",
         display_name: "Free",
-        description: "Essential cloud storage for personal use",
+        description: "Essential storage for personal use",
         storage_gb: 5,
         max_file_gb: 2,
         price_inr: 0,
@@ -1283,8 +1283,8 @@ export default function AdminPackagesPage() {
             <div className="border border-border rounded p-4 bg-bg text-xs space-y-4">
               <div className="flex justify-between items-start border-b border-border pb-3">
                 <div>
-                  <h2 className="text-lg font-bold text-ink">ByteVault</h2>
-                  <p className="text-ink-muted text-[11px]">PushPort Secure Storage Services</p>
+                  <h2 className="text-lg font-bold text-ink">PushPostVault</h2>
+                  <p className="text-ink-muted text-[11px]">File transfer and storage services</p>
                 </div>
                 <div className="text-right">
                   <p className="font-mono font-bold text-ink">{selectedTxn.invoice_number}</p>
@@ -1313,7 +1313,7 @@ export default function AdminPackagesPage() {
                   </thead>
                   <tbody>
                     <tr className="border-b border-border/50">
-                      <td className="p-2">ByteVault Subscription Tier ({selectedTxn.package_name || "Storage"})</td>
+                      <td className="p-2">PushPostVault Subscription Tier ({selectedTxn.package_name || "Storage"})</td>
                       <td className="p-2 text-right mono-num">₹{(selectedTxn.amount_paise / 100).toFixed(2)}</td>
                     </tr>
                     <tr className="border-b border-border/50">

@@ -20,10 +20,11 @@ const fontMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "PushPostVault — Store • Share • Anywhere",
+  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || "https://www.pushpostvault.com"),
+  title: "PushPostVault — Send and collect large files",
   description:
-    "PushPostVault is a high-performance cloud storage and secure file sharing platform. Store, share, anywhere.",
-  keywords: ["file transfer", "resumable upload", "cloud storage", "Cloudflare R2", "AWS S3", "PushPostVault"],
+    "Send files up to 2 GB with a link that expires on its own, no account needed. Uploads resume if your connection drops.",
+  keywords: ["send large files", "file transfer", "collect files from clients", "resumable upload", "PushPostVault"],
   icons: {
     icon: [
       { url: "/favicon.ico" },
@@ -33,8 +34,8 @@ export const metadata: Metadata = {
     apple: "/icon-192.png",
   },
   openGraph: {
-    title: "PushPostVault — Store • Share • Anywhere",
-    description: "High-performance cloud storage and parallel transfer engine.",
+    title: "PushPostVault — Send and collect large files",
+    description: "Send files up to 2 GB with a link that expires on its own. No account needed.",
     images: [{ url: "/PushPostVault-icon.png", width: 512, height: 512, alt: "PushPostVault" }],
   },
 };

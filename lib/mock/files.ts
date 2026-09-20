@@ -65,7 +65,7 @@ const owners = [
   { name: "Fatima Al-Sayed", avatar: "FA" },
 ];
 
-const thumbColors = ["#5E6AD2", "#F5A623", "#4CB782", "#E5484D", "#5E9DD2", "#8A6420"];
+const thumbColors = ["#FF6A00", "#FFC53D", "#4CB782", "#E5484D", "#5E9DD2", "#8A6420"];
 
 const providers: StorageProviderId[] = ["r2", "s3", "local"];
 const providerWeights: [StorageProviderId, number][] = [
