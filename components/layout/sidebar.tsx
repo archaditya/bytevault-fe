@@ -39,7 +39,7 @@ const userNavItems = [
 
 const adminNavItems = [
   { href: "/admin", label: "Dashboard", icon: LayoutDashboard, exact: true },
-  { href: "/admin/packages", label: "Packages & Billing", icon: CreditCard },
+  // { href: "/admin/packages", label: "Packages & Billing", icon: CreditCard },
   { href: "/admin/users", label: "Users", icon: Users },
   { href: "/admin/files", label: "Files", icon: Files },
   { href: "/admin/instant-shares", label: "Instant Shares", icon: Zap },

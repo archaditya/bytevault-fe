@@ -10,7 +10,7 @@ import { useAuthStore } from "@/store";
 const links = [
   { label: "Send", href: "/#send" },
   { label: "Collect", href: "/#collect" },
-  { label: "Pricing", href: "/pricing" },
+  // { label: "Pricing", href: "/pricing" },
   { label: "FAQ", href: "/#faq" },
   { label: "Contact", href: "/contact" },
 ];
