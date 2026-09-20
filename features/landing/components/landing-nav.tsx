@@ -37,7 +37,7 @@ export function LandingNav() {
             Instant Share 🔥
           </Link>
           <Link href="/#features" className="hover:text-ink transition-colors">Features</Link>
-          <Link href="/pricing" className="hover:text-ink transition-colors">Pricing</Link>
+          {/* <Link href="/pricing" className="hover:text-ink transition-colors">Pricing</Link> */}
           <Link href="/#architecture" className="hover:text-ink transition-colors">Architecture</Link>
           <Link href="/#faq" className="hover:text-ink transition-colors">FAQ</Link>
           <Link href="/contact" className="hover:text-ink transition-colors">Contact</Link>
@@ -112,13 +112,13 @@ export function LandingNav() {
               >
                 Features
               </Link>
-              <Link
+              {/* <Link
                 href="/pricing"
                 onClick={closeMenu}
                 className="rounded-md px-3 py-2 text-ink-muted hover:bg-bg-overlay hover:text-ink transition-colors"
               >
                 Pricing
-              </Link>
+              </Link> */}
               <Link
                 href="/#architecture"
                 onClick={closeMenu}
