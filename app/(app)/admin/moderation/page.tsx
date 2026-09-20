@@ -210,14 +210,14 @@ export default function AdminModerationPage() {
                             {file.filename}
                           </p>
                           <Badge
-                            variant="outline"
+                            variant="muted"
                             className="bg-warning/10 text-warning border-warning/20 text-[11px] px-1.5 py-0"
                           >
                             NSFW Score: {score}%
                           </Badge>
                         </div>
                         <div className="flex items-center gap-3 text-[12px] text-ink-muted mt-1">
-                          <span>{formatBytes(file.file_size)}</span>
+                          <span>{formatBytes(file.file_size as number)}</span>
                           <span>•</span>
                           <span>{file.owner_email || file.owner_name || `User: ${file.user_id.slice(0, 8)}`}</span>
                           <span>•</span>
