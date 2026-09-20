@@ -80,21 +80,18 @@ export function Hero() {
             </div>
           </div>
 
-          <div className="flex flex-col rounded-lg border border-dashed border-border-strong bg-bg/40 p-6">
+          <div className="flex flex-col rounded-lg border border-border-strong bg-bg-surface p-6">
             <div className="flex items-center gap-2 text-[15px] font-medium text-ink">
               <Inbox className="h-4 w-4 text-ink-muted" strokeWidth={2} />
               Collect
-              <span className="rounded-full border border-border-strong px-2 py-0.5 text-[11px] font-normal text-ink-muted">
-                Coming soon
-              </span>
             </div>
             <p className="mt-2 flex-1 text-[14px] leading-relaxed text-ink-muted">
               Give clients one link to upload files to you. No shared-drive
-              permissions, no &ldquo;request access&rdquo; emails.
+              permissions, no &ldquo;request access&rdquo; emails, no account for them.
             </p>
             <div className="mt-5">
               <Button size="lg" variant="secondary" asChild>
-                <Link href="/contact?topic=collect">Get notified</Link>
+                <Link href="/collect">Request files</Link>
               </Button>
             </div>
           </div>

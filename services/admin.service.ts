@@ -454,3 +454,101 @@ export function useAdminBandwidth(timeframe: string = "today", options?: { enabl
   });
 }
 
+export interface ModerationStats {
+  total_blocked: number;
+  total_flagged: number;
+  restricted_users: number;
+  pending_appeals: number;
+}
+
+export interface FlaggedFile extends AdminFile {
+  owner_name?: string;
+  owner_email?: string;
+  nsfw_score?: number;
+}
+
+export function useAdminModerationStats() {
+  return useQuery<ModerationStats>({
+    queryKey: ["admin", "moderation", "stats"],
+    queryFn: async () => {
+      const token = getAccessToken();
+      const res = await fetch("/api/v1/admin/moderation/stats", {
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+      });
+      if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+      const json = await res.json();
+      return json.data;
+    },
+  });
+}
+
+export function useAdminFlaggedFiles(params?: { cursor?: string }) {
+  return useQuery<{ files: FlaggedFile[]; next_cursor?: string }>({
+    queryKey: ["admin", "moderation", "flagged", params],
+    queryFn: async () => {
+      const token = getAccessToken();
+      const query = params?.cursor ? `?cursor=${params.cursor}` : "";
+      const res = await fetch(`/api/v1/admin/moderation/flagged${query}`, {
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+      });
+      if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+      const json = await res.json();
+      return {
+        files: json.data?.files || [],
+        next_cursor: json.data?.next_cursor,
+      };
+    },
+  });
+}
+
+export function useApproveFlaggedFile() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (fileId: string) => {
+      const token = getAccessToken();
+      const res = await fetch(`/api/v1/admin/moderation/files/${fileId}/approve`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+      });
+      if (!res.ok) throw new Error("Failed to approve file");
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin", "moderation"] });
+      queryClient.invalidateQueries({ queryKey: ["admin", "files"] });
+    },
+  });
+}
+
+export function useRejectFlaggedFile() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (fileId: string) => {
+      const token = getAccessToken();
+      const res = await fetch(`/api/v1/admin/moderation/files/${fileId}/reject`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+      });
+      if (!res.ok) throw new Error("Failed to reject file");
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin", "moderation"] });
+      queryClient.invalidateQueries({ queryKey: ["admin", "files"] });
+    },
+  });
+}
+
+

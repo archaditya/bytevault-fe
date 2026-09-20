@@ -16,6 +16,7 @@ function isPublicPath(pathname: string): boolean {
     pathname.startsWith("/reset-password") ||
     pathname.startsWith("/verify-email") ||
     pathname.startsWith("/s/") ||
+    pathname.startsWith("/collect/") ||
     pathname.startsWith("/terms") ||
     pathname.startsWith("/subscription-policy")
   );

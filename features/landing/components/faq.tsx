@@ -22,8 +22,8 @@ const faqs = [
     a: "Yes. Free accounts can upload files of up to 2 GB each and use up to 5 GB in total. See the pricing page for paid plans.",
   },
   {
-    q: "When can I collect files from my clients?",
-    a: "Collecting files through an upload link is coming soon. Use the contact page to be notified when it is ready.",
+    q: "How do I collect files from a client?",
+    a: "Sign in, open Collect and create a request link. Send it to your client and they can upload without an account. Their files arrive in a Received folder in your Files. You set the size limit, file limit and expiry, and can revoke the link at any time.",
   },
   {
     q: "Does PushPostVault rate limit requests?",

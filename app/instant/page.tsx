@@ -510,7 +510,7 @@ export default function InstantUploadPage() {
                     id="guest-passcode"
                     type="password"
                     autoComplete="new-password"
-                    placeholder="Use password to generate more secure Shareable URL"
+                    placeholder="Recipient must enter this to download"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     className="h-10 w-full rounded-md border border-border-strong bg-bg-raised px-3 text-[14px] text-ink outline-none transition-colors placeholder:text-ink-faint focus:border-accent"
