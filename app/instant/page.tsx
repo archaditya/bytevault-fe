@@ -106,7 +106,7 @@ export default function InstantUploadPage() {
           return;
         }
         setFile(droppedFile);
-        toast.success(`Selected "${droppedFile.name}" (${formatBytes(droppedFile.size)})`);
+        // toast.success(`Selected "${droppedFile.name}" (${formatBytes(droppedFile.size)})`);
       }
     };
 

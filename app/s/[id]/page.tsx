@@ -35,6 +35,8 @@ interface FileMetadata {
   file_size: number;
   content_type: string;
   created_at: string;
+  has_thumbnail?: boolean;
+  thumbnail_url?: string;
 }
 
 export default function PublicSharePage({
@@ -56,6 +58,7 @@ export default function PublicSharePage({
   const [pageUrl, setPageUrl] = useState("");
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [thumbnailError, setThumbnailError] = useState(false);
 
   useEffect(() => {
     setMounted(true);
@@ -154,6 +157,7 @@ export default function PublicSharePage({
     }
   };
 
+  const thumbnailSrc = metadata?.thumbnail_url || (metadata?.has_thumbnail ? `/api/v1/files/public/${id}/thumbnail` : undefined);
   const mimeType = (metadata?.content_type || "").toLowerCase();
   const filename = metadata?.filename || "file";
   const hasExt = filename.includes(".") && !filename.startsWith(".");
@@ -243,7 +247,7 @@ export default function PublicSharePage({
               {/* Left Side: Rich Preview Area */}
               <div
                 className={cn(
-                  "flex-1 flex flex-col rounded-xl border border-border bg-bg-raised/60 overflow-hidden min-h-[500px] md:min-h-[640px] relative transition-all",
+                  "flex-1 min-w-0 flex flex-col rounded-xl border border-border bg-bg-raised/60 overflow-hidden min-h-[500px] md:min-h-[640px] relative transition-all",
                   isFullscreen && "fixed inset-0 z-50 rounded-none border-none bg-bg-base"
                 )}
               >
@@ -299,7 +303,7 @@ export default function PublicSharePage({
                   ) : mimeType.startsWith("image/") ? (
                     <div className="relative w-full h-full flex items-center justify-center p-4 bg-black/20">
                       <img
-                        src={`${fileUrl}?inline=true`}
+                        src={thumbnailSrc || `${fileUrl}?inline=true`}
                         alt={metadata.filename}
                         className="max-w-full max-h-[580px] w-auto h-auto object-contain rounded-lg shadow-lg"
                       />
@@ -308,6 +312,7 @@ export default function PublicSharePage({
                     <video
                       src={`${fileUrl}?inline=true`}
                       controls
+                      poster={thumbnailSrc}
                       className="w-full h-full max-h-[580px] object-contain bg-black"
                     />
                   ) : mimeType.startsWith("audio/") ? (
@@ -319,12 +324,31 @@ export default function PublicSharePage({
                       <audio src={`${fileUrl}?inline=true`} controls className="w-full max-w-md mt-2" />
                     </div>
                   ) : mimeType === "application/pdf" ? (
-                    <iframe
-                      src={`${fileUrl}?inline=true`}
-                      className="w-full h-full min-h-[550px] border-none bg-white rounded-b-xl"
-                      title="PDF Document Preview"
-                      loading="lazy"
-                    />
+                    thumbnailSrc && !thumbnailError ? (
+                      <div className="relative w-full h-full flex flex-col items-center justify-center p-4 bg-black/20 gap-3">
+                        <img
+                          src={thumbnailSrc}
+                          alt={`${metadata.filename} preview`}
+                          className="max-w-full max-h-[480px] w-auto h-auto object-contain rounded-lg shadow-lg"
+                          onError={() => setThumbnailError(true)}
+                        />
+                        <a
+                          href={`${fileUrl}?inline=true`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-xs text-accent hover:text-accent-bright font-medium flex items-center gap-1 transition-colors"
+                        >
+                          <ExternalLink className="h-3 w-3" /> Open full PDF in new tab
+                        </a>
+                      </div>
+                    ) : (
+                      <iframe
+                        src={`${fileUrl}?inline=true`}
+                        className="w-full h-full min-h-[550px] border-none bg-white rounded-b-xl"
+                        title="PDF Document Preview"
+                        loading="lazy"
+                      />
+                    )
                   ) : isTextType ? (
                     loadingText ? (
                       <div className="flex-1 flex items-center justify-center p-6 text-xs text-ink-muted font-mono">
@@ -335,6 +359,18 @@ export default function PublicSharePage({
                         {textContent}
                       </pre>
                     )
+                  ) : thumbnailSrc && !thumbnailError ? (
+                    <div className="relative w-full h-full flex flex-col items-center justify-center p-4 bg-black/20 gap-3">
+                      <img
+                        src={thumbnailSrc}
+                        alt={`${metadata.filename} preview`}
+                        className="max-w-full max-h-[480px] w-auto h-auto object-contain rounded-lg shadow-lg"
+                        onError={() => setThumbnailError(true)}
+                      />
+                      <p className="text-xs text-ink-muted font-mono">
+                        Thumbnail preview · Download for full file
+                      </p>
+                    </div>
                   ) : (
                     <div className="flex-1 flex flex-col items-center justify-center p-8 text-center bg-bg-surface">
                       <div className="flex h-20 w-20 items-center justify-center rounded-3xl bg-bg-raised border border-border mb-4 shadow-xl">
@@ -350,7 +386,7 @@ export default function PublicSharePage({
               </div>
 
               {/* Right Side: Download & File Actions */}
-              <div className="w-full md:w-84 flex flex-col justify-between p-2">
+              <div className="w-full md:w-80 md:flex-shrink-0 flex flex-col justify-between p-2">
                 <div className="space-y-5">
                   {/* File Profile Header */}
                   <div className="text-center md:text-left">
