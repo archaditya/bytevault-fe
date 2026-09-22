@@ -26,10 +26,11 @@ export function SecuritySection() {
   const [isGoogleLogin, setIsGoogleLogin] = useState(false);
 
   useEffect(() => {
+    checkSession();
     if (typeof window !== "undefined") {
       setIsGoogleLogin(localStorage.getItem("login_provider") === "google");
     }
-  }, []);
+  }, [checkSession]);
 
   const handleChangePassword = async (e: React.FormEvent) => {
     e.preventDefault();

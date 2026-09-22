@@ -723,6 +723,50 @@ async function validateFileSignature(file: File) {
   }
 }
 
+export async function computeSHA256(file: File): Promise<string> {
+  try {
+    if (typeof window === "undefined" || !window.crypto || !window.crypto.subtle) {
+      return "";
+    }
+    if (file.size <= 32 * 1024 * 1024) {
+      const buffer = await file.arrayBuffer();
+      const hashBuffer = await crypto.subtle.digest("SHA-256", buffer);
+      return Array.from(new Uint8Array(hashBuffer))
+        .map((b) => b.toString(16).padStart(2, "0"))
+        .join("");
+    }
+    const head = await file.slice(0, 4 * 1024 * 1024).arrayBuffer();
+    const tail = await file.slice(file.size - 4 * 1024 * 1024).arrayBuffer();
+    const combined = new Uint8Array(head.byteLength + tail.byteLength);
+    combined.set(new Uint8Array(head), 0);
+    combined.set(new Uint8Array(tail), head.byteLength);
+    const hashBuffer = await crypto.subtle.digest("SHA-256", combined);
+    return Array.from(new Uint8Array(hashBuffer))
+      .map((b) => b.toString(16).padStart(2, "0"))
+      .join("");
+  } catch {
+    return "";
+  }
+}
+
+export async function checkFileConflicts(
+  filenames: string[],
+  folderId?: string | null
+): Promise<Array<{ filename: string; existing_file: any }>> {
+  try {
+    const res = (await apiClient("/api/v1/files/check-conflicts", {
+      method: "POST",
+      body: JSON.stringify({
+        filenames,
+        folder_id: folderId || undefined,
+      }),
+    })) as { conflicts?: Array<{ filename: string; existing_file: any }> };
+    return res.conflicts || [];
+  } catch {
+    return [];
+  }
+}
+
 export function useUploadFileMutation() {
   const queryClient = useQueryClient();
   return useMutation({
@@ -730,10 +774,14 @@ export function useUploadFileMutation() {
       file,
       folderId,
       tags,
+      conflictAction,
+      contentHash,
     }: {
       file: File;
       folderId?: string | null;
       tags?: string[];
+      conflictAction?: "replace" | "keep_both";
+      contentHash?: string;
     }) => {
       // Dynamically fetch quota limits from query cache, fallback to default limit (100MB)
       const quota = queryClient.getQueryData<QuotaStats>(["quota"]);
@@ -751,6 +799,9 @@ export function useUploadFileMutation() {
       }
 
       await validateFileSignature(file);
+
+      // Compute SHA-256 hash for deduplication
+      const hash = contentHash || (await computeSHA256(file));
 
       const txId = Math.random().toString(36).substring(7);
       const totalParts = file.size <= CHUNK_SIZE ? 1 : Math.ceil(file.size / CHUNK_SIZE);
@@ -807,11 +858,16 @@ export function useUploadFileMutation() {
               content_type: file.type || "application/octet-stream",
               folder_id: folderId || undefined,
               tags: tags && tags.length > 0 ? tags : undefined,
+              conflict_action: conflictAction,
+              content_hash: hash || undefined,
             }),
             signal: abortController.signal,
           });
 
-          const { file_id, upload_url } = session;
+          const { file_id, upload_url, filename: assignedFilename } = session;
+          if (assignedFilename && assignedFilename !== file.name) {
+            useTransferStore.getState().updateTransfer(txId, { fileName: assignedFilename });
+          }
           useTransferStore.getState().updateTransfer(txId, {
             fileId: file_id,
             chunks: [{ index: 0, status: "uploading", retries: 0 }],
@@ -842,6 +898,7 @@ export function useUploadFileMutation() {
           appendLog("Finalizing metadata handshake with backend.");
           await apiClient(`/api/v1/files/${file_id}/complete`, {
             method: "POST",
+            body: JSON.stringify({ content_hash: hash || undefined }),
             signal: abortController.signal,
           });
 
@@ -879,11 +936,16 @@ export function useUploadFileMutation() {
               content_type: file.type || "application/octet-stream",
               folder_id: folderId || undefined,
               part_count: totalParts,
+              conflict_action: conflictAction,
+              content_hash: hash || undefined,
             }),
             signal: abortController.signal,
           });
 
-          const { file_id, upload_id, part_urls } = session;
+          const { file_id, upload_id, part_urls, filename: assignedFilename } = session;
+          if (assignedFilename && assignedFilename !== file.name) {
+            useTransferStore.getState().updateTransfer(txId, { fileName: assignedFilename });
+          }
           fileId = file_id;
           uploadId = upload_id;
 
@@ -985,6 +1047,7 @@ export function useUploadFileMutation() {
             body: JSON.stringify({
               upload_id: uploadId,
               parts: completedParts.sort((a, b) => a.part_number - b.part_number),
+              content_hash: hash || undefined,
             }),
             signal: abortController.signal,
           });
