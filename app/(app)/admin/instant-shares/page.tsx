@@ -182,10 +182,12 @@ export default function AdminInstantSharesPage() {
                       <td className="p-3">
                         <Badge
                           variant={
-                            s.status === "READY"
-                              ? "success"
+                            s.status === "READY" || s.status === "ACTIVE"
+                              ? "live"
                               : s.status === "BURNED"
                               ? "danger"
+                              : s.status === "EXPIRED"
+                              ? "muted"
                               : "info"
                           }
                           className="text-[10px]"
