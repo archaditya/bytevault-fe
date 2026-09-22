@@ -414,15 +414,16 @@ export default function PublicSharePage({
                     </p>
                   </div>
 
-                  {/* Conditional Mobile Install / Desktop QR */}
-                  {isAPK && !deviceInfo.isMobile && pageUrl && (
+                  {/* QR Code for Phone Installation */}
+                  {isAPK && mounted && (
                     <div className="p-3.5 rounded-xl border border-border bg-white text-center shadow-sm">
                       <img
-                        src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(pageUrl)}`}
+                        src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(pageUrl || (typeof window !== "undefined" ? window.location.href : ""))}`}
                         alt="Scan QR code from phone"
                         className="w-32 h-32 mx-auto"
                       />
-                      <p className="text-[11px] text-neutral-600 mt-2 font-medium">
+                      <p className="text-[11px] text-neutral-800 mt-2 font-semibold flex items-center justify-center gap-1.5">
+                        <Smartphone className="h-3.5 w-3.5 text-emerald-600" />
                         Scan with Android phone to install
                       </p>
                     </div>

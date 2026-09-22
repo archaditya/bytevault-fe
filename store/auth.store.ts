@@ -43,7 +43,7 @@ export function mapBackendUserToFrontend(backendUser: any): User {
     plan: "free",
     joinedAt: backendUser.created_at || new Date().toISOString(),
     apiKeysCount: 0,
-    twoFactorEnabled: backendUser.mfa_enabled || false,
+    twoFactorEnabled: !!(backendUser.mfa_enabled ?? backendUser.two_factor_enabled ?? backendUser.is_mfa_enabled),
     hasPassword: backendUser.has_password,
     isVerified: backendUser.is_verified,
   };

@@ -6,7 +6,34 @@ import { useTransferStore } from "@/store/transfer.store";
 import { getAccessToken } from "@/lib/api-client";
 
 const MAX_UPLOAD_LIMIT_BYTES = 100 * 1024 * 1024; // 100MB
-const CHUNK_SIZE = 5 * 1024 * 1024; // 5MB chunks
+
+/**
+ * Calculates optimal chunk size based on file size:
+ * - S3/R2 requires min 5MB per part (except last part)
+ * - Maximum parts allowed by S3 is 10,000
+ * - Scaling chunks reduces TCP/TLS handshake latency and dramatically boosts throughput:
+ *   - <= 50 MB: 5 MB (1–10 parts)
+ *   - 50 MB – 500 MB: 10 MB (5–50 parts)
+ *   - 500 MB – 2 GB: 25 MB (20–80 parts)
+ *   - 2 GB – 10 GB: 50 MB (40–200 parts)
+ *   - > 10 GB: 100 MB (stays well below 1,000 parts)
+ */
+export function getOptimalChunkSize(fileSizeBytes: number): number {
+  const MB = 1024 * 1024;
+  if (fileSizeBytes <= 50 * MB) {
+    return 5 * MB;
+  }
+  if (fileSizeBytes <= 500 * MB) {
+    return 10 * MB;
+  }
+  if (fileSizeBytes <= 2 * 1024 * MB) {
+    return 25 * MB;
+  }
+  if (fileSizeBytes <= 10 * 1024 * MB) {
+    return 50 * MB;
+  }
+  return 100 * MB;
+}
 
 // Map to hold references to active upload objects
 interface ActiveUpload {
@@ -52,11 +79,11 @@ export async function resumeUpload(txId: string, file?: File) {
   store.updateTransfer(txId, { status: "active" });
 
   const appendLog = (msg: string, level: "info" | "warn" | "error" = "info") => {
-    const latestTx = useTransferStore.getState().transfers.find((t) => t.id === txId);
-    if (!latestTx) return;
-    store.updateTransfer(txId, {
+    const currentTx = useTransferStore.getState().transfers.find((t) => t.id === txId);
+    if (!currentTx) return;
+    useTransferStore.getState().updateTransfer(txId, {
       logs: [
-        ...latestTx.logs,
+        ...currentTx.logs,
         {
           id: Math.random().toString(),
           timestamp: new Date().toISOString(),
@@ -69,7 +96,9 @@ export async function resumeUpload(txId: string, file?: File) {
 
   appendLog("Resuming upload session.");
 
-  if (tx.sizeBytes <= CHUNK_SIZE) {
+  const activePartSize = tx.chunkSize || getOptimalChunkSize(fileObj.size);
+
+  if (tx.sizeBytes <= activePartSize) {
     try {
       const session = await apiClient("/api/v1/files/upload-session", {
         method: "POST",
@@ -179,7 +208,7 @@ export async function resumeUpload(txId: string, file?: File) {
     // Synchronize progress with already uploaded chunks
     const initialChunks = tx.chunks.map((chk, idx) => {
       if (etags[idx]) {
-        currentTransferredBytes += (idx === totalParts - 1) ? (fileObj.size - idx * CHUNK_SIZE) : CHUNK_SIZE;
+        currentTransferredBytes += (idx === totalParts - 1) ? (fileObj.size - idx * activePartSize) : activePartSize;
         return { index: idx, status: "complete" as const, retries: 0 };
       }
       return { index: idx, status: "pending" as const, retries: 0 };
@@ -193,8 +222,8 @@ export async function resumeUpload(txId: string, file?: File) {
         return { part_number: part.part_number, etag: etags[idx] };
       }
 
-      const start = idx * CHUNK_SIZE;
-      const end = Math.min(start + CHUNK_SIZE, fileObj.size);
+      const start = idx * activePartSize;
+      const end = Math.min(start + activePartSize, fileObj.size);
       const chunk = fileObj.slice(start, end);
       const chunkSize = end - start;
 
@@ -723,6 +752,50 @@ async function validateFileSignature(file: File) {
   }
 }
 
+export async function computeSHA256(file: File): Promise<string> {
+  try {
+    if (typeof window === "undefined" || !window.crypto || !window.crypto.subtle) {
+      return "";
+    }
+    if (file.size <= 32 * 1024 * 1024) {
+      const buffer = await file.arrayBuffer();
+      const hashBuffer = await crypto.subtle.digest("SHA-256", buffer);
+      return Array.from(new Uint8Array(hashBuffer))
+        .map((b) => b.toString(16).padStart(2, "0"))
+        .join("");
+    }
+    const head = await file.slice(0, 4 * 1024 * 1024).arrayBuffer();
+    const tail = await file.slice(file.size - 4 * 1024 * 1024).arrayBuffer();
+    const combined = new Uint8Array(head.byteLength + tail.byteLength);
+    combined.set(new Uint8Array(head), 0);
+    combined.set(new Uint8Array(tail), head.byteLength);
+    const hashBuffer = await crypto.subtle.digest("SHA-256", combined);
+    return Array.from(new Uint8Array(hashBuffer))
+      .map((b) => b.toString(16).padStart(2, "0"))
+      .join("");
+  } catch {
+    return "";
+  }
+}
+
+export async function checkFileConflicts(
+  filenames: string[],
+  folderId?: string | null
+): Promise<Array<{ filename: string; existing_file: any }>> {
+  try {
+    const res = (await apiClient("/api/v1/files/check-conflicts", {
+      method: "POST",
+      body: JSON.stringify({
+        filenames,
+        folder_id: folderId || undefined,
+      }),
+    })) as { conflicts?: Array<{ filename: string; existing_file: any }> };
+    return res.conflicts || [];
+  } catch {
+    return [];
+  }
+}
+
 export function useUploadFileMutation() {
   const queryClient = useQueryClient();
   return useMutation({
@@ -730,10 +803,14 @@ export function useUploadFileMutation() {
       file,
       folderId,
       tags,
+      conflictAction,
+      contentHash,
     }: {
       file: File;
       folderId?: string | null;
       tags?: string[];
+      conflictAction?: "replace" | "keep_both";
+      contentHash?: string;
     }) => {
       // Dynamically fetch quota limits from query cache, fallback to default limit (100MB)
       const quota = queryClient.getQueryData<QuotaStats>(["quota"]);
@@ -752,8 +829,12 @@ export function useUploadFileMutation() {
 
       await validateFileSignature(file);
 
+      // Compute SHA-256 hash for deduplication
+      const hash = contentHash || (await computeSHA256(file));
+
       const txId = Math.random().toString(36).substring(7);
-      const totalParts = file.size <= CHUNK_SIZE ? 1 : Math.ceil(file.size / CHUNK_SIZE);
+      const optimalChunkSize = getOptimalChunkSize(file.size);
+      const totalParts = file.size <= optimalChunkSize ? 1 : Math.ceil(file.size / optimalChunkSize);
 
       const newTx: TransferSession = {
         id: txId,
@@ -770,9 +851,9 @@ export function useUploadFileMutation() {
         startedAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
         completedAt: null,
-        chunkSize: file.size <= CHUNK_SIZE ? file.size : CHUNK_SIZE,
+        chunkSize: file.size <= optimalChunkSize ? file.size : optimalChunkSize,
         totalChunks: totalParts,
-        chunks: file.size <= CHUNK_SIZE
+        chunks: file.size <= optimalChunkSize
           ? [{ index: 0, status: "pending", retries: 0 }]
           : Array.from({ length: totalParts }, (_, i) => ({ index: i, status: "pending", retries: 0 })),
         logs: [{ id: Math.random().toString(), timestamp: new Date().toISOString(), level: "info", message: "Upload session initialized." }],
@@ -796,7 +877,7 @@ export function useUploadFileMutation() {
         });
       };
 
-      if (file.size <= CHUNK_SIZE) {
+      if (file.size <= optimalChunkSize) {
         try {
           appendLog("Initiating single-part upload session.");
           const session = await apiClient("/api/v1/files/upload-session", {
@@ -807,11 +888,16 @@ export function useUploadFileMutation() {
               content_type: file.type || "application/octet-stream",
               folder_id: folderId || undefined,
               tags: tags && tags.length > 0 ? tags : undefined,
+              conflict_action: conflictAction,
+              content_hash: hash || undefined,
             }),
             signal: abortController.signal,
           });
 
-          const { file_id, upload_url } = session;
+          const { file_id, upload_url, filename: assignedFilename } = session;
+          if (assignedFilename && assignedFilename !== file.name) {
+            useTransferStore.getState().updateTransfer(txId, { fileName: assignedFilename });
+          }
           useTransferStore.getState().updateTransfer(txId, {
             fileId: file_id,
             chunks: [{ index: 0, status: "uploading", retries: 0 }],
@@ -842,6 +928,7 @@ export function useUploadFileMutation() {
           appendLog("Finalizing metadata handshake with backend.");
           await apiClient(`/api/v1/files/${file_id}/complete`, {
             method: "POST",
+            body: JSON.stringify({ content_hash: hash || undefined }),
             signal: abortController.signal,
           });
 
@@ -879,11 +966,16 @@ export function useUploadFileMutation() {
               content_type: file.type || "application/octet-stream",
               folder_id: folderId || undefined,
               part_count: totalParts,
+              conflict_action: conflictAction,
+              content_hash: hash || undefined,
             }),
             signal: abortController.signal,
           });
 
-          const { file_id, upload_id, part_urls } = session;
+          const { file_id, upload_id, part_urls, filename: assignedFilename } = session;
+          if (assignedFilename && assignedFilename !== file.name) {
+            useTransferStore.getState().updateTransfer(txId, { fileName: assignedFilename });
+          }
           fileId = file_id;
           uploadId = upload_id;
 
@@ -902,8 +994,8 @@ export function useUploadFileMutation() {
           const uploadPromises = part_urls.map(
             async (part: { part_number: number; url: string }) => {
               const idx = part.part_number - 1;
-              const start = idx * CHUNK_SIZE;
-              const end = Math.min(start + CHUNK_SIZE, file.size);
+              const start = idx * optimalChunkSize;
+              const end = Math.min(start + optimalChunkSize, file.size);
               const chunk = file.slice(start, end);
               const chunkSize = end - start;
 
@@ -985,6 +1077,7 @@ export function useUploadFileMutation() {
             body: JSON.stringify({
               upload_id: uploadId,
               parts: completedParts.sort((a, b) => a.part_number - b.part_number),
+              content_hash: hash || undefined,
             }),
             signal: abortController.signal,
           });

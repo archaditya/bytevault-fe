@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { UploadCloud, Copy, Check, Lock, Download, Clock, Loader2, File as FileIcon, X } from "lucide-react";
 import toast from "react-hot-toast";
 import { formatBytes } from "@/lib/utils";
+import { getOptimalChunkSize } from "@/services";
 
 interface EphemeralConfig {
   max_file_size_gb: number;
@@ -181,10 +182,11 @@ export default function InstantUploadPage() {
     setStatusText("Preparing upload...");
 
     try {
-      const isMultipart = file.size > CHUNK_SIZE;
+      const dynamicChunkSize = getOptimalChunkSize(file.size);
+      const isMultipart = file.size > dynamicChunkSize;
 
       if (!isMultipart) {
-        // --- Single Part Upload (<= 5MB) ---
+        // --- Single Part Upload ---
         setStatusText("Creating upload session...");
         const res = await fetch("/api/v1/ephemeral/upload-session", {
           method: "POST",
@@ -222,8 +224,8 @@ export default function InstantUploadPage() {
         setShareUrl(generatedUrl);
         toast.success("Link created");
       } else {
-        // --- Chunked Multipart Upload (> 5MB, up to 2GB) ---
-        const totalParts = Math.ceil(file.size / CHUNK_SIZE);
+        // --- Chunked Multipart Upload (Dynamic Chunk Size up to configured limit) ---
+        const totalParts = Math.ceil(file.size / dynamicChunkSize);
         setStatusText(`Initializing multipart transfer (${totalParts} parts)...`);
 
         const sessionRes = await fetch("/api/v1/ephemeral/multipart-session", {
@@ -264,8 +266,8 @@ export default function InstantUploadPage() {
             const currentIdx = nextPartIdx++;
             const partInfo = part_urls[currentIdx];
             const partNum = partInfo.part_number;
-            const start = (partNum - 1) * CHUNK_SIZE;
-            const end = Math.min(start + CHUNK_SIZE, file.size);
+            const start = (partNum - 1) * dynamicChunkSize;
+            const end = Math.min(start + dynamicChunkSize, file.size);
             const chunkBlob = file.slice(start, end);
             const chunkSize = end - start;
 

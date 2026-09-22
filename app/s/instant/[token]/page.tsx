@@ -29,6 +29,7 @@ import {
   Share2,
   Sparkles,
   ArrowRight,
+  Smartphone,
 } from "lucide-react";
 import { LandingNav } from "@/features/landing/components/landing-nav";
 import { Footer } from "@/features/landing/components/footer";
@@ -59,6 +60,25 @@ export default function InstantSharePage() {
   const [unlockedPreviewUrl, setUnlockedPreviewUrl] = useState<string | null>(null);
   const [textContent, setTextContent] = useState<string | null>(null);
   const [loadingText, setLoadingText] = useState(false);
+  const [mounted, setMounted] = useState(false);
+  const [pageUrl, setPageUrl] = useState("");
+
+  useEffect(() => {
+    setMounted(true);
+    if (typeof window !== "undefined") {
+      setPageUrl(window.location.href);
+    }
+  }, []);
+
+  const deviceInfo = useMemo(() => {
+    if (!mounted || typeof window === "undefined") {
+      return { isAndroid: false, isIOS: false, isMobile: false };
+    }
+    const ua = navigator.userAgent || "";
+    const isAndroid = /Android/i.test(ua);
+    const isIOS = /iPhone|iPad|iPod/i.test(ua);
+    return { isAndroid, isIOS, isMobile: isAndroid || isIOS };
+  }, [mounted]);
 
   useEffect(() => {
     if (!token) {
@@ -97,11 +117,19 @@ export default function InstantSharePage() {
       });
   }, [token]);
 
-  // Derived file attributes
   const safeFilename = share?.filename || "";
   const hasExt = safeFilename.includes(".") && !safeFilename.startsWith(".");
   const ext = hasExt ? safeFilename.split(".").pop()?.toLowerCase() || "" : "";
   const mimeType = (share?.content_type || "").toLowerCase();
+
+  const isAPK = ext === "apk" || mimeType === "application/vnd.android.package-archive";
+  const isIPA = ext === "ipa" || (mimeType === "application/octet-stream" && ext === "ipa");
+  const isAppFile = isAPK || isIPA;
+  const appName = isAPK
+    ? safeFilename.replace(/\.apk$/i, "").replace(/[-_]/g, " ")
+    : isIPA
+      ? safeFilename.replace(/\.ipa$/i, "").replace(/[-_]/g, " ")
+      : safeFilename;
 
   const isTextType = useMemo(() => {
     return (
@@ -203,6 +231,9 @@ export default function InstantSharePage() {
 
   const renderFileIcon = () => {
     const cls = "h-10 w-10 text-accent";
+    if (isAPK || isIPA) {
+      return <Smartphone className="h-10 w-10 text-green-400" />;
+    }
     if (["png", "jpg", "jpeg", "gif", "webp", "svg"].includes(ext) || mimeType.startsWith("image/")) {
       return <ImageIcon className="h-10 w-10 text-blue-400" />;
     }
@@ -389,6 +420,28 @@ export default function InstantSharePage() {
                         {textContent}
                       </pre>
                     )
+                  ) : isAppFile ? (
+                    <div className="flex-1 flex flex-col items-center justify-center p-8 text-center bg-bg-surface">
+                      <div
+                        className={`flex h-20 w-20 items-center justify-center rounded-3xl mb-4 shadow-xl ${
+                          isAPK
+                            ? "bg-green-500/10 text-green-500 border border-green-500/20"
+                            : "bg-blue-500/10 text-blue-500 border border-blue-500/20"
+                        }`}
+                      >
+                        <Smartphone className="h-10 w-10" />
+                      </div>
+                      <h3 className="text-base font-semibold text-ink mb-1 truncate max-w-sm">
+                        {appName}
+                      </h3>
+                      <p className="text-xs text-ink-muted mb-4 font-mono">
+                        {isAPK ? "Android Package (APK)" : "iOS Application (IPA)"} · {formatBytes(share.file_size)}
+                      </p>
+                      <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 mb-6">
+                        <ShieldCheck className="h-3.5 w-3.5" />
+                        Ready to install on verified devices
+                      </div>
+                    </div>
                   ) : (
                     <div className="flex-1 flex flex-col items-center justify-center p-8 text-center bg-bg-surface">
                       <div className="flex h-20 w-20 items-center justify-center rounded-3xl bg-bg-raised border border-border mb-4 shadow-xl">
@@ -443,7 +496,24 @@ export default function InstantSharePage() {
                     )}
                   </div>
 
-                  {/* Passcode Form */}
+                  {/* QR Code for Phone Installation */}
+                  {isAPK && mounted && (
+                    <div className="p-3.5 rounded-xl border border-border bg-white text-center shadow-sm">
+                      <img
+                        src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(
+                          pageUrl || (typeof window !== "undefined" ? window.location.href : "")
+                        )}`}
+                        alt="Scan QR code from phone"
+                        className="w-32 h-32 mx-auto"
+                      />
+                      <p className="text-[11px] text-neutral-800 mt-2 font-semibold flex items-center justify-center gap-1.5">
+                        <Smartphone className="h-3.5 w-3.5 text-emerald-600" />
+                        Scan with Android phone to install
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Passcode Form & Download / Install Buttons */}
                   <form onSubmit={handleDownload} className="space-y-4">
                     {share.has_password && (
                       <div className="space-y-1.5">
@@ -463,22 +533,57 @@ export default function InstantSharePage() {
                       </div>
                     )}
 
-                    <Button
-                      type="submit"
-                      disabled={downloading || left <= 0}
-                      className="w-full text-xs font-semibold h-11 rounded-xl shadow-lg bg-accent hover:bg-accent/90 text-bg shadow-accent/20 transition-all"
-                      size="lg"
-                    >
-                      {downloading ? (
-                        <>
-                          <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Preparing download…
-                        </>
-                      ) : (
-                        <>
-                          <Download className="mr-2 h-4 w-4" /> Download File
-                        </>
-                      )}
-                    </Button>
+                    {isAPK && deviceInfo.isAndroid ? (
+                      <div className="flex flex-col gap-2">
+                        <Button
+                          type="submit"
+                          disabled={downloading || left <= 0}
+                          className="w-full text-xs font-semibold h-11 rounded-xl shadow-lg bg-green-600 hover:bg-green-500 text-white shadow-green-600/20 transition-all"
+                          size="lg"
+                        >
+                          {downloading ? (
+                            <>
+                              <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Preparing install…
+                            </>
+                          ) : (
+                            <>
+                              <Smartphone className="mr-2 h-4 w-4" /> 📲 Install APK on Android
+                            </>
+                          )}
+                        </Button>
+                        <Button
+                          type="button"
+                          onClick={(e) => handleDownload(e)}
+                          disabled={downloading || left <= 0}
+                          variant="outline"
+                          className="w-full text-xs h-9 rounded-xl border-border bg-bg-surface hover:bg-bg-raised text-ink-muted hover:text-ink"
+                        >
+                          <Download className="mr-1.5 h-3.5 w-3.5" /> Download APK File
+                        </Button>
+                      </div>
+                    ) : (
+                      <Button
+                        type="submit"
+                        disabled={downloading || left <= 0}
+                        className="w-full text-xs font-semibold h-11 rounded-xl shadow-lg bg-accent hover:bg-accent/90 text-bg shadow-accent/20 transition-all"
+                        size="lg"
+                      >
+                        {downloading ? (
+                          <>
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Preparing download…
+                          </>
+                        ) : (
+                          <>
+                            <Download className="mr-2 h-4 w-4" />
+                            {isAPK
+                              ? "Download APK Package"
+                              : isIPA
+                                ? "Download IPA Package"
+                                : "Download File"}
+                          </>
+                        )}
+                      </Button>
+                    )}
                   </form>
 
                   {/* Secondary Share Action */}

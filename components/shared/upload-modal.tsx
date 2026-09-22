@@ -13,6 +13,7 @@ import {
   File as FileIcon,
   X,
   AlertCircle,
+  AlertTriangle,
   FileCheck,
   Tag,
 } from "lucide-react";
@@ -29,6 +30,7 @@ import {
   useUploadFileMutation,
   useCreateFolderMutation,
   useQuota,
+  checkFileConflicts,
 } from "@/services";
 import { FolderRecord } from "@/types";
 import { cn, formatBytes } from "@/lib/utils";
@@ -50,6 +52,20 @@ interface QueuedFile {
   file: File;
   status: "idle" | "uploading" | "success" | "error";
   error?: string;
+  conflictAction?: "replace" | "keep_both";
+}
+
+interface ConflictItem {
+  queueId: string;
+  filename: string;
+  newFileSize: number;
+  existingFile: {
+    id: string;
+    filename: string;
+    file_size: number;
+    updated_at: string;
+    created_at: string;
+  };
 }
 
 const MAX_FILE_SIZE_BYTES = 100 * 1024 * 1024; // 100MB
@@ -170,6 +186,10 @@ export function UploadModal({ open, onOpenChange }: UploadModalProps) {
   const [isWindowDragging, setIsWindowDragging] = useState(false);
 
   const dragCounter = useRef(0);
+
+  const [conflictList, setConflictList] = useState<ConflictItem[]>([]);
+  const [showConflictDialog, setShowConflictDialog] = useState(false);
+  const [applyToAll, setApplyToAll] = useState(false);
 
   // Sync folder selection when modal opens or user navigates to a new folder
   useEffect(() => {
@@ -334,22 +354,20 @@ export function UploadModal({ open, onOpenChange }: UploadModalProps) {
     setQueue((prev) => prev.filter((item) => item.id !== id));
   };
 
-  const handleUploadAll = async () => {
-    if (queue.length === 0) return;
+  const startUploading = async (items: QueuedFile[]) => {
     setIsUploading(true);
     let allSuccessful = true;
 
-    // Process files sequentially to avoid rate-limits or concurrency issues
-    for (let i = 0; i < queue.length; i++) {
-      const item = queue[i];
-      if (item.status === "success") continue; // Skip already completed uploads
+    for (let i = 0; i < items.length; i++) {
+      const item = items[i];
+      if (item.status === "success") continue;
 
       setQueue((prev) =>
         prev.map((q) => (q.id === item.id ? { ...q, status: "uploading" } : q)),
       );
 
       try {
-        const tags = queue.length === 1 && tagsInput.trim()
+        const tags = items.length === 1 && tagsInput.trim()
           ? tagsInput.split(",").map((t) => t.trim()).filter(Boolean)
           : undefined;
 
@@ -357,6 +375,7 @@ export function UploadModal({ open, onOpenChange }: UploadModalProps) {
           file: item.file,
           folderId: selectedFolderId,
           tags,
+          conflictAction: item.conflictAction,
         });
 
         setQueue((prev) =>
@@ -378,12 +397,101 @@ export function UploadModal({ open, onOpenChange }: UploadModalProps) {
 
     if (allSuccessful) {
       toast.success("Batch upload complete!");
-      // Automatically close modal after 800ms so user can see success checks
       setTimeout(() => {
         handleOpenChange(false);
       }, 800);
     } else {
       toast.error("Some uploads failed. Please review the errors.");
+    }
+  };
+
+  const handleUploadAll = async () => {
+    if (queue.length === 0) return;
+
+    // Check conflicts for pending items that don't yet have an explicit conflict action
+    const pendingItems = queue.filter(
+      (q) => (q.status === "idle" || q.status === "error") && !q.conflictAction,
+    );
+
+    if (pendingItems.length > 0) {
+      try {
+        const conflicts = await checkFileConflicts(
+          pendingItems.map((q) => q.file.name),
+          selectedFolderId,
+        );
+
+        if (conflicts && conflicts.length > 0) {
+          const conflictItems: ConflictItem[] = conflicts
+            .map((c) => {
+              const matched = pendingItems.find((p) => p.file.name === c.filename);
+              return {
+                queueId: matched?.id || "",
+                filename: c.filename,
+                newFileSize: matched?.file.size || 0,
+                existingFile: c.existing_file,
+              };
+            })
+            .filter((c) => Boolean(c.queueId));
+
+          if (conflictItems.length > 0) {
+            setConflictList(conflictItems);
+            setShowConflictDialog(true);
+            return;
+          }
+        }
+      } catch (err) {
+        console.error("Failed conflict preflight check:", err);
+      }
+    }
+
+    startUploading(queue);
+  };
+
+  const resolveConflict = (
+    action: "replace" | "keep_both" | "skip",
+    shouldApplyAll: boolean,
+  ) => {
+    if (conflictList.length === 0) return;
+    const current = conflictList[0];
+
+    let updatedQueue = [...queue];
+
+    if (action === "skip") {
+      if (shouldApplyAll) {
+        const conflictIds = new Set(conflictList.map((c) => c.queueId));
+        updatedQueue = updatedQueue.filter((q) => !conflictIds.has(q.id));
+        setQueue(updatedQueue);
+        setConflictList([]);
+        setShowConflictDialog(false);
+        if (updatedQueue.length > 0) {
+          startUploading(updatedQueue);
+        }
+        return;
+      } else {
+        updatedQueue = updatedQueue.filter((q) => q.id !== current.queueId);
+        setQueue(updatedQueue);
+      }
+    } else {
+      if (shouldApplyAll) {
+        const conflictIds = new Set(conflictList.map((c) => c.queueId));
+        updatedQueue = updatedQueue.map((q) =>
+          conflictIds.has(q.id) ? { ...q, conflictAction: action } : q,
+        );
+        setQueue(updatedQueue);
+      } else {
+        updatedQueue = updatedQueue.map((q) =>
+          q.id === current.queueId ? { ...q, conflictAction: action } : q,
+        );
+        setQueue(updatedQueue);
+      }
+    }
+
+    if (shouldApplyAll || conflictList.length <= 1) {
+      setConflictList([]);
+      setShowConflictDialog(false);
+      startUploading(updatedQueue);
+    } else {
+      setConflictList((prev) => prev.slice(1));
     }
   };
 
@@ -589,6 +697,16 @@ export function UploadModal({ open, onOpenChange }: UploadModalProps) {
                           </span>
                           <div className="flex items-center gap-2 text-[10px] text-ink-faint font-mono">
                             <span>{formatBytes(item.file.size)}</span>
+                            {item.conflictAction === "replace" && (
+                              <span className="px-1.5 py-0.5 rounded text-[9px] font-semibold bg-amber-500/10 text-amber-400 border border-amber-500/20">
+                                Replace
+                              </span>
+                            )}
+                            {item.conflictAction === "keep_both" && (
+                              <span className="px-1.5 py-0.5 rounded text-[9px] font-semibold bg-blue-500/10 text-blue-400 border border-blue-500/20">
+                                Keep Both
+                              </span>
+                            )}
                             {item.status === "error" && item.error && (
                               <span
                                 className="text-[10px] text-danger font-medium truncate max-w-[220px]"
@@ -710,6 +828,91 @@ export function UploadModal({ open, onOpenChange }: UploadModalProps) {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Duplicate File Conflict Resolution Dialog */}
+      {showConflictDialog && conflictList.length > 0 && (
+        <Dialog open={showConflictDialog} onOpenChange={setShowConflictDialog}>
+          <DialogContent className="max-w-md border-border-strong bg-bg-surface p-6 shadow-2xl">
+            <DialogHeader>
+              <div className="flex items-center gap-3">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-amber-500/10 text-amber-400 border border-amber-500/20">
+                  <AlertTriangle className="h-5 w-5" />
+                </div>
+                <div>
+                  <DialogTitle className="text-base font-bold text-ink">
+                    File Already Exists
+                  </DialogTitle>
+                  <p className="text-xs text-ink-muted mt-0.5">
+                    {conflictList.length > 1
+                      ? `${conflictList.length} files already exist in this destination`
+                      : "A file with this name already exists in this folder"}
+                  </p>
+                </div>
+              </div>
+            </DialogHeader>
+
+            <div className="my-4 space-y-3">
+              <div className="rounded-xl border border-border bg-bg-raised/70 p-3.5 space-y-2 text-xs">
+                <div className="flex items-center justify-between font-mono font-medium text-ink">
+                  <span className="truncate max-w-[220px]" title={conflictList[0].filename}>
+                    {conflictList[0].filename}
+                  </span>
+                  <span className="text-ink-muted">{formatBytes(conflictList[0].newFileSize)}</span>
+                </div>
+                {conflictList[0].existingFile && (
+                  <p className="text-[11px] text-ink-faint">
+                    Existing file was modified on{" "}
+                    {new Date(
+                      conflictList[0].existingFile.updated_at ||
+                        conflictList[0].existingFile.created_at,
+                    ).toLocaleDateString()}
+                  </p>
+                )}
+              </div>
+
+              {conflictList.length > 1 && (
+                <label className="flex items-center gap-2 cursor-pointer text-xs text-ink select-none pt-1">
+                  <input
+                    type="checkbox"
+                    checked={applyToAll}
+                    onChange={(e) => setApplyToAll(e.target.checked)}
+                    className="h-3.5 w-3.5 rounded border-border-strong text-accent focus:ring-0"
+                  />
+                  <span>Apply to all remaining conflicts ({conflictList.length})</span>
+                </label>
+              )}
+            </div>
+
+            <div className="flex flex-col gap-2 pt-2 border-t border-border">
+              <div className="grid grid-cols-2 gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="w-full text-xs h-9 border-border hover:bg-bg-raised"
+                  onClick={() => resolveConflict("replace", applyToAll)}
+                >
+                  Replace File
+                </Button>
+                <Button
+                  type="button"
+                  className="w-full text-xs h-9 bg-accent hover:bg-accent/90 text-bg"
+                  onClick={() => resolveConflict("keep_both", applyToAll)}
+                >
+                  Keep Both (Rename)
+                </Button>
+              </div>
+              <Button
+                type="button"
+                variant="ghost"
+                className="w-full text-xs h-8 text-ink-muted hover:text-ink"
+                onClick={() => resolveConflict("skip", applyToAll)}
+              >
+                Skip This File
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
 
       {isWindowDragging && (
         <div className="fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-bg-surface/85 backdrop-blur-md border-4 border-dashed border-accent m-4 rounded-xl transition-all duration-300 animate-in fade-in pointer-events-none">
