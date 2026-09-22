@@ -147,7 +147,7 @@ export function Sidebar({ mobileOpen, setMobileOpen }: SidebarProps) {
           <ul className="flex flex-col gap-0.5">
             {!isAdmin && (
               <>
-                <li>
+                {/*<li>
                   <Link
                     href="/settings?tab=billing"
                     onClick={handleNavClick}
@@ -161,7 +161,7 @@ export function Sidebar({ mobileOpen, setMobileOpen }: SidebarProps) {
                     <Receipt className="h-[15px] w-[15px] text-accent" strokeWidth={2} />
                     Billing &amp; Invoices
                   </Link>
-                </li>
+                </li>*/}
                 <li>
                   <Link
                     href="/settings"
