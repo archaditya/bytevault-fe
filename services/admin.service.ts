@@ -36,6 +36,7 @@ export interface AdminUser {
 export interface AdminActivityLog {
   id: string;
   user_id: string | null;
+  user_email?: string | null;
   action: string;
   resource_type: string | null;
   resource_id: string | null;
@@ -287,14 +288,17 @@ export function useRoles() {
   });
 }
 
-export function useAdminActivity(page = 1, limit = 20) {
+export function useAdminActivity(page = 1, limit = 20, startDate?: string, endDate?: string) {
   return useQuery<{ logs: AdminActivityLog[]; total: number }>({
-    queryKey: ["admin", "activity", page, limit],
+    queryKey: ["admin", "activity", page, limit, startDate, endDate],
     queryFn: async () => {
-      const data = await apiClient(`/api/v1/admin/activity?page=${page}&limit=${limit}`);
+      const queryParts = [`page=${page}`, `limit=${limit}`];
+      if (startDate) queryParts.push(`start_date=${encodeURIComponent(startDate)}`);
+      if (endDate) queryParts.push(`end_date=${encodeURIComponent(endDate)}`);
+      const data = await apiClient(`/api/v1/admin/activity?${queryParts.join("&")}`);
       return {
         logs: data.logs || [],
-        total: data.pagination?.total || 0,
+        total: data.total ?? data.pagination?.total ?? (data.logs?.length || 0),
       };
     },
   });
@@ -550,5 +554,48 @@ export function useRejectFlaggedFile() {
     },
   });
 }
+
+export interface AdminSettings {
+  max_upload_mb: number;
+  rate_limit_per_hour: number;
+  allow_public_shares: boolean;
+  maintenance_mode: boolean;
+}
+
+export function useAdminSettings() {
+  return useQuery<AdminSettings>({
+    queryKey: ["admin", "settings"],
+    queryFn: async () => {
+      const data = await apiClient("/api/v1/admin/settings");
+      return data;
+    },
+  });
+}
+
+export function useUpdateAdminSettings() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (settings: AdminSettings) => {
+      const token = getAccessToken();
+      const res = await fetch("/api/v1/admin/settings", {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify(settings),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.message || "Failed to update settings");
+      }
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin", "settings"] });
+    },
+  });
+}
+
 
 

@@ -1,21 +1,34 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuthStore } from "@/store";
+import { useAdminSettings, useUpdateAdminSettings } from "@/services";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Settings, Save, AlertTriangle, HelpCircle } from "lucide-react";
+import { Settings, Save, AlertTriangle, Loader2 } from "lucide-react";
 import toast from "react-hot-toast";
 
 export default function AdminSettingsPage() {
   const { user: currentUser } = useAuthStore();
   const isAdmin = currentUser?.role === "super_admin" || currentUser?.role === "admin";
 
+  const { data: settingsData, isLoading: settingsLoading } = useAdminSettings();
+  const updateSettings = useUpdateAdminSettings();
+
   const [maxUploadMB, setMaxUploadMB] = useState(100);
   const [allowPublicShares, setAllowPublicShares] = useState(true);
   const [rateLimitPerHour, setRateLimitPerHour] = useState(1000);
   const [maintenanceMode, setMaintenanceMode] = useState(false);
+
+  useEffect(() => {
+    if (settingsData) {
+      if (typeof settingsData.max_upload_mb === "number") setMaxUploadMB(settingsData.max_upload_mb);
+      if (typeof settingsData.allow_public_shares === "boolean") setAllowPublicShares(settingsData.allow_public_shares);
+      if (typeof settingsData.rate_limit_per_hour === "number") setRateLimitPerHour(settingsData.rate_limit_per_hour);
+      if (typeof settingsData.maintenance_mode === "boolean") setMaintenanceMode(settingsData.maintenance_mode);
+    }
+  }, [settingsData]);
 
   if (!isAdmin) {
     return (
@@ -28,9 +41,19 @@ export default function AdminSettingsPage() {
     );
   }
 
-  const handleSave = (e: React.FormEvent) => {
+  const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
-    toast.success("System configurations updated successfully!");
+    try {
+      await updateSettings.mutateAsync({
+        max_upload_mb: Number(maxUploadMB),
+        rate_limit_per_hour: Number(rateLimitPerHour),
+        allow_public_shares: Boolean(allowPublicShares),
+        maintenance_mode: Boolean(maintenanceMode),
+      });
+      toast.success("System configurations updated successfully!");
+    } catch (err: any) {
+      toast.error(err?.message || "Failed to save settings");
+    }
   };
 
   return (
@@ -133,10 +156,22 @@ export default function AdminSettingsPage() {
           </CardContent>
         </Card>
 
-        <div className="flex justify-end">
-          <Button type="submit" className="gap-2">
-            <Save className="h-4 w-4" />
-            Save Settings
+        <div className="flex items-center justify-between">
+          <span className="text-xs text-ink-muted">
+            {settingsLoading ? "Fetching current settings from database..." : "All changes persist directly to system configuration."}
+          </span>
+          <Button type="submit" disabled={updateSettings.isPending || settingsLoading} className="gap-2">
+            {updateSettings.isPending ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Saving...
+              </>
+            ) : (
+              <>
+                <Save className="h-4 w-4" />
+                Save Settings
+              </>
+            )}
           </Button>
         </div>
       </form>
