@@ -54,6 +54,7 @@ export default function InstantSharePage() {
   const [loading, setLoading] = useState(true);
   const [password, setPassword] = useState("");
   const [downloading, setDownloading] = useState(false);
+  const [downloadStarted, setDownloadStarted] = useState(false);
   const [burned, setBurned] = useState(false);
   const [copied, setCopied] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -202,14 +203,17 @@ export default function InstantSharePage() {
       link.click();
       document.body.removeChild(link);
 
+      setDownloadStarted(true);
       toast.success(isAPK ? "APK Download started" : "Download started");
 
       // Update remaining download count locally
       setShare((prev) => {
         if (!prev) return prev;
         const newCount = prev.download_count + 1;
+        // For mobile APKs, delay transition to give large packages time to download and display installation guidance.
+        const burnDelay = isAPK && deviceInfo.isAndroid ? 60000 : 1500;
         if (newCount >= prev.max_downloads) {
-          setTimeout(() => setBurned(true), 1500);
+          setTimeout(() => setBurned(true), burnDelay);
         }
         return { ...prev, download_count: newCount };
       });
@@ -293,6 +297,20 @@ export default function InstantSharePage() {
             <p className="mx-auto mt-2 mb-6 max-w-sm text-xs leading-relaxed text-ink-muted">
               It has expired or reached its maximum download limit, and the file has been securely deleted.
             </p>
+
+            {downloadStarted && (
+              <div className="mb-6 w-full rounded-xl border border-emerald-500/20 bg-emerald-950/20 p-3 text-xs text-left">
+                <div className="flex items-start gap-2.5">
+                  <Smartphone className="h-4 w-4 text-emerald-400 shrink-0 mt-0.5" />
+                  <div className="space-y-0.5 text-[11px] leading-relaxed text-ink-muted">
+                    <p className="text-ink font-medium">Download in progress</p>
+                    <p className="text-ink-muted">
+                      Your download was initiated. Once the file finishes saving, tap <strong className="text-emerald-400">&quot;Open&quot;</strong> on the browser prompt or pull down your notification drawer to install.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
             <div className="flex w-full flex-col gap-2 border-t border-border pt-6">
               <Button size="lg" asChild className="w-full h-10 rounded-xl">
                 <Link href="/instant">Send your own file</Link>
@@ -522,6 +540,23 @@ export default function InstantSharePage() {
                         </>
                       )}
                     </Button>
+
+                    {/* Android Installation Guidance */}
+                    {isAPK && deviceInfo.isAndroid && (
+                      <div className="rounded-xl border border-emerald-500/20 bg-emerald-950/20 p-3 text-xs text-left">
+                        <div className="flex items-start gap-2.5">
+                          <Smartphone className="h-4 w-4 text-emerald-400 shrink-0 mt-0.5" />
+                          <div className="space-y-0.5 text-[11px] leading-relaxed text-ink-muted">
+                            <p className="text-ink font-medium">
+                              {downloadStarted ? "Download in progress…" : "Installation note"}
+                            </p>
+                            <p className="text-ink-muted">
+                              Once download finishes, tap <strong className="text-emerald-400">&quot;Open&quot;</strong> on the browser prompt or pull down your notification drawer to install.
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    )}
                   </form>
 
                   {/* Downloads Left Progress Box */}
