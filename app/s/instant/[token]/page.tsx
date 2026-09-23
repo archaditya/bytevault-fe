@@ -54,6 +54,7 @@ export default function InstantSharePage() {
   const [loading, setLoading] = useState(true);
   const [password, setPassword] = useState("");
   const [downloading, setDownloading] = useState(false);
+  const [downloadStarted, setDownloadStarted] = useState(false);
   const [burned, setBurned] = useState(false);
   const [copied, setCopied] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -194,21 +195,41 @@ export default function InstantSharePage() {
 
       setUnlockedPreviewUrl(downloadUrl);
 
-      // Trigger browser download via hidden anchor
-      const link = document.createElement("a");
-      link.href = downloadUrl;
-      link.download = share?.filename || "download";
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
+      // Trigger browser download with fallback if direct assignment is blocked
+      try {
+        if (deviceInfo.isAndroid) {
+          window.location.assign(downloadUrl);
+        } else {
+          const link = document.createElement("a");
+          link.href = downloadUrl;
+          link.download = share?.filename || "download";
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+        }
+      } catch {
+        try {
+          const link = document.createElement("a");
+          link.href = downloadUrl;
+          link.download = share?.filename || "download";
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+        } catch {
+          window.open(downloadUrl, "_blank");
+        }
+      }
 
-      toast.success("Download started");
+      setDownloadStarted(true);
+      toast.success(isAPK ? "APK Download started! See instructions below." : "Download started");
 
       // Update remaining download count locally
       setShare((prev) => {
         if (!prev) return prev;
         const newCount = prev.download_count + 1;
-        if (newCount >= prev.max_downloads) {
+        // For non-APK files, show burned screen after 1.5s as before.
+        // For APK files on mobile, keep screen open so user can follow installation instructions!
+        if (newCount >= prev.max_downloads && !isAPK) {
           setTimeout(() => setBurned(true), 1500);
         }
         return { ...prev, download_count: newCount };
@@ -330,7 +351,7 @@ export default function InstantSharePage() {
               {/* Left Side: Rich Preview Area */}
               <div
                 className={cn(
-                  "flex-1 min-w-0 flex flex-col rounded-xl border border-border bg-bg-raised/60 overflow-hidden min-h-[500px] md:min-h-[640px] relative transition-all",
+                  "flex-1 min-w-0 flex flex-col rounded-xl border border-border bg-bg-raised/60 overflow-hidden min-h-[260px] md:min-h-[640px] relative transition-all order-2 md:order-1",
                   isFullscreen && "fixed inset-0 z-50 rounded-none border-none bg-bg-base"
                 )}
               >
@@ -456,65 +477,26 @@ export default function InstantSharePage() {
                 </div>
               </div>
 
-              {/* Right Side: Download & Actions */}
-              <div className="w-full md:w-80 md:flex-shrink-0 flex flex-col justify-between p-2">
-                <div className="space-y-5">
+              {/* Right Side: Download & Actions (order-1 on mobile for instant zero-scroll access) */}
+              <div className="w-full md:w-80 md:flex-shrink-0 flex flex-col justify-between p-2 order-1 md:order-2">
+                <div className="space-y-4 md:space-y-5">
                   {/* File Profile Header */}
                   <div className="text-center md:text-left">
-                    <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-accent/10 border border-accent/20 text-accent text-[11px] font-semibold mb-3">
+                    <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-accent/10 border border-accent/20 text-accent text-[11px] font-semibold mb-2.5">
                       <ShieldCheck className="h-3.5 w-3.5 text-emerald-400" /> Ephemeral Share
                     </div>
-                    <h1 className="text-lg font-bold text-ink break-words line-clamp-2" title={share.filename}>
+                    <h1 className="text-base md:text-lg font-bold text-ink break-words line-clamp-2" title={share.filename}>
                       {share.filename}
                     </h1>
-                    <div className="flex items-center justify-center md:justify-start gap-2 mt-1.5 text-xs text-ink-muted font-mono">
+                    <div className="flex items-center justify-center md:justify-start gap-2 mt-1 text-xs text-ink-muted font-mono">
                       <span>{formatBytes(share.file_size)}</span>
                       <span>•</span>
                       <span className="uppercase">{ext || "FILE"}</span>
                     </div>
                   </div>
 
-                  {/* Downloads Left Progress Box */}
-                  <div className="p-3.5 rounded-xl bg-bg-raised/70 border border-border text-xs space-y-2.5">
-                    <div className="flex items-center justify-between text-[13px]">
-                      <span className="text-ink-muted">Downloads left</span>
-                      <span className="font-mono font-semibold text-ink">
-                        {left} of {share.max_downloads}
-                      </span>
-                    </div>
-                    <div className="h-1.5 overflow-hidden rounded-full bg-bg-overlay">
-                      <div
-                        className="h-full bg-brand-gradient transition-all duration-300"
-                        style={{ width: `${Math.max(8, (left / share.max_downloads) * 100)}%` }}
-                      />
-                    </div>
-                    {left <= 1 && (
-                      <p className="flex items-start gap-1.5 text-[11px] text-amber-400">
-                        <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
-                        This is the last download. The file is deleted right after.
-                      </p>
-                    )}
-                  </div>
-
-                  {/* QR Code for Phone Installation */}
-                  {isAPK && mounted && (
-                    <div className="p-3.5 rounded-xl border border-border bg-white text-center shadow-sm">
-                      <img
-                        src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(
-                          pageUrl || (typeof window !== "undefined" ? window.location.href : "")
-                        )}`}
-                        alt="Scan QR code from phone"
-                        className="w-32 h-32 mx-auto"
-                      />
-                      <p className="text-[11px] text-neutral-800 mt-2 font-semibold flex items-center justify-center gap-1.5">
-                        <Smartphone className="h-3.5 w-3.5 text-emerald-600" />
-                        Scan with Android phone to install
-                      </p>
-                    </div>
-                  )}
-
-                  {/* Passcode Form & Download / Install Buttons */}
-                  <form onSubmit={handleDownload} className="space-y-4">
+                  {/* Passcode Form & Download / Install Buttons - Right at top for mobile */}
+                  <form onSubmit={handleDownload} className="space-y-3 md:space-y-4">
                     {share.has_password && (
                       <div className="space-y-1.5">
                         <Label htmlFor="passcode" className="flex items-center gap-1.5 text-xs text-ink-muted">
@@ -560,6 +542,21 @@ export default function InstantSharePage() {
                         >
                           <Download className="mr-1.5 h-3.5 w-3.5" /> Download APK File
                         </Button>
+
+                        {/* Android Installation Tip */}
+                        <div className="mt-1.5 rounded-xl border border-emerald-500/20 bg-emerald-950/20 p-2.5 text-xs text-left">
+                          <div className="flex items-start gap-2">
+                            <Smartphone className="h-4 w-4 text-emerald-400 shrink-0 mt-0.5" />
+                            <div className="space-y-0.5 text-[11px] leading-relaxed text-ink-muted">
+                              <p className="text-ink font-medium">
+                                Once download finishes, tap <strong className="text-emerald-400">&quot;Open&quot;</strong> on the browser prompt to install.
+                              </p>
+                              <p className="text-[10px] text-ink-faint">
+                                Or open the completed package directly from your notification drawer.
+                              </p>
+                            </div>
+                          </div>
+                        </div>
                       </div>
                     ) : (
                       <Button
@@ -585,6 +582,45 @@ export default function InstantSharePage() {
                       </Button>
                     )}
                   </form>
+
+                  {/* Downloads Left Progress Box */}
+                  <div className="p-3 rounded-xl bg-bg-raised/70 border border-border text-xs space-y-2">
+                    <div className="flex items-center justify-between text-[12px] md:text-[13px]">
+                      <span className="text-ink-muted">Downloads left</span>
+                      <span className="font-mono font-semibold text-ink">
+                        {left} of {share.max_downloads}
+                      </span>
+                    </div>
+                    <div className="h-1.5 overflow-hidden rounded-full bg-bg-overlay">
+                      <div
+                        className="h-full bg-brand-gradient transition-all duration-300"
+                        style={{ width: `${Math.max(8, (left / share.max_downloads) * 100)}%` }}
+                      />
+                    </div>
+                    {left <= 1 && (
+                      <p className="flex items-start gap-1.5 text-[11px] text-amber-400">
+                        <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                        This is the last download. The file is deleted right after.
+                      </p>
+                    )}
+                  </div>
+
+                  {/* QR Code for Phone Installation - Desktop Only */}
+                  {isAPK && mounted && !deviceInfo.isMobile && (
+                    <div className="hidden md:block p-3.5 rounded-xl border border-border bg-white text-center shadow-sm">
+                      <img
+                        src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(
+                          pageUrl || (typeof window !== "undefined" ? window.location.href : "")
+                        )}`}
+                        alt="Scan QR code from phone"
+                        className="w-32 h-32 mx-auto"
+                      />
+                      <p className="text-[11px] text-neutral-800 mt-2 font-semibold flex items-center justify-center gap-1.5">
+                        <Smartphone className="h-3.5 w-3.5 text-emerald-600" />
+                        Scan with Android phone to install
+                      </p>
+                    </div>
+                  )}
 
                   {/* Secondary Share Action */}
                   <Button

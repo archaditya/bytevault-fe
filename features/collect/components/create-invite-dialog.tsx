@@ -26,9 +26,10 @@ const selectClass =
   "focus:outline-none focus-visible:ring-2 focus-visible:ring-accent";
 
 const SIZE_OPTIONS = [
+  { value: "0.25", label: "250 MB" },
+  { value: "0.5", label: "500 MB" },
   { value: "1", label: "1 GB" },
   { value: "2", label: "2 GB" },
-  { value: "5", label: "5 GB" },
 ];
 const FILE_OPTIONS = [
   { value: "10", label: "10 files" },
@@ -50,7 +51,7 @@ export function CreateInviteDialog({
 }) {
   const create = useCreateUploadInvite();
   const [label, setLabel] = useState("");
-  const [sizeGb, setSizeGb] = useState("2");
+  const [sizeGb, setSizeGb] = useState("0.5");
   const [maxFiles, setMaxFiles] = useState("20");
   const [expiryHours, setExpiryHours] = useState("168");
   const [passcode, setPasscode] = useState("");
@@ -59,7 +60,7 @@ export function CreateInviteDialog({
 
   const reset = () => {
     setLabel("");
-    setSizeGb("2");
+    setSizeGb("0.5");
     setMaxFiles("20");
     setExpiryHours("168");
     setPasscode("");

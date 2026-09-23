@@ -58,6 +58,7 @@ export default function PublicSharePage({
   const [pageUrl, setPageUrl] = useState("");
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [downloadStarted, setDownloadStarted] = useState(false);
   const [thumbnailError, setThumbnailError] = useState(false);
 
   useEffect(() => {
@@ -144,8 +145,36 @@ export default function PublicSharePage({
   }, [isTextType, fileUrl]);
 
   const handleDownload = () => {
-    window.open(fileUrl, "_blank");
-    toast.success("Download initiated!");
+    try {
+      if (deviceInfo.isAndroid) {
+        window.location.assign(fileUrl);
+      } else {
+        const win = window.open(fileUrl, "_blank");
+        if (!win) {
+          const link = document.createElement("a");
+          link.href = fileUrl;
+          link.download = metadata?.filename || "download";
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+        }
+      }
+      setDownloadStarted(true);
+      toast.success(isAPK ? "APK Download started! See instructions below." : "Download initiated!");
+    } catch {
+      try {
+        const link = document.createElement("a");
+        link.href = fileUrl;
+        link.download = metadata?.filename || "download";
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        setDownloadStarted(true);
+        toast.success(isAPK ? "APK Download started! See instructions below." : "Download initiated!");
+      } catch {
+        toast.error("Failed to trigger download. Please check browser permissions.");
+      }
+    }
   };
 
   const copyShareLink = () => {
@@ -247,7 +276,7 @@ export default function PublicSharePage({
               {/* Left Side: Rich Preview Area */}
               <div
                 className={cn(
-                  "flex-1 min-w-0 flex flex-col rounded-xl border border-border bg-bg-raised/60 overflow-hidden min-h-[500px] md:min-h-[640px] relative transition-all",
+                  "flex-1 min-w-0 flex flex-col rounded-xl border border-border bg-bg-raised/60 overflow-hidden min-h-[260px] md:min-h-[640px] relative transition-all order-2 md:order-1",
                   isFullscreen && "fixed inset-0 z-50 rounded-none border-none bg-bg-base"
                 )}
               >
@@ -385,51 +414,25 @@ export default function PublicSharePage({
                 </div>
               </div>
 
-              {/* Right Side: Download & File Actions */}
-              <div className="w-full md:w-80 md:flex-shrink-0 flex flex-col justify-between p-2">
-                <div className="space-y-5">
+              {/* Right Side: Download & File Actions (order-1 on mobile for instant zero-scroll access) */}
+              <div className="w-full md:w-80 md:flex-shrink-0 flex flex-col justify-between p-2 order-1 md:order-2">
+                <div className="space-y-4 md:space-y-5">
                   {/* File Profile Header */}
                   <div className="text-center md:text-left">
-                    <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-accent/10 border border-accent/20 text-accent text-[11px] font-semibold mb-3">
+                    <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-accent/10 border border-accent/20 text-accent text-[11px] font-semibold mb-2.5">
                       <ShieldCheck className="h-3.5 w-3.5 text-emerald-400" /> Verified Clean
                     </div>
-                    <h1 className="text-lg font-bold text-ink break-words line-clamp-2" title={metadata.filename}>
+                    <h1 className="text-base md:text-lg font-bold text-ink break-words line-clamp-2" title={metadata.filename}>
                       {metadata.filename}
                     </h1>
-                    <div className="flex items-center justify-center md:justify-start gap-2 mt-1.5 text-xs text-ink-muted font-mono">
+                    <div className="flex items-center justify-center md:justify-start gap-2 mt-1 text-xs text-ink-muted font-mono">
                       <span>{formatBytes(metadata.file_size)}</span>
                       <span>•</span>
                       <span className="uppercase">{ext || "FILE"}</span>
                     </div>
                   </div>
 
-                  {/* Security Engine Guarantee Box */}
-                  <div className="p-3.5 rounded-xl bg-bg-raised/70 border border-border text-xs space-y-2">
-                    <div className="flex items-center gap-2 text-ink">
-                      <ShieldCheck className="h-4 w-4 text-emerald-400 flex-shrink-0" />
-                      <span className="font-semibold text-[11px]">PushPostVault Security Shield</span>
-                    </div>
-                    <p className="text-[11px] text-ink-muted leading-relaxed">
-                      Scanned against malware and injected scripts. Transport secured with TLS 1.3 encryption.
-                    </p>
-                  </div>
-
-                  {/* QR Code for Phone Installation */}
-                  {isAPK && mounted && (
-                    <div className="p-3.5 rounded-xl border border-border bg-white text-center shadow-sm">
-                      <img
-                        src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(pageUrl || (typeof window !== "undefined" ? window.location.href : ""))}`}
-                        alt="Scan QR code from phone"
-                        className="w-32 h-32 mx-auto"
-                      />
-                      <p className="text-[11px] text-neutral-800 mt-2 font-semibold flex items-center justify-center gap-1.5">
-                        <Smartphone className="h-3.5 w-3.5 text-emerald-600" />
-                        Scan with Android phone to install
-                      </p>
-                    </div>
-                  )}
-
-                  {/* Primary Download Button */}
+                  {/* Primary Download Button - Right at top for mobile */}
                   <Button
                     onClick={handleDownload}
                     className={`w-full text-xs font-semibold h-11 rounded-xl shadow-lg transition-all ${isAPK && deviceInfo.isAndroid
@@ -448,6 +451,49 @@ export default function PublicSharePage({
                           : "Download File"
                     }
                   </Button>
+
+                  {/* Android Installation Tip */}
+                  {isAPK && deviceInfo.isAndroid && (
+                    <div className="rounded-xl border border-emerald-500/20 bg-emerald-950/20 p-2.5 text-xs text-left">
+                      <div className="flex items-start gap-2">
+                        <Smartphone className="h-4 w-4 text-emerald-400 shrink-0 mt-0.5" />
+                        <div className="space-y-0.5 text-[11px] leading-relaxed text-ink-muted">
+                          <p className="text-ink font-medium">
+                            Once download finishes, tap <strong className="text-emerald-400">&quot;Open&quot;</strong> on the browser prompt to install.
+                          </p>
+                          <p className="text-[10px] text-ink-faint">
+                            Or open the completed package directly from your notification drawer.
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Security Engine Guarantee Box */}
+                  <div className="p-3 rounded-xl bg-bg-raised/70 border border-border text-xs space-y-1.5">
+                    <div className="flex items-center gap-2 text-ink">
+                      <ShieldCheck className="h-4 w-4 text-emerald-400 flex-shrink-0" />
+                      <span className="font-semibold text-[11px]">PushPostVault Security Shield</span>
+                    </div>
+                    <p className="text-[11px] text-ink-muted leading-relaxed">
+                      Scanned against malware and injected scripts. Transport secured with TLS 1.3 encryption.
+                    </p>
+                  </div>
+
+                  {/* QR Code for Phone Installation - Desktop Only */}
+                  {isAPK && mounted && !deviceInfo.isMobile && (
+                    <div className="hidden md:block p-3.5 rounded-xl border border-border bg-white text-center shadow-sm">
+                      <img
+                        src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(pageUrl || (typeof window !== "undefined" ? window.location.href : ""))}`}
+                        alt="Scan QR code from phone"
+                        className="w-32 h-32 mx-auto"
+                      />
+                      <p className="text-[11px] text-neutral-800 mt-2 font-semibold flex items-center justify-center gap-1.5">
+                        <Smartphone className="h-3.5 w-3.5 text-emerald-600" />
+                        Scan with Android phone to install
+                      </p>
+                    </div>
+                  )}
 
                   {/* Secondary Share Action */}
                   <Button
