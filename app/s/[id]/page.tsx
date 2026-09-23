@@ -58,7 +58,6 @@ export default function PublicSharePage({
   const [pageUrl, setPageUrl] = useState("");
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [copied, setCopied] = useState(false);
-  const [downloadStarted, setDownloadStarted] = useState(false);
   const [thumbnailError, setThumbnailError] = useState(false);
 
   useEffect(() => {
@@ -145,36 +144,13 @@ export default function PublicSharePage({
   }, [isTextType, fileUrl]);
 
   const handleDownload = () => {
-    try {
-      if (deviceInfo.isAndroid) {
-        window.location.assign(fileUrl);
-      } else {
-        const win = window.open(fileUrl, "_blank");
-        if (!win) {
-          const link = document.createElement("a");
-          link.href = fileUrl;
-          link.download = metadata?.filename || "download";
-          document.body.appendChild(link);
-          link.click();
-          document.body.removeChild(link);
-        }
-      }
-      setDownloadStarted(true);
-      toast.success(isAPK ? "APK Download started! See instructions below." : "Download initiated!");
-    } catch {
-      try {
-        const link = document.createElement("a");
-        link.href = fileUrl;
-        link.download = metadata?.filename || "download";
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        setDownloadStarted(true);
-        toast.success(isAPK ? "APK Download started! See instructions below." : "Download initiated!");
-      } catch {
-        toast.error("Failed to trigger download. Please check browser permissions.");
-      }
-    }
+    const link = document.createElement("a");
+    link.href = fileUrl;
+    link.download = metadata?.filename || "download";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    toast.success("Download initiated!");
   };
 
   const copyShareLink = () => {
@@ -443,31 +419,14 @@ export default function PublicSharePage({
                   >
                     <Download className="mr-2 h-4 w-4" />
                     {isAPK && deviceInfo.isAndroid
-                      ? "📲 Install APK on Android"
+                      ? "Download and install APK"
                       : isAPK
-                        ? "Download APK Package"
+                        ? "Download APK"
                         : isIPA
-                          ? "Download IPA Package"
+                          ? "Download IPA"
                           : "Download File"
                     }
                   </Button>
-
-                  {/* Android Installation Tip */}
-                  {isAPK && deviceInfo.isAndroid && (
-                    <div className="rounded-xl border border-emerald-500/20 bg-emerald-950/20 p-2.5 text-xs text-left">
-                      <div className="flex items-start gap-2">
-                        <Smartphone className="h-4 w-4 text-emerald-400 shrink-0 mt-0.5" />
-                        <div className="space-y-0.5 text-[11px] leading-relaxed text-ink-muted">
-                          <p className="text-ink font-medium">
-                            Once download finishes, tap <strong className="text-emerald-400">&quot;Open&quot;</strong> on the browser prompt to install.
-                          </p>
-                          <p className="text-[10px] text-ink-faint">
-                            Or open the completed package directly from your notification drawer.
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                  )}
 
                   {/* Security Engine Guarantee Box */}
                   <div className="p-3 rounded-xl bg-bg-raised/70 border border-border text-xs space-y-1.5">

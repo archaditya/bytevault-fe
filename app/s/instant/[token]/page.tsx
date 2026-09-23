@@ -54,7 +54,6 @@ export default function InstantSharePage() {
   const [loading, setLoading] = useState(true);
   const [password, setPassword] = useState("");
   const [downloading, setDownloading] = useState(false);
-  const [downloadStarted, setDownloadStarted] = useState(false);
   const [burned, setBurned] = useState(false);
   const [copied, setCopied] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -195,41 +194,21 @@ export default function InstantSharePage() {
 
       setUnlockedPreviewUrl(downloadUrl);
 
-      // Trigger browser download with fallback if direct assignment is blocked
-      try {
-        if (deviceInfo.isAndroid) {
-          window.location.assign(downloadUrl);
-        } else {
-          const link = document.createElement("a");
-          link.href = downloadUrl;
-          link.download = share?.filename || "download";
-          document.body.appendChild(link);
-          link.click();
-          document.body.removeChild(link);
-        }
-      } catch {
-        try {
-          const link = document.createElement("a");
-          link.href = downloadUrl;
-          link.download = share?.filename || "download";
-          document.body.appendChild(link);
-          link.click();
-          document.body.removeChild(link);
-        } catch {
-          window.open(downloadUrl, "_blank");
-        }
-      }
+      // Trigger browser download via invisible link
+      const link = document.createElement("a");
+      link.href = downloadUrl;
+      link.download = share?.filename || "download";
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
 
-      setDownloadStarted(true);
-      toast.success(isAPK ? "APK Download started! See instructions below." : "Download started");
+      toast.success(isAPK ? "APK Download started" : "Download started");
 
       // Update remaining download count locally
       setShare((prev) => {
         if (!prev) return prev;
         const newCount = prev.download_count + 1;
-        // For non-APK files, show burned screen after 1.5s as before.
-        // For APK files on mobile, keep screen open so user can follow installation instructions!
-        if (newCount >= prev.max_downloads && !isAPK) {
+        if (newCount >= prev.max_downloads) {
           setTimeout(() => setBurned(true), 1500);
         }
         return { ...prev, download_count: newCount };
@@ -515,72 +494,34 @@ export default function InstantSharePage() {
                       </div>
                     )}
 
-                    {isAPK && deviceInfo.isAndroid ? (
-                      <div className="flex flex-col gap-2">
-                        <Button
-                          type="submit"
-                          disabled={downloading || left <= 0}
-                          className="w-full text-xs font-semibold h-11 rounded-xl shadow-lg bg-green-600 hover:bg-green-500 text-white shadow-green-600/20 transition-all"
-                          size="lg"
-                        >
-                          {downloading ? (
-                            <>
-                              <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Preparing install…
-                            </>
-                          ) : (
-                            <>
-                              <Smartphone className="mr-2 h-4 w-4" /> 📲 Install APK on Android
-                            </>
-                          )}
-                        </Button>
-                        <Button
-                          type="button"
-                          onClick={(e) => handleDownload(e)}
-                          disabled={downloading || left <= 0}
-                          variant="outline"
-                          className="w-full text-xs h-9 rounded-xl border-border bg-bg-surface hover:bg-bg-raised text-ink-muted hover:text-ink"
-                        >
-                          <Download className="mr-1.5 h-3.5 w-3.5" /> Download APK File
-                        </Button>
-
-                        {/* Android Installation Tip */}
-                        <div className="mt-1.5 rounded-xl border border-emerald-500/20 bg-emerald-950/20 p-2.5 text-xs text-left">
-                          <div className="flex items-start gap-2">
-                            <Smartphone className="h-4 w-4 text-emerald-400 shrink-0 mt-0.5" />
-                            <div className="space-y-0.5 text-[11px] leading-relaxed text-ink-muted">
-                              <p className="text-ink font-medium">
-                                Once download finishes, tap <strong className="text-emerald-400">&quot;Open&quot;</strong> on the browser prompt to install.
-                              </p>
-                              <p className="text-[10px] text-ink-faint">
-                                Or open the completed package directly from your notification drawer.
-                              </p>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    ) : (
-                      <Button
-                        type="submit"
-                        disabled={downloading || left <= 0}
-                        className="w-full text-xs font-semibold h-11 rounded-xl shadow-lg bg-accent hover:bg-accent/90 text-bg shadow-accent/20 transition-all"
-                        size="lg"
-                      >
-                        {downloading ? (
-                          <>
-                            <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Preparing download…
-                          </>
-                        ) : (
-                          <>
-                            <Download className="mr-2 h-4 w-4" />
-                            {isAPK
-                              ? "Download APK Package"
-                              : isIPA
-                                ? "Download IPA Package"
-                                : "Download File"}
-                          </>
-                        )}
-                      </Button>
-                    )}
+                    <Button
+                      type="submit"
+                      disabled={downloading || left <= 0}
+                      className={cn(
+                        "w-full text-xs font-semibold h-11 rounded-xl shadow-lg transition-all",
+                        isAPK && deviceInfo.isAndroid
+                          ? "bg-green-600 hover:bg-green-500 text-white shadow-green-600/20"
+                          : "bg-accent hover:bg-accent/90 text-bg shadow-accent/20"
+                      )}
+                      size="lg"
+                    >
+                      {downloading ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Preparing download…
+                        </>
+                      ) : (
+                        <>
+                          <Download className="mr-2 h-4 w-4" />
+                          {isAPK && deviceInfo.isAndroid
+                            ? "Download and install APK"
+                            : isAPK
+                            ? "Download APK"
+                            : isIPA
+                            ? "Download IPA"
+                            : "Download File"}
+                        </>
+                      )}
+                    </Button>
                   </form>
 
                   {/* Downloads Left Progress Box */}
