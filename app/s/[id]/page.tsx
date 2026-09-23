@@ -58,6 +58,7 @@ export default function PublicSharePage({
   const [pageUrl, setPageUrl] = useState("");
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [downloadStarted, setDownloadStarted] = useState(false);
   const [thumbnailError, setThumbnailError] = useState(false);
 
   useEffect(() => {
@@ -150,6 +151,7 @@ export default function PublicSharePage({
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+    setDownloadStarted(true);
     toast.success("Download initiated!");
   };
 
@@ -427,6 +429,23 @@ export default function PublicSharePage({
                           : "Download File"
                     }
                   </Button>
+
+                  {/* Android Installation Guidance */}
+                  {isAPK && deviceInfo.isAndroid && (
+                    <div className="rounded-xl border border-emerald-500/20 bg-emerald-950/20 p-3 text-xs text-left">
+                      <div className="flex items-start gap-2.5">
+                        <Smartphone className="h-4 w-4 text-emerald-400 shrink-0 mt-0.5" />
+                        <div className="space-y-0.5 text-[11px] leading-relaxed text-ink-muted">
+                          <p className="text-ink font-medium">
+                            {downloadStarted ? "Download in progress…" : "Installation note"}
+                          </p>
+                          <p className="text-ink-muted">
+                            Once download finishes, tap <strong className="text-emerald-400">&quot;Open&quot;</strong> on the browser prompt or pull down your notification drawer to install.
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
 
                   {/* Security Engine Guarantee Box */}
                   <div className="p-3 rounded-xl bg-bg-raised/70 border border-border text-xs space-y-1.5">
