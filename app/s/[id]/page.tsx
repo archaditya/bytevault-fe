@@ -145,13 +145,36 @@ export default function PublicSharePage({
   }, [isTextType, fileUrl]);
 
   const handleDownload = () => {
-    if (deviceInfo.isAndroid) {
-      window.location.assign(fileUrl);
-    } else {
-      window.open(fileUrl, "_blank");
+    try {
+      if (deviceInfo.isAndroid) {
+        window.location.assign(fileUrl);
+      } else {
+        const win = window.open(fileUrl, "_blank");
+        if (!win) {
+          const link = document.createElement("a");
+          link.href = fileUrl;
+          link.download = metadata?.filename || "download";
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+        }
+      }
+      setDownloadStarted(true);
+      toast.success(isAPK ? "APK Download started! See instructions below." : "Download initiated!");
+    } catch {
+      try {
+        const link = document.createElement("a");
+        link.href = fileUrl;
+        link.download = metadata?.filename || "download";
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        setDownloadStarted(true);
+        toast.success(isAPK ? "APK Download started! See instructions below." : "Download initiated!");
+      } catch {
+        toast.error("Failed to trigger download. Please check browser permissions.");
+      }
     }
-    setDownloadStarted(true);
-    toast.success(isAPK ? "APK Download started! See instructions below." : "Download initiated!");
   };
 
   const copyShareLink = () => {

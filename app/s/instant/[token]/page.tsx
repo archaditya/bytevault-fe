@@ -195,16 +195,29 @@ export default function InstantSharePage() {
 
       setUnlockedPreviewUrl(downloadUrl);
 
-      // Trigger browser download: on Android, direct assignment triggers native Package download seamlessly
-      if (deviceInfo.isAndroid) {
-        window.location.assign(downloadUrl);
-      } else {
-        const link = document.createElement("a");
-        link.href = downloadUrl;
-        link.download = share?.filename || "download";
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
+      // Trigger browser download with fallback if direct assignment is blocked
+      try {
+        if (deviceInfo.isAndroid) {
+          window.location.assign(downloadUrl);
+        } else {
+          const link = document.createElement("a");
+          link.href = downloadUrl;
+          link.download = share?.filename || "download";
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+        }
+      } catch {
+        try {
+          const link = document.createElement("a");
+          link.href = downloadUrl;
+          link.download = share?.filename || "download";
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+        } catch {
+          window.open(downloadUrl, "_blank");
+        }
       }
 
       setDownloadStarted(true);
