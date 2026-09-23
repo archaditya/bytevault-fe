@@ -61,8 +61,8 @@ export const currentUser: User = {
 };
 
 export const apiKeys: ApiKey[] = [
-  { id: "key_1", label: "Production CI", prefix: "bv_live_7k2p", createdAt: daysAgo(180), lastUsedAt: daysAgo(0, 2, rand), scopes: ["transfer:write", "files:read"] },
-  { id: "key_2", label: "Local development", prefix: "bv_test_9a3x", createdAt: daysAgo(95), lastUsedAt: daysAgo(1, 5, rand), scopes: ["transfer:write", "files:read", "files:delete"] },
-  { id: "key_3", label: "Analytics export job", prefix: "bv_live_4m8q", createdAt: daysAgo(260), lastUsedAt: daysAgo(7, 0, rand), scopes: ["analytics:read"] },
-  { id: "key_4", label: "Mobile app (staging)", prefix: "bv_test_1z6v", createdAt: daysAgo(40), lastUsedAt: null, scopes: ["transfer:write"] },
+  { id: "key_1", label: "Production CI", prefix: "ppv_live_7k2p", createdAt: daysAgo(180), lastUsedAt: daysAgo(0, 2, rand), scopes: ["transfer:write", "files:read"] },
+  { id: "key_2", label: "Local development", prefix: "ppv_test_9a3x", createdAt: daysAgo(95), lastUsedAt: daysAgo(1, 5, rand), scopes: ["transfer:write", "files:read", "files:delete"] },
+  { id: "key_3", label: "Analytics export job", prefix: "ppv_live_4m8q", createdAt: daysAgo(260), lastUsedAt: daysAgo(7, 0, rand), scopes: ["analytics:read"] },
+  { id: "key_4", label: "Mobile app (staging)", prefix: "ppv_test_1z6v", createdAt: daysAgo(40), lastUsedAt: null, scopes: ["transfer:write"] },
 ];
