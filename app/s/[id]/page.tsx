@@ -23,6 +23,7 @@ import {
   Video,
   Music,
   ArrowRight,
+  Folder,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { LandingNav } from "@/features/landing/components/landing-nav";
@@ -37,6 +38,8 @@ interface FileMetadata {
   created_at: string;
   has_thumbnail?: boolean;
   thumbnail_url?: string;
+  folder_id?: string;
+  folder_name?: string;
 }
 
 export default function PublicSharePage({
@@ -86,13 +89,24 @@ export default function PublicSharePage({
   // Fetch metadata on component mount
   useEffect(() => {
     fetch(metadataUrl)
-      .then((res) => {
+      .then(async (res) => {
         if (!res.ok) {
+          // Check if this ID is a shared public folder instead
+          try {
+            const folderRes = await fetch(`/api/v1/folders/public/${id}`);
+            if (folderRes.ok) {
+              window.location.replace(`/s/folder/${id}`);
+              return null;
+            }
+          } catch {
+            // Ignore fallback error
+          }
           throw new Error("Shared file not found or access has been restricted");
         }
         return res.json();
       })
       .then((resJson) => {
+        if (!resJson) return;
         if (resJson.status === "success" && resJson.data) {
           setMetadata(resJson.data);
         } else {
@@ -105,7 +119,7 @@ export default function PublicSharePage({
       .finally(() => {
         setIsLoading(false);
       });
-  }, [metadataUrl]);
+  }, [metadataUrl, id]);
 
   // Determine if it's a text-based/code preview
   const contentType = metadata?.content_type?.toLowerCase() || "";
@@ -232,10 +246,23 @@ export default function PublicSharePage({
         {!isLoading && !error && metadata && (
           <div className="w-full max-w-6xl space-y-4">
             {/* Top Eyebrow Breadcrumb Bar */}
-            <div className="flex items-center justify-between px-2 text-xs">
+            <div className="flex flex-wrap items-center justify-between gap-2 px-2 text-xs">
               <div className="flex items-center gap-2 text-ink-muted">
                 <span className="flex h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
                 <span className="font-semibold text-ink">PushPostVault Secure Share</span>
+                {metadata.folder_id && metadata.folder_name && (
+                  <>
+                    <span>•</span>
+                    <Link
+                      href={`/s/folder/${metadata.folder_id}`}
+                      className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md border border-accent/30 bg-accent/10 text-accent-bright hover:bg-accent/20 transition-colors font-medium text-xs"
+                    >
+                      <Folder className="h-3 w-3" />
+                      <span>Folder: {metadata.folder_name}</span>
+                      <ArrowRight className="h-3 w-3" />
+                    </Link>
+                  </>
+                )}
                 <span>•</span>
                 <span className="font-mono text-ink-muted">End-to-End Encrypted</span>
               </div>
