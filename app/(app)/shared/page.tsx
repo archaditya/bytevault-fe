@@ -48,7 +48,7 @@ export default function SharedLinksPage() {
     passwordProtected: false,
     downloadLimit: null,
     downloadCount: 0,
-    views: 0,
+    views: f.views || 0,
     active: true,
   }));
 

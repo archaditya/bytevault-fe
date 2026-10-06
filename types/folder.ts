@@ -4,6 +4,7 @@ export interface FolderRecord {
   name: string;
   parent_id?: string | null;
   is_public?: boolean;
+  views?: number;
   created_at: string;
   updated_at: string;
 }

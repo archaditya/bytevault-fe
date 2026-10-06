@@ -672,8 +672,8 @@ export function useToggleFolderShareMutation(currentParentId?: string | null) {
       });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["folders", currentParentId] });
-      queryClient.invalidateQueries({ queryKey: ["folders", "flat"] });
+      queryClient.invalidateQueries({ queryKey: ["folders"] });
+      queryClient.invalidateQueries({ queryKey: ["files"] });
     },
   });
 }
