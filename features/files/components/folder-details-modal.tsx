@@ -41,10 +41,30 @@ export function FolderDetailsModal({
   const shareUrl = `${origin}/s/folder/${folder.id}`;
 
   const handleCopyLink = () => {
-    navigator.clipboard?.writeText(shareUrl);
-    setCopied(true);
-    toast.success("Folder share link copied to clipboard!");
-    setTimeout(() => setCopied(false), 2000);
+    if (navigator?.clipboard?.writeText) {
+      navigator.clipboard
+        .writeText(shareUrl)
+        .then(() => {
+          setCopied(true);
+          toast.success("Folder share link copied to clipboard!");
+          setTimeout(() => setCopied(false), 2000);
+        })
+        .catch(() => toast.error("Could not copy link to clipboard"));
+    } else {
+      try {
+        const textArea = document.createElement("textarea");
+        textArea.value = shareUrl;
+        document.body.appendChild(textArea);
+        textArea.select();
+        document.execCommand("copy");
+        document.body.removeChild(textArea);
+        setCopied(true);
+        toast.success("Folder share link copied to clipboard!");
+        setTimeout(() => setCopied(false), 2000);
+      } catch {
+        toast.error("Clipboard access denied");
+      }
+    }
   };
 
   const handleToggleShare = () => {

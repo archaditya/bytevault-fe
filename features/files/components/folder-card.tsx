@@ -96,8 +96,24 @@ export function FolderCard({ folder }: { folder: FolderRecord }) {
 
   const handleCopyLink = () => {
     const shareUrl = `${window.location.origin}/s/folder/${folder.id}`;
-    navigator.clipboard?.writeText(shareUrl);
-    toast.success("Folder share link copied to clipboard!");
+    if (navigator?.clipboard?.writeText) {
+      navigator.clipboard
+        .writeText(shareUrl)
+        .then(() => toast.success("Folder share link copied to clipboard!"))
+        .catch(() => toast.error("Could not copy link to clipboard"));
+    } else {
+      try {
+        const textArea = document.createElement("textarea");
+        textArea.value = shareUrl;
+        document.body.appendChild(textArea);
+        textArea.select();
+        document.execCommand("copy");
+        document.body.removeChild(textArea);
+        toast.success("Folder share link copied to clipboard!");
+      } catch {
+        toast.error("Clipboard access denied");
+      }
+    }
   };
 
   const handleToggleShare = () => {
