@@ -1,10 +1,26 @@
 "use client";
 
-import { Folder, MoreVertical, Edit2, Move, Trash2, Share2, Link2 } from "lucide-react";
+import {
+  Folder,
+  MoreVertical,
+  Edit2,
+  Move,
+  Trash2,
+  Share2,
+  Globe,
+  Copy,
+  ExternalLink,
+  Info,
+  Lock,
+} from "lucide-react";
 import { FolderRecord } from "@/types";
 import { Card } from "@/components/ui/card";
 import { useFilesStore } from "@/store/files.store";
-import { useDeleteFolderMutation, useRenameFolderMutation, useToggleFolderShareMutation } from "@/services";
+import {
+  useDeleteFolderMutation,
+  useRenameFolderMutation,
+  useToggleFolderShareMutation,
+} from "@/services";
 import { cn } from "@/lib/utils";
 import toast from "react-hot-toast";
 import {
@@ -16,6 +32,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useState, useRef, useEffect } from "react";
 import { MoveItemModal } from "./move-item-modal";
+import { FolderDetailsModal } from "./folder-details-modal";
 
 export function FolderCard({ folder }: { folder: FolderRecord }) {
   const { pushFolder, selectedItems, toggleSelectItem } = useFilesStore();
@@ -24,6 +41,7 @@ export function FolderCard({ folder }: { folder: FolderRecord }) {
   const toggleShareMutation = useToggleFolderShareMutation(folder.parent_id);
 
   const [isMoveModalOpen, setIsMoveModalOpen] = useState(false);
+  const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
 
   const isSelected = selectedItems.some((item) => item.id === folder.id);
 
@@ -76,6 +94,28 @@ export function FolderCard({ folder }: { folder: FolderRecord }) {
     }
   };
 
+  const handleCopyLink = () => {
+    const shareUrl = `${window.location.origin}/s/folder/${folder.id}`;
+    if (navigator?.clipboard?.writeText) {
+      navigator.clipboard
+        .writeText(shareUrl)
+        .then(() => toast.success("Folder share link copied to clipboard!"))
+        .catch(() => toast.error("Could not copy link to clipboard"));
+    } else {
+      try {
+        const textArea = document.createElement("textarea");
+        textArea.value = shareUrl;
+        document.body.appendChild(textArea);
+        textArea.select();
+        document.execCommand("copy");
+        document.body.removeChild(textArea);
+        toast.success("Folder share link copied to clipboard!");
+      } catch {
+        toast.error("Clipboard access denied");
+      }
+    }
+  };
+
   const handleToggleShare = () => {
     const newState = !folder.is_public;
     toggleShareMutation.mutate(
@@ -83,12 +123,13 @@ export function FolderCard({ folder }: { folder: FolderRecord }) {
       {
         onSuccess: () => {
           if (newState) {
-            const shareUrl = `${window.location.origin}/s/folder/${folder.id}`;
-            navigator.clipboard?.writeText(shareUrl).catch(() => {});
-            toast.success("Folder shared! Link copied to clipboard.");
+            handleCopyLink();
           } else {
             toast.success("Folder is now private.");
           }
+        },
+        onError: () => {
+          toast.error("Failed to update folder sharing settings.");
         },
       }
     );
@@ -128,7 +169,22 @@ export function FolderCard({ folder }: { folder: FolderRecord }) {
         </div>
 
         <div className="flex flex-col gap-3 pt-2">
-          <Folder className="h-8 w-8 text-accent-bright" />
+          <div className="flex items-center justify-between">
+            <Folder className="h-8 w-8 text-accent-bright" />
+            {folder.is_public && (
+              <span
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleCopyLink();
+                }}
+                className="inline-flex items-center gap-1 rounded-full bg-accent/15 px-2 py-0.5 text-[10px] font-medium text-accent-bright border border-accent/25 hover:bg-accent/25 transition-colors cursor-pointer"
+                title="Public shared folder. Click to copy share link."
+              >
+                <Globe className="h-2.5 w-2.5" />
+                <span>Shared</span>
+              </span>
+            )}
+          </div>
           <div>
             <p className="truncate text-[13px] font-semibold text-ink" title={folder.name}>
               {folder.name}
@@ -150,18 +206,40 @@ export function FolderCard({ folder }: { folder: FolderRecord }) {
                 <MoreVertical className="h-3.5 w-3.5" />
               </button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="bg-bg-surface border-border-strong">
+            <DropdownMenuContent align="end" className="bg-bg-surface border-border-strong w-48">
               <DropdownMenuItem onClick={handleRename} className="cursor-pointer hover:bg-bg-overlay">
                 <Edit2 className="h-3.5 w-3.5 mr-2" /> Rename
               </DropdownMenuItem>
               <DropdownMenuItem onClick={() => setIsMoveModalOpen(true)} className="cursor-pointer hover:bg-bg-overlay">
                 <Move className="h-3.5 w-3.5 mr-2" /> Move
               </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setIsDetailsModalOpen(true)} className="cursor-pointer hover:bg-bg-overlay">
+                <Info className="h-3.5 w-3.5 mr-2 text-accent-bright" /> Details & Share
+              </DropdownMenuItem>
+
+              {folder.is_public && (
+                <>
+                  <DropdownMenuItem onClick={handleCopyLink} className="cursor-pointer hover:bg-bg-overlay">
+                    <Copy className="h-3.5 w-3.5 mr-2 text-accent-bright" /> Copy Share Link
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild className="cursor-pointer hover:bg-bg-overlay">
+                    <a
+                      href={`/s/folder/${folder.id}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center w-full"
+                    >
+                      <ExternalLink className="h-3.5 w-3.5 mr-2 text-ink-muted" /> Open Shared View
+                    </a>
+                  </DropdownMenuItem>
+                </>
+              )}
+
               <DropdownMenuItem onClick={handleToggleShare} className="cursor-pointer hover:bg-bg-overlay">
                 {folder.is_public ? (
-                  <><Link2 className="h-3.5 w-3.5 mr-2" /> Make Private</>
+                  <><Lock className="h-3.5 w-3.5 mr-2 text-danger" /> Make Private</>
                 ) : (
-                  <><Share2 className="h-3.5 w-3.5 mr-2" /> Share Link</>
+                  <><Share2 className="h-3.5 w-3.5 mr-2 text-accent" /> Share Link</>
                 )}
               </DropdownMenuItem>
               <DropdownMenuSeparator className="bg-border-strong" />
@@ -179,6 +257,14 @@ export function FolderCard({ folder }: { folder: FolderRecord }) {
           itemType="folder"
           currentParentId={folder.parent_id}
           onClose={() => setIsMoveModalOpen(false)}
+        />
+      )}
+
+      {isDetailsModalOpen && (
+        <FolderDetailsModal
+          folder={folder}
+          isOpen={isDetailsModalOpen}
+          onClose={() => setIsDetailsModalOpen(false)}
         />
       )}
     </>

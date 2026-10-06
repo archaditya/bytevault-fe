@@ -57,10 +57,17 @@ export function ShareLinkCard({ link }: { link: SharedLink }) {
           <span>{link.views} views</span>
           <span>{link.downloadCount} downloads</span>
         </div>
-        <Button size="sm" variant="secondary" onClick={handleCopy}>
-          {copied ? <Check className="h-3.5 w-3.5 text-success" /> : <Copy className="h-3.5 w-3.5" />}
-          {copied ? "Copied" : "Copy link"}
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button size="sm" variant="ghost" asChild className="h-8 px-2 text-xs text-ink-muted hover:text-ink">
+            <a href={link.url} target="_blank" rel="noopener noreferrer" title="Open share link">
+              Open ↗
+            </a>
+          </Button>
+          <Button size="sm" variant="secondary" onClick={handleCopy} className="h-8">
+            {copied ? <Check className="h-3.5 w-3.5 text-success" /> : <Copy className="h-3.5 w-3.5" />}
+            {copied ? "Copied" : "Copy link"}
+          </Button>
+        </div>
       </div>
     </Card>
   );
