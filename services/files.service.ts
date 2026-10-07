@@ -500,15 +500,26 @@ export function useFileImageBlob(fileId: string, enabled: boolean = true) {
   return useQuery({
     queryKey: ["file-thumbnail-blob", fileId],
     queryFn: async () => {
-      const res = await apiClient(`/api/v1/files/${fileId}/thumbnail`, {
-        headers: { Accept: "image/*" },
-      });
-      return res.url || `/api/v1/files/${fileId}/thumbnail`;
+      const token = getAccessToken();
+      const headers: Record<string, string> = { Accept: "image/*" };
+      if (token) {
+        headers["Authorization"] = `Bearer ${token}`;
+      }
+      let res = await fetch(`/api/v1/files/${fileId}/thumbnail`, { headers });
+      if (!res.ok) {
+        // Fallback to raw endpoint if thumbnail is still generating
+        res = await fetch(`/api/v1/files/raw/${fileId}`, { headers });
+        if (!res.ok) {
+          throw new Error("Thumbnail not available");
+        }
+      }
+      const blob = await res.blob();
+      return URL.createObjectURL(blob);
     },
     enabled: enabled && !!fileId,
     staleTime: 5 * 60 * 1000,
-    retry: (failureCount) => failureCount < 3, // Retry up to 3 times while background worker generates thumbnail
-    retryDelay: 2000,                          // Wait 2s between retries
+    retry: 1,
+    retryDelay: 1500,
   });
 }
 

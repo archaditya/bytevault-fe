@@ -14,6 +14,7 @@ import { FileRecord } from "@/types";
 import { Card } from "@/components/ui/card";
 import { FileKindIcon } from "@/components/shared/file-kind-icon";
 import { formatBytes, formatRelativeTime, cn } from "@/lib/utils";
+import { RichFilePreview } from "./rich-file-preview";
 import {
   useDeleteFileMutation,
   useToggleShareMutation,
@@ -262,20 +263,7 @@ export function FileCard({ file }: { file: FileRecord }) {
               onError={() => setImgError(true)}
             />
           ) : (
-            <div className="flex flex-col items-center justify-center gap-2 p-4 text-center select-none">
-              <div
-                className="flex h-12 w-12 items-center justify-center rounded-2xl shadow-inner transition-transform group-hover:scale-110 duration-200"
-                style={{
-                  backgroundColor: `${file.thumbnailColor}22`,
-                  color: file.thumbnailColor,
-                }}
-              >
-                <FileKindIcon kind={file.kind} className="h-6 w-6" />
-              </div>
-              <span className="text-[11px] font-mono text-ink-faint uppercase">
-                {file.mimeType?.split("/")[1] || file.kind}
-              </span>
-            </div>
+            <RichFilePreview file={file} />
           )}
         </div>
 
