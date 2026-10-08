@@ -21,17 +21,21 @@ import {
   ExternalLink,
   Maximize2,
   Minimize2,
+  Move,
 } from "lucide-react";
 import {
   useFile,
   useFileHistory,
   useDeleteFileMutation,
   useToggleShareMutation,
+  useFoldersFlat,
 } from "@/services";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { FileKindIcon } from "@/components/shared/file-kind-icon";
+import { RichFilePreview } from "@/features/files/components/rich-file-preview";
+import { MoveItemModal } from "@/features/files/components/move-item-modal";
 import {
   cn,
   formatBytes,
@@ -66,11 +70,18 @@ export default function FileDetailsPage({
   }, []);
 
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [isMoveOpen, setIsMoveOpen] = useState(false);
   const [textContent, setTextContent] = useState<string | null>(null);
   const [loadingText, setLoadingText] = useState(false);
 
   const { data: file, isLoading } = useFile(id);
   const { data: history = [] } = useFileHistory(id);
+  const { data: allFolders } = useFoldersFlat();
+
+  const parentFolder = useMemo(() => {
+    if (!file?.folderId || !allFolders) return null;
+    return allFolders.find((f) => f.id === file.folderId) || null;
+  }, [file?.folderId, allFolders]);
 
   const deleteMutation = useDeleteFileMutation();
   const toggleShareMutation = useToggleShareMutation();
@@ -207,14 +218,18 @@ export default function FileDetailsPage({
           <Home className="h-3.5 w-3.5" />
           <span>Home</span>
         </Link>
-        <ChevronRight className="h-3.5 w-3.5 text-ink-faint shrink-0" />
-        <Link
-          href="/files"
-          className="flex items-center gap-1.5 px-2 py-1 rounded-lg text-ink-muted hover:text-ink hover:bg-bg-raised font-medium transition-colors shrink-0"
-        >
-          <Folder className="h-3.5 w-3.5 text-ink-faint" />
-          <span>Files</span>
-        </Link>
+        {parentFolder && (
+          <>
+            <ChevronRight className="h-3.5 w-3.5 text-ink-faint shrink-0" />
+            <Link
+              href="/files"
+              className="flex items-center gap-1.5 px-2 py-1 rounded-lg text-accent-bright bg-accent/10 border border-accent/20 hover:bg-accent/20 font-medium transition-colors shrink-0"
+            >
+              <Folder className="h-3.5 w-3.5 text-accent" />
+              <span>{parentFolder.name}</span>
+            </Link>
+          </>
+        )}
         <ChevronRight className="h-3.5 w-3.5 text-ink-faint shrink-0" />
         <span className="flex items-center gap-1.5 px-2 py-1 rounded-lg bg-accent/15 text-accent-bright font-semibold border border-accent/30 truncate max-w-[200px] sm:max-w-[300px]">
           {file.name}
@@ -258,6 +273,13 @@ export default function FileDetailsPage({
           >
             <Globe className="h-3.5 w-3.5" />{" "}
             {file.shared ? "Make Private" : "Share"}
+          </Button>
+          <Button
+            size="sm"
+            variant="secondary"
+            onClick={() => setIsMoveOpen(true)}
+          >
+            <Move className="h-3.5 w-3.5" /> Move
           </Button>
           <Button size="sm" onClick={handleDownload}>
             <Download className="h-3.5 w-3.5" /> Download
@@ -348,12 +370,18 @@ export default function FileDetailsPage({
                   </pre>
                 )
               ) : (
-                <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 text-ink-muted">
-                  <FileKindIcon kind={file.kind} className="h-16 w-16 opacity-30" />
-                  <p className="text-sm">Preview not available for this file type</p>
-                  <Button size="sm" variant="secondary" onClick={handleDownload}>
-                    <Download className="h-3.5 w-3.5" /> Download to view
-                  </Button>
+                <div className="absolute inset-0 flex flex-col items-center justify-center p-6 bg-bg-surface overflow-hidden">
+                  <div className="w-full max-w-sm h-64 rounded-2xl overflow-hidden border border-border shadow-xl">
+                    <RichFilePreview file={file} />
+                  </div>
+                  <div className="mt-4 flex items-center gap-2">
+                    <Button size="sm" variant="primary" onClick={handleDownload}>
+                      <Download className="h-3.5 w-3.5" /> Download ({formatBytes(file.sizeBytes)})
+                    </Button>
+                    <Button size="sm" variant="secondary" onClick={() => setIsMoveOpen(true)}>
+                      <Move className="h-3.5 w-3.5" /> Move
+                    </Button>
+                  </div>
                 </div>
               )
             ) : (
@@ -472,6 +500,17 @@ export default function FileDetailsPage({
             ))}
           </CardContent>
         </Card>
+      )}
+      {isMoveOpen && (
+        <MoveItemModal
+          itemId={file.id}
+          itemType="file"
+          currentParentId={file.folderId}
+          onClose={() => {
+            setIsMoveOpen(false);
+            queryClient.invalidateQueries({ queryKey: ["files"] });
+          }}
+        />
       )}
     </div>
   );
