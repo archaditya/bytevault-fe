@@ -1,10 +1,12 @@
 "use client";
 
 import { useState, useRef, useMemo, useEffect, useCallback } from "react";
+import { usePathname } from "next/navigation";
 import {
   Folder,
   FolderOpen,
   FolderPlus,
+  Home,
   ChevronRight,
   ChevronDown,
   Upload,
@@ -163,6 +165,7 @@ function FolderTreeItem({
 }
 
 export function UploadModal({ open, onOpenChange }: UploadModalProps) {
+  const pathname = usePathname();
   const currentFolderId = useFilesStore((s) => s.currentFolderId);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { data: allFolders, isLoading: foldersLoading } = useFoldersFlat();
@@ -174,7 +177,7 @@ export function UploadModal({ open, onOpenChange }: UploadModalProps) {
   const maxFileSizeBytes = quota?.max_file_size_bytes || 100 * 1024 * 1024;
   const maxFileSizeMb = Math.round(maxFileSizeBytes / (1024 * 1024));
 
-  const [selectedFolderId, setSelectedFolderId] = useState<string | null>(currentFolderId);
+  const [selectedFolderId, setSelectedFolderId] = useState<string | null>(null);
   const [isCreatingFolder, setIsCreatingFolder] = useState(false);
   const [newFolderName, setNewFolderName] = useState("");
 
@@ -191,12 +194,21 @@ export function UploadModal({ open, onOpenChange }: UploadModalProps) {
   const [showConflictDialog, setShowConflictDialog] = useState(false);
   const [applyToAll, setApplyToAll] = useState(false);
 
-  // Sync folder selection when modal opens or user navigates to a new folder
+  // Sync folder selection: only inherit currentFolderId if user is actively in /files
   useEffect(() => {
     if (open) {
-      setSelectedFolderId(currentFolderId);
+      if (pathname === "/files" && currentFolderId) {
+        setSelectedFolderId(currentFolderId);
+      } else {
+        setSelectedFolderId(null);
+      }
     }
-  }, [open, currentFolderId]);
+  }, [open, currentFolderId, pathname]);
+
+  const selectedFolder = useMemo(() => {
+    if (!selectedFolderId || !allFolders) return null;
+    return allFolders.find((f) => f.id === selectedFolderId) || null;
+  }, [selectedFolderId, allFolders]);
 
   const folderTree = useMemo(() => {
     if (!allFolders) return [];
@@ -636,6 +648,35 @@ export function UploadModal({ open, onOpenChange }: UploadModalProps) {
                 >
                   <FolderPlus className="h-3 w-3" />
                   New Folder
+                </button>
+              )}
+            </div>
+
+            {/* Explicit Upload Target Banner */}
+            <div className="flex items-center justify-between px-3 py-2 rounded-lg bg-bg-raised border border-border text-xs">
+              <div className="flex items-center gap-2 min-w-0">
+                <span className="text-ink-muted shrink-0">Upload target:</span>
+                <span className="font-semibold text-accent-bright flex items-center gap-1.5 truncate">
+                  {selectedFolder ? (
+                    <>
+                      <Folder className="h-3.5 w-3.5 text-accent shrink-0" />
+                      <span className="truncate">{selectedFolder.name}</span>
+                    </>
+                  ) : (
+                    <>
+                      <Home className="h-3.5 w-3.5 text-accent shrink-0" />
+                      <span>Home (All Files)</span>
+                    </>
+                  )}
+                </span>
+              </div>
+              {selectedFolder && (
+                <button
+                  type="button"
+                  onClick={handleSelectRoot}
+                  className="text-[11px] text-accent hover:text-accent-bright font-medium underline shrink-0 ml-2 cursor-pointer"
+                >
+                  Upload to Home instead
                 </button>
               )}
             </div>

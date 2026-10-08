@@ -9,12 +9,14 @@ import {
   Pencil,
   Check,
   ExternalLink,
+  Move,
 } from "lucide-react";
 import { FileRecord } from "@/types";
 import { Card } from "@/components/ui/card";
 import { FileKindIcon } from "@/components/shared/file-kind-icon";
 import { formatBytes, formatRelativeTime, cn } from "@/lib/utils";
 import { RichFilePreview } from "./rich-file-preview";
+import { MoveItemModal } from "./move-item-modal";
 import {
   useDeleteFileMutation,
   useToggleShareMutation,
@@ -49,6 +51,7 @@ export function FileCard({ file }: { file: FileRecord }) {
   const toggleSelectItem = useFilesStore((s) => s.toggleSelectItem);
 
   const [isRenameOpen, setIsRenameOpen] = useState(false);
+  const [isMoveOpen, setIsMoveOpen] = useState(false);
   const [newFileName, setNewFileName] = useState(file.name);
 
   const isVisualMedia =
@@ -224,6 +227,13 @@ export function FileCard({ file }: { file: FileRecord }) {
                   <Pencil className="h-3.5 w-3.5" />
                   Rename
                 </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={() => setIsMoveOpen(true)}
+                  className="gap-2 text-xs"
+                >
+                  <Move className="h-3.5 w-3.5" />
+                  Move to Folder
+                </DropdownMenuItem>
                 <DropdownMenuItem onClick={handleDownload} className="gap-2 text-xs">
                   <Download className="h-3.5 w-3.5" />
                   Download
@@ -332,6 +342,14 @@ export function FileCard({ file }: { file: FileRecord }) {
             </form>
           </DialogContent>
         </Dialog>
+      )}
+      {isMoveOpen && (
+        <MoveItemModal
+          itemId={file.id}
+          itemType="file"
+          currentParentId={file.folderId}
+          onClose={() => setIsMoveOpen(false)}
+        />
       )}
     </>
   );

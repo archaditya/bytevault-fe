@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Star, Share2, Pencil, Trash2 } from "lucide-react";
+import { Star, Share2, Pencil, Trash2, Move } from "lucide-react";
 import { FileRecord } from "@/types";
 import { FileKindIcon } from "@/components/shared/file-kind-icon";
 import { formatBytes, formatRelativeTime } from "@/lib/utils";
@@ -10,6 +10,7 @@ import { useDeleteFileMutation, useRenameFileMutation } from "@/services";
 import { cn } from "@/lib/utils";
 import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { MoveItemModal } from "./move-item-modal";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import toast from "react-hot-toast";
@@ -21,6 +22,7 @@ export function FileListRow({ file }: { file: FileRecord }) {
   const renameMutation = useRenameFileMutation();
 
   const [isRenameOpen, setIsRenameOpen] = useState(false);
+  const [isMoveOpen, setIsMoveOpen] = useState(false);
   const [newFileName, setNewFileName] = useState(file.name);
 
   const isSelected = selectedItems.some((item) => item.id === file.id);
@@ -107,6 +109,17 @@ export function FileListRow({ file }: { file: FileRecord }) {
             <Pencil className="h-3.5 w-3.5" />
           </button>
           <button
+            onClick={(e) => {
+              e.stopPropagation();
+              e.preventDefault();
+              setIsMoveOpen(true);
+            }}
+            className="p-1 text-ink-muted hover:text-ink transition-colors opacity-0 group-hover:opacity-100 rounded"
+            title="Move to Folder"
+          >
+            <Move className="h-3.5 w-3.5" />
+          </button>
+          <button
             onClick={handleDelete}
             className="p-1 text-ink-muted hover:text-danger transition-colors opacity-0 group-hover:opacity-100 rounded"
             title="Delete"
@@ -143,6 +156,14 @@ export function FileListRow({ file }: { file: FileRecord }) {
             </form>
           </DialogContent>
         </Dialog>
+      )}
+      {isMoveOpen && (
+        <MoveItemModal
+          itemId={file.id}
+          itemType="file"
+          currentParentId={file.folderId}
+          onClose={() => setIsMoveOpen(false)}
+        />
       )}
     </>
   );
