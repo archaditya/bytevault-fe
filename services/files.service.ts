@@ -57,8 +57,8 @@ export function cancelUpload(txId: string) {
   if (active) {
     active.abortController.abort();
     activeUploadsRegistry.delete(txId);
+    useTransferStore.getState().updateTransfer(txId, { status: "failed" });
   }
-  useTransferStore.getState().updateTransfer(txId, { status: "failed" });
 }
 
 function uploadChunkViaXhr(

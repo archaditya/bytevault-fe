@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowUp, ArrowDown, RotateCcw, Play, Pause, ExternalLink, Loader2 } from "lucide-react";
+import { ArrowUp, ArrowDown, RotateCcw, Play, Pause, ExternalLink, Loader2, X } from "lucide-react";
 import { TransferSession } from "@/types";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -10,7 +10,8 @@ import { TransferStatusBadge } from "@/components/shared/status-badge";
 import { TransferProgress } from "@/components/shared/transfer-progress";
 import { ChunkVisualizer } from "@/components/shared/chunk-visualizer";
 import { formatRelativeTime, cn } from "@/lib/utils";
-import { pauseUpload, resumeUpload, resolveFileForTransfer } from "@/services";
+import { pauseUpload, resumeUpload, resolveFileForTransfer, cancelUpload } from "@/services";
+import { useTransferStore } from "@/store";
 import { PipelineStatusDialog } from "./pipeline-status-dialog";
 
 export function TransferCard({ transfer }: { transfer: TransferSession }) {
@@ -120,6 +121,22 @@ export function TransferCard({ transfer }: { transfer: TransferSession }) {
                 </Button>
               )}
               <TransferStatusBadge status={transfer.status} />
+              <Button
+                size="icon"
+                variant="ghost"
+                title="Remove from history"
+                className="h-7 w-7 text-ink-muted hover:text-danger hover:bg-bg-overlay shrink-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  if (transfer.status === "active" || transfer.status === "paused") {
+                    cancelUpload(transfer.id);
+                  }
+                  useTransferStore.getState().removeTransfer(transfer.id);
+                }}
+              >
+                <X className="h-3.5 w-3.5" />
+              </Button>
             </div>
           </div>
 
