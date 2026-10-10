@@ -52,6 +52,68 @@ export function pauseUpload(txId: string) {
   useTransferStore.getState().updateTransfer(txId, { status: "paused" });
 }
 
+export function cancelUpload(txId: string) {
+  const active = activeUploadsRegistry.get(txId);
+  if (active) {
+    active.abortController.abort();
+    activeUploadsRegistry.delete(txId);
+    useTransferStore.getState().updateTransfer(txId, { status: "failed" });
+  }
+}
+
+function uploadChunkViaXhr(
+  url: string,
+  body: Blob,
+  contentType: string,
+  signal: AbortSignal,
+  onProgress?: (loadedBytes: number) => void
+): Promise<string> {
+  return new Promise((resolve, reject) => {
+    if (signal.aborted) {
+      return reject(new DOMException("Aborted", "AbortError"));
+    }
+    const xhr = new XMLHttpRequest();
+    const onAbort = () => {
+      xhr.abort();
+      reject(new DOMException("Aborted", "AbortError"));
+    };
+    signal.addEventListener("abort", onAbort, { once: true });
+
+    xhr.open("PUT", url, true);
+    xhr.setRequestHeader("Content-Type", contentType);
+
+    if (onProgress) {
+      xhr.upload.onprogress = (e) => {
+        if (e.lengthComputable) {
+          onProgress(e.loaded);
+        }
+      };
+    }
+
+    xhr.onload = () => {
+      signal.removeEventListener("abort", onAbort);
+      if (xhr.status >= 200 && xhr.status < 300) {
+        const rawEtag = xhr.getResponseHeader("ETag") || xhr.getResponseHeader("etag") || "";
+        resolve(rawEtag.replace(/"/g, ""));
+      } else {
+        reject(new Error(`Chunk upload failed with status ${xhr.status}`));
+      }
+    };
+
+    xhr.onerror = () => {
+      signal.removeEventListener("abort", onAbort);
+      reject(new Error("Network transmission error during chunk upload."));
+    };
+
+    xhr.ontimeout = () => {
+      signal.removeEventListener("abort", onAbort);
+      reject(new Error("Chunk upload timed out."));
+    };
+
+    xhr.send(body);
+  });
+}
+
 export async function resumeUpload(txId: string, file?: File) {
   const store = useTransferStore.getState();
   const tx = store.transfers.find((t) => t.id === txId);
@@ -235,23 +297,12 @@ export async function resumeUpload(txId: string, file?: File) {
       }
 
       const startTime = Date.now();
-      const uploadResponse = await fetch(part.url, {
-        method: "PUT",
-        headers: {
-          "Content-Type": fileObj.type || "application/octet-stream",
-        },
-        body: chunk,
-        signal: abortController.signal,
-      });
-
-      if (!uploadResponse.ok) {
-        throw new Error(`Failed to upload part ${part.part_number}`);
-      }
-
-      const etag = uploadResponse.headers.get("ETag")?.replace(/"/g, "") || "";
-      if (!etag) {
-        throw new Error(`Missing ETag for part ${part.part_number}`);
-      }
+      const etag = await uploadChunkViaXhr(
+        part.url,
+        chunk,
+        fileObj.type || "application/octet-stream",
+        abortController.signal
+      );
 
       const durationSec = (Date.now() - startTime) / 1000 || 1;
       const speed = chunkSize / durationSec;
@@ -484,6 +535,30 @@ export function useFile(id: string) {
     },
     enabled: !!id,
   });
+}
+
+export async function resolveFileForTransfer(transfer: TransferSession): Promise<FileRecord | null> {
+  if (transfer.fileId) {
+    try {
+      const data = await apiClient(`/api/v1/files/${transfer.fileId}`);
+      if (data?.file) return mapBackendFileToFrontend(data.file);
+    } catch {
+      // fallback to query by name
+    }
+  }
+
+  try {
+    const data = await apiClient(`/api/v1/files?q=${encodeURIComponent(transfer.fileName)}`);
+    const files = Array.isArray(data?.files) ? data.files.map(mapBackendFileToFrontend) : [];
+    const matched = files.find((f: FileRecord) => f.name === transfer.fileName);
+    if (matched) {
+      useTransferStore.getState().updateTransfer(transfer.id, { fileId: matched.id });
+      return matched;
+    }
+  } catch (e) {
+    console.error("Failed to resolve file for transfer", e);
+  }
+  return null;
 }
 
 export function useFileHistory(id: string) {
@@ -816,12 +891,14 @@ export function useUploadFileMutation() {
       tags,
       conflictAction,
       contentHash,
+      customTxId,
     }: {
       file: File;
       folderId?: string | null;
       tags?: string[];
       conflictAction?: "replace" | "keep_both";
       contentHash?: string;
+      customTxId?: string;
     }) => {
       // Dynamically fetch quota limits from query cache, fallback to default limit (100MB)
       const quota = queryClient.getQueryData<QuotaStats>(["quota"]);
@@ -843,7 +920,7 @@ export function useUploadFileMutation() {
       // Compute SHA-256 hash for deduplication
       const hash = contentHash || (await computeSHA256(file));
 
-      const txId = Math.random().toString(36).substring(7);
+      const txId = customTxId || Math.random().toString(36).substring(7);
       const optimalChunkSize = getOptimalChunkSize(file.size);
       const totalParts = file.size <= optimalChunkSize ? 1 : Math.ceil(file.size / optimalChunkSize);
 
@@ -916,18 +993,21 @@ export function useUploadFileMutation() {
 
           appendLog("Uploading file payload directly to storage provider.");
           const startTime = Date.now();
-          const uploadResponse = await fetch(upload_url, {
-            method: "PUT",
-            headers: {
-              "Content-Type": file.type || "application/octet-stream",
-            },
-            body: file,
-            signal: abortController.signal,
-          });
-
-          if (!uploadResponse.ok) {
-            throw new Error(`Direct upload failed! Status: ${uploadResponse.status}`);
-          }
+          await uploadChunkViaXhr(
+            upload_url,
+            file,
+            file.type || "application/octet-stream",
+            abortController.signal,
+            (loaded) => {
+              const durationSec = (Date.now() - startTime) / 1000 || 0.1;
+              const speed = loaded / durationSec;
+              useTransferStore.getState().updateTransfer(txId, {
+                transferredBytes: Math.min(loaded, file.size),
+                speedBytesPerSecond: speed,
+                etaSeconds: speed > 0 ? Math.ceil((file.size - loaded) / speed) : null,
+              });
+            }
+          );
 
           const durationSec = (Date.now() - startTime) / 1000 || 1;
           const speed = file.size / durationSec;
@@ -999,7 +1079,7 @@ export function useUploadFileMutation() {
           appendLog("Handshake complete. Dispatching parallel upload workers.");
 
           const speedHistory: { t: number; bytesPerSecond: number }[] = [];
-          let currentTransferredBytes = 0;
+          const partLoadedBytes = new Map<number, number>();
           const etags: string[] = [];
 
           const uploadPromises = part_urls.map(
@@ -1018,28 +1098,39 @@ export function useUploadFileMutation() {
               }
 
               const startTime = Date.now();
-              const uploadResponse = await fetch(part.url, {
-                method: "PUT",
-                headers: {
-                  "Content-Type": file.type || "application/octet-stream",
-                },
-                body: chunk,
-                signal: abortController.signal,
-              });
+              const etag = await uploadChunkViaXhr(
+                part.url,
+                chunk,
+                file.type || "application/octet-stream",
+                abortController.signal,
+                (loaded) => {
+                  partLoadedBytes.set(idx, loaded);
+                  let currentTotal = 0;
+                  for (const bytes of partLoadedBytes.values()) {
+                    currentTotal += bytes;
+                  }
+                  const durationSec = (Date.now() - startTime) / 1000 || 0.1;
+                  const speed = loaded / durationSec;
+                  useTransferStore.getState().updateTransfer(txId, {
+                    transferredBytes: Math.min(currentTotal, file.size),
+                    speedBytesPerSecond: speed,
+                  });
+                }
+              );
 
-              if (!uploadResponse.ok) {
-                throw new Error(`Failed to upload part ${part.part_number}: Status ${uploadResponse.status}`);
-              }
-
-              const etag = uploadResponse.headers.get("ETag")?.replace(/"/g, "") || "";
               if (!etag) {
                 throw new Error(`Did not receive ETag header for part ${part.part_number}`);
+              }
+
+              partLoadedBytes.set(idx, chunkSize);
+              let currentTransferred = 0;
+              for (const bytes of partLoadedBytes.values()) {
+                currentTransferred += bytes;
               }
 
               const durationSec = (Date.now() - startTime) / 1000 || 1;
               const speed = chunkSize / durationSec;
 
-              currentTransferredBytes += chunkSize;
               const txLatest = useTransferStore.getState().transfers.find((t) => t.id === txId);
               if (txLatest) {
                 const currentChunks = [...txLatest.chunks];
@@ -1051,13 +1142,13 @@ export function useUploadFileMutation() {
                 speedHistory.push({ t: lastT + 1, bytesPerSecond: speed });
 
                 const avgSpeed = speedHistory.reduce((acc, curr) => acc + curr.bytesPerSecond, 0) / speedHistory.length;
-                const remainingBytes = file.size - currentTransferredBytes;
+                const remainingBytes = file.size - currentTransferred;
                 const eta = avgSpeed > 0 ? Math.ceil(remainingBytes / avgSpeed) : null;
 
                 useTransferStore.getState().updateTransfer(txId, {
                   chunks: currentChunks,
                   etags,
-                  transferredBytes: Math.min(currentTransferredBytes, file.size),
+                  transferredBytes: Math.min(currentTransferred, file.size),
                   speedBytesPerSecond: avgSpeed,
                   speedHistory: speedHistory.slice(-30),
                   etaSeconds: eta,

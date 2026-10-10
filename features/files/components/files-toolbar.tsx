@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, useRouter } from "next/navigation";
 import {
   Grid3x3,
   List,
@@ -57,6 +57,7 @@ export function FilesToolbar() {
     setKindFilter,
   } = useFilesStore();
   const createFolderMutation = useCreateFolderMutation(currentFolderId);
+  const router = useRouter();
 
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [newFolderName, setNewFolderName] = useState("");
@@ -188,15 +189,14 @@ export function FilesToolbar() {
 
         <Button
           size="sm"
-          onClick={() => setIsUploadModalOpen(true)}
-          disabled={uploadMutation.isPending}
+          onClick={() =>
+            router.push(
+              currentFolderId ? `/transfers?folderId=${currentFolderId}` : "/transfers"
+            )
+          }
         >
-          {uploadMutation.isPending ? (
-            <Loader2 className="h-3.5 w-3.5 animate-spin" />
-          ) : (
-            <Upload className="h-3.5 w-3.5" />
-          )}
-          {uploadMutation.isPending ? "Uploading..." : "Upload"}
+          <Upload className="h-3.5 w-3.5 mr-1" />
+          Upload
         </Button>
       </div>
 
