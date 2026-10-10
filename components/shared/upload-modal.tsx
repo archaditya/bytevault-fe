@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useRef, useMemo, useEffect, useCallback } from "react";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
+import Link from "next/link";
 import {
   Folder,
   FolderOpen,
@@ -18,6 +19,7 @@ import {
   AlertTriangle,
   FileCheck,
   Tag,
+  ExternalLink,
 } from "lucide-react";
 import {
   Dialog,
@@ -33,10 +35,12 @@ import {
   useCreateFolderMutation,
   useQuota,
   checkFileConflicts,
+  cancelUpload,
 } from "@/services";
 import { FolderRecord } from "@/types";
 import { cn, formatBytes } from "@/lib/utils";
 import { useFilesStore } from "@/store/files.store";
+import { useTransferStore } from "@/store";
 import toast from "react-hot-toast";
 
 interface UploadModalProps {
@@ -166,6 +170,8 @@ function FolderTreeItem({
 
 export function UploadModal({ open, onOpenChange }: UploadModalProps) {
   const pathname = usePathname();
+  const router = useRouter();
+  const transfers = useTransferStore((s) => s.transfers);
   const currentFolderId = useFilesStore((s) => s.currentFolderId);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { data: allFolders, isLoading: foldersLoading } = useFoldersFlat();
@@ -183,6 +189,11 @@ export function UploadModal({ open, onOpenChange }: UploadModalProps) {
 
   // Files Queue State
   const [queue, setQueue] = useState<QueuedFile[]>([]);
+  const queueRef = useRef(queue);
+  useEffect(() => {
+    queueRef.current = queue;
+  }, [queue]);
+
   const [tagsInput, setTagsInput] = useState("");
   const [isDragging, setIsDragging] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
@@ -280,19 +291,32 @@ export function UploadModal({ open, onOpenChange }: UploadModalProps) {
   };
 
   const addFilesToQueue = useCallback((files: File[]) => {
-    const validFiles: QueuedFile[] = [];
     let oversizedCount = 0;
+    let duplicateCount = 0;
 
-    files.forEach((file) => {
-      if (file.size > maxFileSizeBytes) {
-        oversizedCount++;
-        return;
-      }
-      validFiles.push({
-        id: Math.random().toString(36).substring(7),
-        file,
-        status: "idle",
+    setQueue((prev) => {
+      const existingKeys = new Set(prev.map((q) => `${q.file.name}_${q.file.size}`));
+      const validFiles: QueuedFile[] = [];
+
+      files.forEach((file) => {
+        if (file.size > maxFileSizeBytes) {
+          oversizedCount++;
+          return;
+        }
+        const key = `${file.name}_${file.size}`;
+        if (existingKeys.has(key)) {
+          duplicateCount++;
+          return;
+        }
+        existingKeys.add(key);
+        validFiles.push({
+          id: Math.random().toString(36).substring(7),
+          file,
+          status: "idle",
+        });
       });
+
+      return [...prev, ...validFiles];
     });
 
     if (oversizedCount > 0) {
@@ -300,8 +324,11 @@ export function UploadModal({ open, onOpenChange }: UploadModalProps) {
         `${oversizedCount} file(s) exceeded the ${maxFileSizeMb}MB limit and were skipped.`,
       );
     }
-
-    setQueue((prev) => [...prev, ...validFiles]);
+    if (duplicateCount > 0) {
+      toast.error(
+        `${duplicateCount} duplicate file(s) already in queue were skipped.`,
+      );
+    }
   }, [maxFileSizeBytes, maxFileSizeMb]);
 
   // Global window drag and drop listener
@@ -363,7 +390,15 @@ export function UploadModal({ open, onOpenChange }: UploadModalProps) {
   }, [onOpenChange, addFilesToQueue]);
 
   const removeFileFromQueue = (id: string) => {
+    const item = queue.find((q) => q.id === id);
+    if (item?.status === "uploading") {
+      cancelUpload(id);
+    }
     setQueue((prev) => prev.filter((item) => item.id !== id));
+  };
+
+  const clearFailedFromQueue = () => {
+    setQueue((prev) => prev.filter((item) => item.status !== "error"));
   };
 
   const startUploading = async (items: QueuedFile[]) => {
@@ -373,6 +408,9 @@ export function UploadModal({ open, onOpenChange }: UploadModalProps) {
     for (let i = 0; i < items.length; i++) {
       const item = items[i];
       if (item.status === "success") continue;
+
+      // Skip if file was removed from queue while another file was uploading
+      if (!queueRef.current.some((q) => q.id === item.id)) continue;
 
       setQueue((prev) =>
         prev.map((q) => (q.id === item.id ? { ...q, status: "uploading" } : q)),
@@ -388,12 +426,16 @@ export function UploadModal({ open, onOpenChange }: UploadModalProps) {
           folderId: selectedFolderId,
           tags,
           conflictAction: item.conflictAction,
+          customTxId: item.id,
         });
 
         setQueue((prev) =>
           prev.map((q) => (q.id === item.id ? { ...q, status: "success" } : q)),
         );
       } catch (err: any) {
+        if (err.name === "AbortError") {
+          continue;
+        }
         allSuccessful = false;
         setQueue((prev) =>
           prev.map((q) =>
@@ -533,8 +575,16 @@ export function UploadModal({ open, onOpenChange }: UploadModalProps) {
     <>
       <Dialog open={open} onOpenChange={handleOpenChange}>
         <DialogContent className="sm:max-w-lg bg-bg-surface border-border-strong text-ink font-sans flex flex-col max-h-[90vh]">
-          <DialogHeader>
+          <DialogHeader className="flex flex-row items-center justify-between space-y-0 pb-1">
             <DialogTitle>Upload Files</DialogTitle>
+            <Link
+              href="/transfers"
+              onClick={() => handleOpenChange(false)}
+              className="text-[12px] font-medium text-accent hover:text-accent-bright hover:underline flex items-center gap-1 shrink-0 mr-4"
+            >
+              <span>Transfers</span>
+              <ExternalLink className="h-3 w-3" />
+            </Link>
           </DialogHeader>
 
           <input
@@ -713,107 +763,144 @@ export function UploadModal({ open, onOpenChange }: UploadModalProps) {
             {/* File Queue List */}
             {queue.length > 0 && (
               <div className="flex flex-col gap-1.5">
-                <span className="text-xs font-semibold text-ink-muted">
-                  Queue ({queue.length} files)
-                </span>
-                <div className="flex flex-col gap-1 max-h-48 overflow-y-auto border border-border rounded-md p-1 bg-bg-surface">
-                  {queue.map((item) => (
-                    <div
-                      key={item.id}
-                      className="flex items-center justify-between p-1.5 rounded-sm bg-bg-raised/50 border border-border/50 text-[12px]"
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-semibold text-ink-muted">
+                    Queue ({queue.length} {queue.length === 1 ? "file" : "files"})
+                  </span>
+                  {queue.some((item) => item.status === "error") && (
+                    <button
+                      type="button"
+                      onClick={clearFailedFromQueue}
+                      className="text-[11px] font-medium text-danger hover:underline cursor-pointer"
                     >
-                      <div className="flex items-center gap-2 min-w-0 flex-1">
-                        <FileIcon
-                          className={cn(
-                            "h-4 w-4 flex-shrink-0",
-                            item.status === "error" && "text-danger",
-                          )}
-                        />
-                        <div className="flex flex-col min-w-0 flex-1">
-                          <span
-                            className="font-semibold text-ink truncate"
-                            title={item.file.name}
-                          >
-                            {item.file.name}
-                          </span>
-                          <div className="flex items-center gap-2 text-[10px] text-ink-faint font-mono">
-                            <span>{formatBytes(item.file.size)}</span>
-                            {item.conflictAction === "replace" && (
-                              <span className="px-1.5 py-0.5 rounded text-[9px] font-semibold bg-amber-500/10 text-amber-400 border border-amber-500/20">
-                                Replace
-                              </span>
-                            )}
-                            {item.conflictAction === "keep_both" && (
-                              <span className="px-1.5 py-0.5 rounded text-[9px] font-semibold bg-blue-500/10 text-blue-400 border border-blue-500/20">
-                                Keep Both
-                              </span>
-                            )}
-                            {item.status === "error" && item.error && (
+                      Clear Failed
+                    </button>
+                  )}
+                </div>
+                <div className="flex flex-col gap-1.5 max-h-56 overflow-y-auto border border-border rounded-md p-1.5 bg-bg-surface">
+                  {queue.map((item) => {
+                    const activeTx = transfers.find((t) => t.id === item.id);
+                    const transferred = activeTx?.transferredBytes || 0;
+                    const total = item.file.size || activeTx?.sizeBytes || 1;
+                    const percent = Math.min(100, Math.max(0, Math.round((transferred / total) * 100)));
+                    const speed = activeTx?.speedBytesPerSecond || 0;
+                    const totalChunks = activeTx?.totalChunks || 1;
+                    const completedChunks = activeTx?.chunks?.filter((c) => c.status === "complete").length || 0;
+
+                    return (
+                      <div
+                        key={item.id}
+                        className={cn(
+                          "flex flex-col p-2 rounded-md border text-[12px] transition-colors",
+                          item.status === "uploading"
+                            ? "bg-bg-raised border-accent/40 shadow-sm"
+                            : item.status === "error"
+                            ? "bg-danger/5 border-danger/30"
+                            : item.status === "success"
+                            ? "bg-success/5 border-success/30"
+                            : "bg-bg-raised/50 border-border/50",
+                        )}
+                      >
+                        <div className="flex items-center justify-between gap-2 min-w-0">
+                          <div className="flex items-center gap-2 min-w-0 flex-1">
+                            <FileIcon
+                              className={cn(
+                                "h-4 w-4 flex-shrink-0",
+                                item.status === "uploading" && "text-accent",
+                                item.status === "error" && "text-danger",
+                                item.status === "success" && "text-success",
+                                item.status === "idle" && "text-ink-faint",
+                              )}
+                            />
+                            <div className="flex flex-col min-w-0 flex-1">
                               <span
-                                className="text-[10px] text-danger font-medium truncate max-w-[220px]"
-                                title={item.error}
+                                className="font-semibold text-ink truncate"
+                                title={item.file.name}
                               >
-                                • {item.error}
+                                {item.file.name}
                               </span>
+                              <div className="flex items-center gap-2 text-[10px] text-ink-faint font-mono">
+                                <span>{formatBytes(item.file.size)}</span>
+                                {item.conflictAction === "replace" && (
+                                  <span className="px-1.5 py-0.5 rounded text-[9px] font-semibold bg-amber-500/10 text-amber-400 border border-amber-500/20">
+                                    Replace
+                                  </span>
+                                )}
+                                {item.conflictAction === "keep_both" && (
+                                  <span className="px-1.5 py-0.5 rounded text-[9px] font-semibold bg-blue-500/10 text-blue-400 border border-blue-500/20">
+                                    Keep Both
+                                  </span>
+                                )}
+                                {item.status === "error" && item.error && (
+                                  <span
+                                    className="text-[10px] text-danger font-medium truncate max-w-[200px]"
+                                    title={item.error}
+                                  >
+                                    • {item.error}
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="flex items-center gap-1.5 ml-2 shrink-0">
+                            {item.status === "uploading" && (
+                              <div className="flex items-center gap-1.5">
+                                <span className="font-mono text-[11px] font-semibold text-accent">
+                                  {percent}%
+                                </span>
+                                <Loader2 className="h-3.5 w-3.5 text-accent animate-spin" />
+                              </div>
                             )}
+                            {item.status === "success" && (
+                              <div className="flex items-center gap-1 text-success">
+                                <FileCheck className="h-3.5 w-3.5" />
+                                <span className="text-[10px] font-medium">Done</span>
+                              </div>
+                            )}
+                            {item.status === "error" && (
+                              <div className="flex items-center gap-1 text-danger font-semibold">
+                                <AlertCircle className="h-3.5 w-3.5" />
+                                <span className="text-[10px]">Failed</span>
+                              </div>
+                            )}
+
+                            {/* Always working X button to remove or abort item */}
+                            <button
+                              type="button"
+                              onClick={() => removeFileFromQueue(item.id)}
+                              className="text-ink-faint hover:text-danger hover:bg-bg-overlay p-1 rounded transition-colors ml-1"
+                              title={item.status === "uploading" ? "Cancel upload" : "Remove file"}
+                              aria-label="Remove file from queue"
+                            >
+                              <X className="h-3.5 w-3.5" />
+                            </button>
                           </div>
                         </div>
-                      </div>
 
-                      <div className="flex items-center gap-2 ml-4">
+                        {/* Chunked Live Progress Bar for uploading item */}
                         {item.status === "uploading" && (
-                          <Loader2 className="h-3.5 w-3.5 text-accent animate-spin" />
-                        )}
-                        {item.status === "success" && (
-                          <div className="flex items-center gap-1.5">
-                            <FileCheck className="h-3.5 w-3.5 text-success" />
-                            {!isUploading && (
-                              <button
-                                type="button"
-                                onClick={() => removeFileFromQueue(item.id)}
-                                className="text-ink-faint hover:text-danger p-0.5 rounded transition-colors ml-1"
-                                aria-label="Remove completed file"
-                              >
-                                <X className="h-3.5 w-3.5" />
-                              </button>
-                            )}
-                          </div>
-                        )}
-                        {item.status === "error" && (
-                          <div className="flex items-center gap-1.5">
-                            <div
-                              className="flex items-center gap-1 text-danger font-semibold"
-                              title={item.error}
-                            >
-                              <AlertCircle className="h-3.5 w-3.5" />
-                              <span className="text-[10px]">Failed</span>
+                          <div className="mt-2 space-y-1.5 pt-1.5 border-t border-border/40">
+                            <div className="flex items-center justify-between text-[11px] font-mono text-ink-muted">
+                              <span className="truncate">
+                                {formatBytes(transferred)} / {formatBytes(total)}
+                                {totalChunks > 1 && ` · Part ${completedChunks + 1} of ${totalChunks}`}
+                              </span>
+                              <span className="shrink-0 text-accent font-semibold ml-2">
+                                {speed > 0 ? `${formatBytes(speed)}/s` : `${percent}%`}
+                              </span>
                             </div>
-                            {!isUploading && (
-                              <button
-                                type="button"
-                                onClick={() => removeFileFromQueue(item.id)}
-                                className="text-ink-faint hover:text-danger p-0.5 rounded transition-colors"
-                                aria-label="Remove failed file"
-                              >
-                                <X className="h-3.5 w-3.5" />
-                              </button>
-                            )}
+                            <div className="h-1.5 w-full overflow-hidden rounded-full bg-bg-overlay">
+                              <div
+                                className="h-full bg-brand-gradient transition-all duration-200"
+                                style={{ width: `${percent}%` }}
+                              />
+                            </div>
                           </div>
-                        )}
-                        {item.status === "idle" && (
-                          <button
-                            type="button"
-                            onClick={() => removeFileFromQueue(item.id)}
-                            disabled={isUploading}
-                            className="text-ink-faint hover:text-danger p-0.5 rounded transition-colors"
-                            aria-label="Remove queued file"
-                          >
-                            <X className="h-3.5 w-3.5" />
-                          </button>
                         )}
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </div>
             )}
@@ -842,30 +929,45 @@ export function UploadModal({ open, onOpenChange }: UploadModalProps) {
           </div>
 
           {/* Footer Actions */}
-          <div className="flex justify-end gap-2 pt-2 border-t border-border mt-auto">
+          <div className="flex items-center justify-between gap-2 pt-2 border-t border-border mt-auto">
             <Button
-              variant="secondary"
+              type="button"
+              variant="ghost"
               size="sm"
-              onClick={() => handleOpenChange(false)}
+              onClick={() => {
+                handleOpenChange(false);
+                router.push("/transfers");
+              }}
+              className="text-xs text-ink-muted hover:text-ink gap-1.5 h-8 px-2"
             >
-              Close
+              <ExternalLink className="h-3.5 w-3.5 text-accent" />
+              <span>Transfers Dashboard</span>
             </Button>
-            <Button
-              size="sm"
-              onClick={handleUploadAll}
-              disabled={
-                isUploading ||
-                queue.length === 0 ||
-                queue.every((item) => item.status === "success")
-              }
-            >
-              {isUploading ? (
-                <Loader2 className="h-3.5 w-3.5 animate-spin" />
-              ) : (
-                <Upload className="h-3.5 w-3.5" />
-              )}
-              {isUploading ? "Uploading Queue…" : "Start Upload"}
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => handleOpenChange(false)}
+              >
+                Close
+              </Button>
+              <Button
+                size="sm"
+                onClick={handleUploadAll}
+                disabled={
+                  isUploading ||
+                  queue.length === 0 ||
+                  queue.every((item) => item.status === "success")
+                }
+              >
+                {isUploading ? (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                ) : (
+                  <Upload className="h-3.5 w-3.5" />
+                )}
+                {isUploading ? "Uploading Queue…" : "Start Upload"}
+              </Button>
+            </div>
           </div>
         </DialogContent>
       </Dialog>

@@ -67,14 +67,9 @@ export function Navbar({ onMenuClick }: { onMenuClick?: () => void }) {
             size="sm"
             variant="primary"
             className="hidden sm:flex gap-1.5 items-center"
-            onClick={() => setIsUploadModalOpen(true)}
-            disabled={uploadMutation.isPending}
+            onClick={() => router.push("/transfers")}
           >
-            {uploadMutation.isPending ? (
-              <Loader2 className="h-3.5 w-3.5 animate-spin" />
-            ) : (
-              <Upload className="h-3.5 w-3.5" />
-            )}
+            <Upload className="h-3.5 w-3.5" />
             Upload File
           </Button>
         )}
@@ -85,15 +80,10 @@ export function Navbar({ onMenuClick }: { onMenuClick?: () => void }) {
             size="icon"
             variant="primary"
             className="sm:hidden"
-            onClick={() => setIsUploadModalOpen(true)}
-            disabled={uploadMutation.isPending}
+            onClick={() => router.push("/transfers")}
             aria-label="Upload file"
           >
-            {uploadMutation.isPending ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <Upload className="h-4 w-4" />
-            )}
+            <Upload className="h-4 w-4" />
           </Button>
         )}
 

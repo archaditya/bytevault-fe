@@ -1,6 +1,6 @@
 "use client";
 
-import { use, useEffect } from "react";
+import { use, useEffect, useState } from "react";
 import Link from "next/link";
 import {
   ChevronLeft,
@@ -12,9 +12,10 @@ import {
   FileCode2,
   Play,
   Pause,
+  ExternalLink,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { useTransfer, pauseUpload, resumeUpload } from "@/services";
+import { useTransfer, pauseUpload, resumeUpload, resolveFileForTransfer } from "@/services";
 import { TransferProgress } from "@/components/shared/transfer-progress";
 import { ChunkVisualizer } from "@/components/shared/chunk-visualizer";
 import { SpeedGraph } from "@/features/transfers/components/speed-graph";
@@ -23,6 +24,7 @@ import { TransferStatusBadge } from "@/components/shared/status-badge";
 import { formatBytes } from "@/lib/utils";
 import { useTransferStore } from "@/store";
 import { Button } from "@/components/ui/button";
+import { FileRecord } from "@/types";
 
 export default function TransferDetailsPage({
   params,
@@ -32,10 +34,19 @@ export default function TransferDetailsPage({
   const resolvedParams = use(params);
   const { data: transfer, isLoading } = useTransfer(resolvedParams.id);
   const loadFromLocalStorage = useTransferStore((s) => s.loadFromLocalStorage);
+  const [resolvedFile, setResolvedFile] = useState<FileRecord | null>(null);
 
   useEffect(() => {
     loadFromLocalStorage();
   }, [loadFromLocalStorage]);
+
+  useEffect(() => {
+    if (transfer) {
+      resolveFileForTransfer(transfer).then((f) => {
+        if (f) setResolvedFile(f);
+      });
+    }
+  }, [transfer]);
 
   if (isLoading) {
     return (
@@ -92,6 +103,15 @@ export default function TransferDetailsPage({
             >
               <Play className="h-3.5 w-3.5" /> Resume Upload
             </Button>
+          )}
+          {resolvedFile && (resolvedFile.status === "READY" || resolvedFile.status === "ready") && (
+            <Link
+              href={`/files/${resolvedFile.id}`}
+              className="inline-flex items-center gap-1.5 h-7 px-3 rounded-full text-xs font-semibold bg-accent text-bg hover:bg-accent-bright transition-colors shadow-sm"
+            >
+              <span>Open File Details</span>
+              <ExternalLink className="h-3 w-3" />
+            </Link>
           )}
           <TransferStatusBadge status={transfer.status} />
         </div>
