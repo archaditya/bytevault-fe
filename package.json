@@ -8,6 +8,9 @@
     "start": "next start",
     "lint": "next lint"
   },
+  "engines": {
+    "node": ">=22.23.4"
+  },
   "dependencies": {
     "@next/third-parties": "^16.2.10",
     "@radix-ui/react-avatar": "^1.1.1",
