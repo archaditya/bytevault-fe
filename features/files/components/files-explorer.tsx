@@ -2,7 +2,7 @@
 
 import { useMemo, useState, useEffect } from "react";
 import { useFiles, useFolders, useDeleteFileMutation, useDeleteFolderMutation } from "@/services";
-import { useFilesStore } from "@/store/files.store";
+import { useFilesStore, type SelectedItem } from "@/store/files.store";
 import { useDebouncedValue } from "@/hooks/use-debounced-value";
 import { FilesToolbar } from "./files-toolbar";
 import { FolderCard } from "./folder-card";
@@ -31,6 +31,7 @@ export function FilesExplorer() {
     resetFolder,
     selectedItems,
     clearSelection,
+    selectAllItems,
   } = useFilesStore();
 
   const [cursor, setCursor] = useState<string | undefined>(undefined);
@@ -105,15 +106,37 @@ export function FilesExplorer() {
         )
       );
 
-      const succeeded = results.filter((r) => r.status === "fulfilled").length;
-      const failed = results.filter((r) => r.status === "rejected").length;
+      const succeededIds = new Set<string>();
+      const failedItems: SelectedItem[] = [];
 
-      clearSelection();
+      results.forEach((res, index) => {
+        const item = selectedItems[index];
+        if (res.status === "fulfilled") {
+          succeededIds.add(item.id);
+        } else {
+          failedItems.push(item);
+        }
+      });
+
+      // Remove successfully deleted files from locally loaded list immediately
+      if (succeededIds.size > 0) {
+        setLoadedFiles((prev) => prev.filter((f) => !succeededIds.has(f.id)));
+      }
+
+      // Retain failed items in selection so the user can inspect or retry them
+      if (failedItems.length > 0) {
+        selectAllItems(failedItems);
+      } else {
+        clearSelection();
+      }
+
+      const succeeded = succeededIds.size;
+      const failed = failedItems.length;
 
       if (failed === 0) {
         toast.success(`${succeeded} item${succeeded > 1 ? "s" : ""} deleted`);
       } else if (succeeded > 0) {
-        toast.error(`${succeeded} item(s) deleted, but ${failed} failed`);
+        toast.error(`${succeeded} item(s) deleted, but ${failed} failed to delete`);
       } else {
         toast.error("Failed to delete selected items");
       }
