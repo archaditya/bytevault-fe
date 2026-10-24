@@ -41,9 +41,11 @@ import {
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import toast from "react-hot-toast";
+import { useConfirm } from "@/components/ui/confirm-dialog";
 
 export function FileCard({ file }: { file: FileRecord }) {
   const router = useRouter();
+  const confirm = useConfirm();
   const deleteMutation = useDeleteFileMutation();
   const toggleShareMutation = useToggleShareMutation();
   const renameMutation = useRenameFileMutation();
@@ -129,10 +131,17 @@ export function FileCard({ file }: { file: FileRecord }) {
     }
   };
 
-  const handleDelete = (e: React.MouseEvent) => {
+  const handleDelete = async (e: React.MouseEvent) => {
     e.stopPropagation();
     e.preventDefault();
-    if (confirm(`Are you sure you want to delete "${file.name}"?`)) {
+    const ok = await confirm({
+      title: "Delete File",
+      description: `Are you sure you want to delete "${file.name}"?`,
+      confirmLabel: "Delete",
+      cancelLabel: "Cancel",
+      variant: "danger",
+    });
+    if (ok) {
       deleteMutation.mutate(file.id);
     }
   };

@@ -26,6 +26,7 @@ import {
   Ban,
 } from "lucide-react";
 import toast from "react-hot-toast";
+import { useConfirm } from "@/components/ui/confirm-dialog";
 
 export default function AdminModerationPage() {
   const { user } = useAuthStore();
@@ -36,6 +37,7 @@ export default function AdminModerationPage() {
 
   const approveMutation = useApproveFlaggedFile();
   const rejectMutation = useRejectFlaggedFile();
+  const confirm = useConfirm();
 
   const [activeFileId, setActiveFileId] = useState<string | null>(null);
 
@@ -65,7 +67,14 @@ export default function AdminModerationPage() {
   };
 
   const handleReject = async (id: string, name: string) => {
-    if (!confirm(`Are you sure you want to reject "${name}"? This will delete the file and apply a strike to the user.`)) {
+    const ok = await confirm({
+      title: "Reject and Remove File",
+      description: `Are you sure you want to reject "${name}"? This will delete the file and apply a strike to the user.`,
+      confirmLabel: "Reject & Strike",
+      cancelLabel: "Cancel",
+      variant: "danger",
+    });
+    if (!ok) {
       return;
     }
     setActiveFileId(id);

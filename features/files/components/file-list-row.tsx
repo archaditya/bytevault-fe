@@ -14,8 +14,10 @@ import { MoveItemModal } from "./move-item-modal";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import toast from "react-hot-toast";
+import { useConfirm } from "@/components/ui/confirm-dialog";
 
 export function FileListRow({ file }: { file: FileRecord }) {
+  const confirm = useConfirm();
   const selectedItems = useFilesStore((s) => s.selectedItems);
   const toggleSelectItem = useFilesStore((s) => s.toggleSelectItem);
   const deleteMutation = useDeleteFileMutation();
@@ -47,10 +49,17 @@ export function FileListRow({ file }: { file: FileRecord }) {
     }
   };
 
-  const handleDelete = (e: React.MouseEvent) => {
+  const handleDelete = async (e: React.MouseEvent) => {
     e.stopPropagation();
     e.preventDefault();
-    if (confirm(`Are you sure you want to delete "${file.name}"?`)) {
+    const ok = await confirm({
+      title: "Delete File",
+      description: `Are you sure you want to delete "${file.name}"?`,
+      confirmLabel: "Delete",
+      cancelLabel: "Cancel",
+      variant: "danger",
+    });
+    if (ok) {
       deleteMutation.mutate(file.id);
     }
   };

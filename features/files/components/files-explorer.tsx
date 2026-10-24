@@ -2,7 +2,7 @@
 
 import { useMemo, useState, useEffect } from "react";
 import { useFiles, useFolders, useDeleteFileMutation, useDeleteFolderMutation } from "@/services";
-import { useFilesStore } from "@/store/files.store";
+import { useFilesStore, type SelectedItem } from "@/store/files.store";
 import { useDebouncedValue } from "@/hooks/use-debounced-value";
 import { FilesToolbar } from "./files-toolbar";
 import { FolderCard } from "./folder-card";
@@ -15,6 +15,8 @@ import { FolderSearch, Home, ChevronRight, ChevronLeft, Folder } from "lucide-re
 import { MoveItemModal } from "./move-item-modal";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import toast from "react-hot-toast";
+import { useConfirm } from "@/components/ui/confirm-dialog";
 
 export function FilesExplorer() {
   const {
@@ -29,11 +31,13 @@ export function FilesExplorer() {
     resetFolder,
     selectedItems,
     clearSelection,
+    selectAllItems,
   } = useFilesStore();
 
   const [cursor, setCursor] = useState<string | undefined>(undefined);
   const [loadedFiles, setLoadedFiles] = useState<any[]>([]);
   const [isBatchMoveOpen, setIsBatchMoveOpen] = useState(false);
+  const confirm = useConfirm();
 
   const deleteFileMutation = useDeleteFileMutation();
   const deleteFolderMutation = useDeleteFolderMutation(currentFolderId);
@@ -82,19 +86,62 @@ export function FilesExplorer() {
   };
 
   const handleBatchDelete = async () => {
-    if (confirm(`Are you sure you want to delete the ${selectedItems.length} selected items?`)) {
-      try {
-        for (const item of selectedItems) {
-          if (item.type === "file") {
-            await deleteFileMutation.mutateAsync(item.id);
-          } else {
-            await deleteFolderMutation.mutateAsync(item.id);
-          }
+    const count = selectedItems.length;
+    if (count === 0) return;
+    const ok = await confirm({
+      title: "Delete Selected Items",
+      description: `Are you sure you want to delete the ${count} selected item${count > 1 ? "s" : ""}? This action cannot be undone.`,
+      confirmLabel: "Delete All",
+      cancelLabel: "Cancel",
+      variant: "danger",
+    });
+    if (!ok) return;
+
+    try {
+      const results = await Promise.allSettled(
+        selectedItems.map((item) =>
+          item.type === "file"
+            ? deleteFileMutation.mutateAsync(item.id)
+            : deleteFolderMutation.mutateAsync(item.id)
+        )
+      );
+
+      const succeededIds = new Set<string>();
+      const failedItems: SelectedItem[] = [];
+
+      results.forEach((res, index) => {
+        const item = selectedItems[index];
+        if (res.status === "fulfilled") {
+          succeededIds.add(item.id);
+        } else {
+          failedItems.push(item);
         }
-        clearSelection();
-      } catch (err) {
-        console.error("Failed to delete selected items:", err);
+      });
+
+      // Remove successfully deleted files from locally loaded list immediately
+      if (succeededIds.size > 0) {
+        setLoadedFiles((prev) => prev.filter((f) => !succeededIds.has(f.id)));
       }
+
+      // Retain failed items in selection so the user can inspect or retry them
+      if (failedItems.length > 0) {
+        selectAllItems(failedItems);
+      } else {
+        clearSelection();
+      }
+
+      const succeeded = succeededIds.size;
+      const failed = failedItems.length;
+
+      if (failed === 0) {
+        toast.success(`${succeeded} item${succeeded > 1 ? "s" : ""} deleted`);
+      } else if (succeeded > 0) {
+        toast.error(`${succeeded} item(s) deleted, but ${failed} failed to delete`);
+      } else {
+        toast.error("Failed to delete selected items");
+      }
+    } catch (err: any) {
+      toast.error(err.message || "Failed to delete selected items");
     }
   };
 

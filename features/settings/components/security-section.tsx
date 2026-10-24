@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { apiClient } from "@/lib/api-client";
 import { useAuthStore } from "@/store";
 import toast from "react-hot-toast";
+import { DisableMfaModal } from "./disable-mfa-modal";
 
 export function SecuritySection() {
   const user = useAuthStore((s) => s.user);
@@ -23,6 +24,7 @@ export function SecuritySection() {
   const [mfaSetup, setMfaSetup] = useState<{ secret: string; qr_uri: string } | null>(null);
   const [totpCode, setTotpCode] = useState("");
   const [mfaLoading, setMfaLoading] = useState(false);
+  const [isDisableMfaOpen, setIsDisableMfaOpen] = useState(false);
   const [isGoogleLogin, setIsGoogleLogin] = useState(false);
 
   useEffect(() => {
@@ -109,10 +111,11 @@ export function SecuritySection() {
   };
 
   // Step 3: Disable 2FA
-  const handleDisableMFA = async () => {
-    const code = prompt("Enter your 6-digit Authenticator code to confirm disabling 2FA:");
-    if (!code) return;
+  const handleDisableMFA = () => {
+    setIsDisableMfaOpen(true);
+  };
 
+  const handleConfirmDisableMFA = async (code: string) => {
     setMfaLoading(true);
     try {
       await apiClient("/api/v1/auth/mfa/disable", {
@@ -120,6 +123,7 @@ export function SecuritySection() {
         body: JSON.stringify({ code }),
       });
       toast.success("Two-Factor Authentication disabled");
+      setIsDisableMfaOpen(false);
       await checkSession();
     } catch (err: any) {
       toast.error(err.message || "Failed to disable 2FA");
@@ -272,6 +276,13 @@ export function SecuritySection() {
           </CardContent>
         </Card>
       )}
+
+      <DisableMfaModal
+        isOpen={isDisableMfaOpen}
+        onClose={() => setIsDisableMfaOpen(false)}
+        onConfirm={handleConfirmDisableMFA}
+        isLoading={mfaLoading}
+      />
     </div>
   );
 }

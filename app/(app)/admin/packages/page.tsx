@@ -48,6 +48,7 @@ import {
 } from "lucide-react";
 import { Package, Subscription, Transaction, SubscriptionAuditLog } from "@/types/subscription";
 import toast from "react-hot-toast";
+import { useConfirm } from "@/components/ui/confirm-dialog";
 
 function formatBytes(bytes: number) {
   if (!bytes) return "0 GB";
@@ -93,6 +94,7 @@ export default function AdminPackagesPage() {
   const createMut = useAdminCreatePackage();
   const updateMut = useAdminUpdatePackage();
   const deleteMut = useAdminDeletePackage();
+  const confirm = useConfirm();
   const [modalOpen, setModalOpen] = useState(false);
   const [formData, setFormData] = useState<PackageFormData>(defaultFormData);
   const [isEditing, setIsEditing] = useState(false);
@@ -200,7 +202,14 @@ export default function AdminPackagesPage() {
   };
 
   const handleDelete = async (pkg: Package) => {
-    if (!confirm(`Are you sure you want to delete or deactivate "${pkg.display_name}"?`)) {
+    const ok = await confirm({
+      title: "Delete or Deactivate Package",
+      description: `Are you sure you want to delete or deactivate "${pkg.display_name}"? Existing active subscriptions will remain unaffected.`,
+      confirmLabel: "Delete Package",
+      cancelLabel: "Cancel",
+      variant: "danger",
+    });
+    if (!ok) {
       return;
     }
     try {

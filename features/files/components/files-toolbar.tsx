@@ -104,7 +104,7 @@ export function FilesToolbar() {
       setNewFolderName("");
       setIsCreateOpen(false);
     } catch (err: any) {
-      alert(err.message || "Failed to create folder");
+      toast.error(err.message || "Failed to create folder");
     }
   };
 

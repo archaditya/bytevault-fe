@@ -43,6 +43,7 @@ import {
   truncateMiddle,
 } from "@/lib/utils";
 import toast from "react-hot-toast";
+import { useConfirm } from "@/components/ui/confirm-dialog";
 
 const actionLabel: Record<string, string> = {
   uploaded: "Uploaded",
@@ -61,6 +62,7 @@ export default function FileDetailsPage({
   const id = resolvedParams.id;
 
   const router = useRouter();
+  const confirm = useConfirm();
   const queryClient = useQueryClient();
 
   // Load token for iframe preview
@@ -194,8 +196,15 @@ export default function FileDetailsPage({
     toast.success("Link copied to clipboard!");
   };
 
-  const handleDelete = () => {
-    if (confirm(`Are you sure you want to delete "${file.name}"?`)) {
+  const handleDelete = async () => {
+    const ok = await confirm({
+      title: "Delete File",
+      description: `Are you sure you want to delete "${file.name}"?`,
+      confirmLabel: "Delete",
+      cancelLabel: "Cancel",
+      variant: "danger",
+    });
+    if (ok) {
       deleteMutation.mutate(file.id, {
         onSuccess: () => {
           toast.success("File deleted");

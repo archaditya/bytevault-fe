@@ -41,6 +41,8 @@ import {
 import { useState, useRef, useEffect } from "react";
 import { MoveItemModal } from "./move-item-modal";
 import { FolderDetailsModal } from "./folder-details-modal";
+import { RenameFolderModal } from "./rename-folder-modal";
+import { useConfirm } from "@/components/ui/confirm-dialog";
 
 export function getFolderCategory(name: string) {
   const lower = (name || "").toLowerCase();
@@ -170,8 +172,10 @@ export function FolderCard({ folder }: { folder: FolderRecord }) {
   const renameMutation = useRenameFolderMutation(folder.parent_id);
   const toggleShareMutation = useToggleFolderShareMutation(folder.parent_id);
 
+  const confirm = useConfirm();
   const [isMoveModalOpen, setIsMoveModalOpen] = useState(false);
   const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
+  const [isRenameModalOpen, setIsRenameModalOpen] = useState(false);
 
   const isSelected = selectedItems.some((item) => item.id === folder.id);
   const category = getFolderCategory(folder.name);
@@ -214,14 +218,18 @@ export function FolderCard({ folder }: { folder: FolderRecord }) {
   };
 
   const handleRename = () => {
-    const newName = prompt(`Enter new name for folder "${folder.name}":`, folder.name);
-    if (newName && newName.trim() !== "" && newName !== folder.name) {
-      renameMutation.mutate({ id: folder.id, name: newName.trim() });
-    }
+    setIsRenameModalOpen(true);
   };
 
-  const handleDelete = () => {
-    if (confirm(`Are you sure you want to delete folder "${folder.name}" and all its contents?`)) {
+  const handleDelete = async () => {
+    const ok = await confirm({
+      title: "Delete Folder",
+      description: `Are you sure you want to delete folder "${folder.name}" and all its contents?`,
+      confirmLabel: "Delete",
+      cancelLabel: "Cancel",
+      variant: "danger",
+    });
+    if (ok) {
       deleteMutation.mutate(folder.id);
     }
   };
@@ -457,6 +465,18 @@ export function FolderCard({ folder }: { folder: FolderRecord }) {
           folder={folder}
           isOpen={isDetailsModalOpen}
           onClose={() => setIsDetailsModalOpen(false)}
+        />
+      )}
+
+      {isRenameModalOpen && (
+        <RenameFolderModal
+          isOpen={isRenameModalOpen}
+          onClose={() => setIsRenameModalOpen(false)}
+          currentName={folder.name}
+          isLoading={renameMutation.isPending}
+          onRename={async (newName) => {
+            await renameMutation.mutateAsync({ id: folder.id, name: newName });
+          }}
         />
       )}
     </>
