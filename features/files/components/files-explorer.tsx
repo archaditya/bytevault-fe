@@ -97,15 +97,26 @@ export function FilesExplorer() {
     if (!ok) return;
 
     try {
-      for (const item of selectedItems) {
-        if (item.type === "file") {
-          await deleteFileMutation.mutateAsync(item.id);
-        } else {
-          await deleteFolderMutation.mutateAsync(item.id);
-        }
-      }
+      const results = await Promise.allSettled(
+        selectedItems.map((item) =>
+          item.type === "file"
+            ? deleteFileMutation.mutateAsync(item.id)
+            : deleteFolderMutation.mutateAsync(item.id)
+        )
+      );
+
+      const succeeded = results.filter((r) => r.status === "fulfilled").length;
+      const failed = results.filter((r) => r.status === "rejected").length;
+
       clearSelection();
-      toast.success(`${count} item${count > 1 ? "s" : ""} deleted`);
+
+      if (failed === 0) {
+        toast.success(`${succeeded} item${succeeded > 1 ? "s" : ""} deleted`);
+      } else if (succeeded > 0) {
+        toast.error(`${succeeded} item(s) deleted, but ${failed} failed`);
+      } else {
+        toast.error("Failed to delete selected items");
+      }
     } catch (err: any) {
       toast.error(err.message || "Failed to delete selected items");
     }
