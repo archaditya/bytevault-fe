@@ -15,6 +15,8 @@ import { FolderSearch, Home, ChevronRight, ChevronLeft, Folder } from "lucide-re
 import { MoveItemModal } from "./move-item-modal";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import toast from "react-hot-toast";
+import { useConfirm } from "@/components/ui/confirm-dialog";
 
 export function FilesExplorer() {
   const {
@@ -34,6 +36,7 @@ export function FilesExplorer() {
   const [cursor, setCursor] = useState<string | undefined>(undefined);
   const [loadedFiles, setLoadedFiles] = useState<any[]>([]);
   const [isBatchMoveOpen, setIsBatchMoveOpen] = useState(false);
+  const confirm = useConfirm();
 
   const deleteFileMutation = useDeleteFileMutation();
   const deleteFolderMutation = useDeleteFolderMutation(currentFolderId);
@@ -82,19 +85,29 @@ export function FilesExplorer() {
   };
 
   const handleBatchDelete = async () => {
-    if (confirm(`Are you sure you want to delete the ${selectedItems.length} selected items?`)) {
-      try {
-        for (const item of selectedItems) {
-          if (item.type === "file") {
-            await deleteFileMutation.mutateAsync(item.id);
-          } else {
-            await deleteFolderMutation.mutateAsync(item.id);
-          }
+    const count = selectedItems.length;
+    if (count === 0) return;
+    const ok = await confirm({
+      title: "Delete Selected Items",
+      description: `Are you sure you want to delete the ${count} selected item${count > 1 ? "s" : ""}? This action cannot be undone.`,
+      confirmLabel: "Delete All",
+      cancelLabel: "Cancel",
+      variant: "danger",
+    });
+    if (!ok) return;
+
+    try {
+      for (const item of selectedItems) {
+        if (item.type === "file") {
+          await deleteFileMutation.mutateAsync(item.id);
+        } else {
+          await deleteFolderMutation.mutateAsync(item.id);
         }
-        clearSelection();
-      } catch (err) {
-        console.error("Failed to delete selected items:", err);
       }
+      clearSelection();
+      toast.success(`${count} item${count > 1 ? "s" : ""} deleted`);
+    } catch (err: any) {
+      toast.error(err.message || "Failed to delete selected items");
     }
   };
 

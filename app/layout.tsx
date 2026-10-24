@@ -6,6 +6,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { RouteGuard } from "@/components/shared/route-guard";
 import { GoogleAnalytics } from "@next/third-parties/google";
 import { Toaster } from "react-hot-toast";
+import { ConfirmDialogProvider } from "@/components/ui/confirm-dialog";
 
 const fontSans = Inter({
   subsets: ["latin"],
@@ -52,7 +53,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body className="bg-bg text-ink font-sans antialiased">
         <QueryProvider>
           <TooltipProvider>
-            <RouteGuard>{children}</RouteGuard>
+            <ConfirmDialogProvider>
+              <RouteGuard>{children}</RouteGuard>
+            </ConfirmDialogProvider>
           </TooltipProvider>
         </QueryProvider>
         <Toaster position="bottom-right" toastOptions={{ duration: 4000 }} />

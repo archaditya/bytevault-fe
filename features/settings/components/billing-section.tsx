@@ -21,6 +21,8 @@ import { useAuthStore } from "@/store";
 import { Package } from "@/types/subscription";
 import { getAccessToken } from "@/lib/api-client";
 import { AlertCircle, Check, Download, FileText, ShieldCheck, Zap } from "lucide-react";
+import toast from "react-hot-toast";
+import { useConfirm } from "@/components/ui/confirm-dialog";
 
 function formatBytes(bytes: number) {
   if (!bytes) return "0 GB";
@@ -39,6 +41,7 @@ export function BillingSection() {
   const upgradeMut = useUpgradeSubscription();
   const downgradeMut = useDowngradeSubscription();
   const cancelMut = useCancelSubscription();
+  const confirm = useConfirm();
 
   const [planModalOpen, setPlanModalOpen] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
@@ -124,13 +127,21 @@ export function BillingSection() {
   };
 
   const handleCancelSubscription = async () => {
-    if (!confirm("Are you sure you want to cancel? Your access will continue until the end of your billing cycle.")) {
+    const ok = await confirm({
+      title: "Cancel Subscription",
+      description: "Are you sure you want to cancel? Your access will continue until the end of your billing cycle.",
+      confirmLabel: "Cancel Subscription",
+      cancelLabel: "Keep Subscription",
+      variant: "danger",
+    });
+    if (!ok) {
       return;
     }
     try {
       await cancelMut.mutateAsync();
+      toast.success("Subscription cancelled");
     } catch (err: any) {
-      alert(err.message || "Failed to cancel subscription");
+      toast.error(err.message || "Failed to cancel subscription");
     }
   };
 

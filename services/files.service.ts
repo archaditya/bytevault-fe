@@ -4,6 +4,7 @@ import { useFilesStore } from "@/store/files.store";
 import { FileRecord, FolderRecord, QuotaStats, TransferSession, FileKind } from "@/types";
 import { useTransferStore } from "@/store/transfer.store";
 import { getAccessToken } from "@/lib/api-client";
+import toast from "react-hot-toast";
 
 const MAX_UPLOAD_LIMIT_BYTES = 100 * 1024 * 1024; // 100MB
 
@@ -128,7 +129,7 @@ export async function resumeUpload(txId: string, file?: File) {
       if (selectedFile && selectedFile.name === tx.fileName && selectedFile.size === tx.sizeBytes) {
         resumeUpload(txId, selectedFile);
       } else {
-        alert("Please select the correct file to resume the upload session.");
+        toast.error("Please select the correct file to resume the upload session.");
       }
     };
     input.click();
