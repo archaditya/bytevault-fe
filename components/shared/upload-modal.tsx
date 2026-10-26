@@ -333,9 +333,18 @@ export function UploadModal({ open, onOpenChange }: UploadModalProps) {
 
   // Global window drag and drop listener
   useEffect(() => {
+    // If user is already on /transfers, bypass global listener so UploadStation dropzone handles drops directly
+    if (pathname === "/transfers") {
+      setIsWindowDragging(false);
+      dragCounter.current = 0;
+      return;
+    }
+
     const handleWindowDragEnter = (e: DragEvent) => {
       e.preventDefault();
       e.stopPropagation();
+
+      if (pathname === "/transfers") return;
 
       if (e.dataTransfer && e.dataTransfer.types.includes("Files")) {
         dragCounter.current++;
@@ -349,8 +358,9 @@ export function UploadModal({ open, onOpenChange }: UploadModalProps) {
 
       if (e.dataTransfer && e.dataTransfer.types.includes("Files")) {
         dragCounter.current--;
-        if (dragCounter.current === 0) {
+        if (dragCounter.current <= 0) {
           setIsWindowDragging(false);
+          dragCounter.current = 0;
         }
       }
     };
@@ -365,6 +375,8 @@ export function UploadModal({ open, onOpenChange }: UploadModalProps) {
       e.stopPropagation();
       setIsWindowDragging(false);
       dragCounter.current = 0;
+
+      if (pathname === "/transfers") return;
 
       if (
         e.dataTransfer &&
@@ -387,7 +399,7 @@ export function UploadModal({ open, onOpenChange }: UploadModalProps) {
       window.removeEventListener("dragover", handleWindowDragOver);
       window.removeEventListener("drop", handleWindowDrop);
     };
-  }, [onOpenChange, addFilesToQueue]);
+  }, [onOpenChange, addFilesToQueue, pathname]);
 
   const removeFileFromQueue = (id: string) => {
     const item = queue.find((q) => q.id === id);
@@ -403,6 +415,12 @@ export function UploadModal({ open, onOpenChange }: UploadModalProps) {
 
   const startUploading = async (items: QueuedFile[]) => {
     setIsUploading(true);
+    // Dismiss the modal in-place and route to /transfers so user can monitor real-time progress
+    onOpenChange(false);
+    if (pathname !== "/transfers") {
+      router.push("/transfers");
+    }
+
     let allSuccessful = true;
 
     for (let i = 0; i < items.length; i++) {
@@ -450,10 +468,25 @@ export function UploadModal({ open, onOpenChange }: UploadModalProps) {
     setIsUploading(false);
 
     if (allSuccessful) {
-      toast.success("Batch upload complete!");
-      setTimeout(() => {
-        handleOpenChange(false);
-      }, 800);
+      const targetFolder = selectedFolderId;
+      toast.success(
+        (t) => (
+          <div className="flex items-center gap-2">
+            <span>Batch upload complete!</span>
+            <button
+              onClick={() => {
+                toast.dismiss(t.id);
+                router.push(targetFolder ? `/files?folder=${targetFolder}` : "/files");
+              }}
+              className="font-semibold underline text-accent ml-1 text-xs hover:text-accent-bright"
+            >
+              View in Files →
+            </button>
+          </div>
+        ),
+        { duration: 5000 }
+      );
+      resetState();
     } else {
       toast.error("Some uploads failed. Please review the errors.");
     }

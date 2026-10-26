@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useMemo, useEffect, useCallback } from "react";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, useRouter } from "next/navigation";
 import {
   Folder,
   FolderOpen,
@@ -155,6 +155,7 @@ function FolderTreePickerItem({
 }
 
 export function UploadStation() {
+  const router = useRouter();
   const searchParams = useSearchParams();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const currentFolderId = useFilesStore((s) => s.currentFolderId);
@@ -359,7 +360,24 @@ export function UploadStation() {
     setIsUploading(false);
 
     if (allSuccessful) {
-      toast.success("Batch upload complete!");
+      const targetFolder = selectedFolderId;
+      toast.success(
+        (t) => (
+          <div className="flex items-center gap-2">
+            <span>Batch upload complete!</span>
+            <button
+              onClick={() => {
+                toast.dismiss(t.id);
+                router.push(targetFolder ? `/files?folder=${targetFolder}` : "/files");
+              }}
+              className="font-semibold underline text-accent ml-1 text-xs hover:text-accent-bright"
+            >
+              View in Files →
+            </button>
+          </div>
+        ),
+        { duration: 5000 }
+      );
     } else {
       toast.error("Some uploads failed. Please review the errors.");
     }

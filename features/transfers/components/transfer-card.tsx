@@ -1,8 +1,19 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowUp, ArrowDown, RotateCcw, Play, Pause, ExternalLink, Loader2, X } from "lucide-react";
+import {
+  ArrowUp,
+  ArrowDown,
+  RotateCcw,
+  Play,
+  Pause,
+  ExternalLink,
+  Loader2,
+  X,
+  Folder,
+  FolderOpen,
+} from "lucide-react";
 import { TransferSession } from "@/types";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -10,7 +21,13 @@ import { TransferStatusBadge } from "@/components/shared/status-badge";
 import { TransferProgress } from "@/components/shared/transfer-progress";
 import { ChunkVisualizer } from "@/components/shared/chunk-visualizer";
 import { formatRelativeTime, cn } from "@/lib/utils";
-import { pauseUpload, resumeUpload, resolveFileForTransfer, cancelUpload } from "@/services";
+import {
+  pauseUpload,
+  resumeUpload,
+  resolveFileForTransfer,
+  cancelUpload,
+  useFoldersFlat,
+} from "@/services";
 import { useTransferStore } from "@/store";
 import { PipelineStatusDialog } from "./pipeline-status-dialog";
 
@@ -18,6 +35,13 @@ export function TransferCard({ transfer }: { transfer: TransferSession }) {
   const router = useRouter();
   const [pipelineOpen, setPipelineOpen] = useState(false);
   const [isResolving, setIsResolving] = useState(false);
+  const { data: allFolders } = useFoldersFlat();
+
+  const folder = useMemo(() => {
+    if (!transfer.folderId || !allFolders) return null;
+    return allFolders.find((f) => f.id === transfer.folderId) || null;
+  }, [transfer.folderId, allFolders]);
+
   const DirectionIcon = transfer.direction === "upload" ? ArrowUp : ArrowDown;
 
   const handleCardClick = async () => {
@@ -27,7 +51,13 @@ export function TransferCard({ transfer }: { transfer: TransferSession }) {
       return;
     }
 
-    // For uploads: check if file is ready in backend
+    // Direct route to preview if fileId is already known
+    if (transfer.status === "completed" && transfer.fileId) {
+      router.push(`/files/${transfer.fileId}`);
+      return;
+    }
+
+    // For uploads: resolve file in backend
     setIsResolving(true);
     try {
       const file = await resolveFileForTransfer(transfer);
@@ -39,6 +69,13 @@ export function TransferCard({ transfer }: { transfer: TransferSession }) {
       console.error(e);
     } finally {
       setIsResolving(false);
+    }
+
+    // If completed but fileId couldn't be resolved, fallback to folder view in Files
+    if (transfer.status === "completed") {
+      const folderParam = transfer.folderId ? `folder=${transfer.folderId}` : "folder=root";
+      router.push(`/files?${folderParam}`);
+      return;
     }
 
     // If still in progress (PENDING_SCAN, PROCESSING, or active upload): open pipeline popup!
@@ -92,11 +129,40 @@ export function TransferCard({ transfer }: { transfer: TransferSession }) {
                       </span>
                     </>
                   )}
+                  {transfer.direction === "upload" && (
+                    <>
+                      <span>•</span>
+                      <span className="inline-flex items-center gap-1 text-[11px] text-ink-muted bg-bg-surface px-1.5 py-0.5 rounded border border-border">
+                        <Folder className="h-3 w-3 text-accent" />
+                        <span className="truncate max-w-[120px]">{folder?.name || "Home"}</span>
+                      </span>
+                    </>
+                  )}
                 </div>
               </div>
             </div>
             
             <div className="flex items-center gap-2">
+              {/* Dedicated "Locate in Folder" action button for completed transfers */}
+              {transfer.status === "completed" && (
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  className="h-7 px-2 text-[11px] gap-1 shrink-0 text-ink hover:text-accent hover:border-accent/40"
+                  title={`Locate in ${folder?.name || "Home"}`}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    const folderParam = transfer.folderId ? `folder=${transfer.folderId}` : "folder=root";
+                    const highlightParam = transfer.fileId ? `&highlight=${transfer.fileId}` : "";
+                    router.push(`/files?${folderParam}${highlightParam}`);
+                  }}
+                >
+                  <FolderOpen className="h-3.5 w-3.5 text-accent" />
+                  <span>Locate</span>
+                </Button>
+              )}
+
               {/* Inline play/pause action buttons for upload transfers */}
               {transfer.direction === "upload" && (transfer.status === "active" || transfer.status === "paused") && (
                 <Button
