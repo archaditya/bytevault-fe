@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { LandingNav } from "@/features/landing/components/landing-nav";
 import { Footer } from "@/features/landing/components/footer";
 import { Button } from "@/components/ui/button";
@@ -8,11 +9,12 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useSubmitContactQueryMutation } from "@/services/admin.service";
-import { Mail, MessageSquare, ExternalLink, Github, Sparkles } from "lucide-react";
+import { Mail, MessageSquare, ExternalLink, Github, Sparkles, ShieldCheck } from "lucide-react";
 
 export default function ContactPage() {
   const [formData, setFormData] = useState({ name: "", email: "", subject: "", message: "" });
   const [success, setSuccess] = useState(false);
+  const [ticketNumber, setTicketNumber] = useState<string | null>(null);
   const submitMutation = useSubmitContactQueryMutation();
 
   // "Get notified" links from the landing page arrive with ?topic=collect
@@ -31,8 +33,10 @@ export default function ContactPage() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     submitMutation.mutate(formData, {
-      onSuccess: () => {
+      onSuccess: (res: any) => {
         setSuccess(true);
+        const ticket = res?.data?.ticket_number || res?.ticket_number || null;
+        setTicketNumber(ticket);
         setFormData({ name: "", email: "", subject: "", message: "" });
       },
     });
@@ -55,11 +59,30 @@ export default function ContactPage() {
           {/* Left Column: Creator Portfolio & Links */}
           <div className="md:col-span-5 flex flex-col gap-6">
             <div>
-              <h1 className="text-3xl font-semibold tracking-tight text-ink">Contact us</h1>
+              <h1 className="text-3xl font-semibold tracking-tight text-ink">Contact &amp; Grievances</h1>
               <p className="text-xs text-ink-muted mt-2 leading-relaxed">
-                Questions about sending files, plans or billing? Write to us and we will reply by email.
+                Questions about sending files, billing, or personal data rights? Write to us and receive a trackable ticket.
               </p>
             </div>
+
+            {/* Grievance Redressal Card (Statutory under DPDP Act & IT Rules) */}
+            <Card className="bg-bg-surface border-border-strong p-4 flex flex-col gap-2">
+              <div className="flex items-center gap-2 text-accent">
+                <ShieldCheck className="h-5 w-5" />
+                <p className="text-[13px] font-semibold text-ink">Designated Grievance Officer</p>
+              </div>
+              <p className="text-[12px] text-ink-muted leading-relaxed">
+                <strong className="text-ink">Archaditya</strong> &bull; Data Protection Lead
+              </p>
+              <p className="text-[11px] text-ink-muted">
+                Statutory redressal under DPDP Act &sect;8(9) &amp; IT Rules 2011 r.5(9).
+              </p>
+              <div className="mt-1 pt-2 border-t border-border flex flex-col gap-1 text-[11px] text-ink-faint">
+                <p>&bull; Acknowledgement within <strong className="text-ink">48 hours</strong></p>
+                <p>&bull; Grievance resolution within <strong className="text-ink">30 days</strong></p>
+                <p>&bull; Read our full <Link href="/privacy" className="text-accent underline">Privacy Policy</Link></p>
+              </div>
+            </Card>
 
             {/* WhatsApp Link */}
             <Card className="bg-bg-surface border-border-strong p-4 hover:border-accent/40 transition-colors flex items-start gap-3">
@@ -82,7 +105,7 @@ export default function ContactPage() {
               </div>
               <div className="min-w-0">
                 <p className="text-[13px] font-semibold text-ink">Email</p>
-                <p className="text-[11px] text-ink-muted mt-0.5">For billing and account help.</p>
+                <p className="text-[11px] text-ink-muted mt-0.5">For billing, account &amp; grievance support.</p>
                 <a href="mailto:akkpk933@gmail.com" className="inline-flex items-center gap-1 text-[11px] text-accent mt-2 hover:underline">
                   akkpk933@gmail.com <ExternalLink className="h-3 w-3" />
                 </a>
@@ -117,11 +140,17 @@ export default function ContactPage() {
                   <div className="h-12 w-12 rounded-full bg-success/15 flex items-center justify-center text-success mb-4 animate-bounce">
                     <Sparkles className="h-6 w-6" />
                   </div>
-                  <h3 className="text-base font-semibold text-ink">Message sent</h3>
-                  <p className="text-xs text-ink-muted mt-2 max-w-xs">
-                    Thanks. We will reply to the email address you provided.
+                  <h3 className="text-base font-semibold text-ink">Message Submitted</h3>
+                  {ticketNumber && (
+                    <div className="my-3 px-4 py-2.5 bg-accent/10 border border-accent/20 rounded-md text-[13px]">
+                      <span className="text-ink-muted">Reference Ticket: </span>
+                      <span className="font-mono font-bold text-accent">{ticketNumber}</span>
+                    </div>
+                  )}
+                  <p className="text-xs text-ink-muted mt-1 max-w-sm leading-relaxed">
+                    A confirmation email has been dispatched. Our team will acknowledge within 48 hours and resolve your query within 30 days.
                   </p>
-                  <Button size="sm" variant="secondary" className="mt-5" onClick={() => setSuccess(false)}>
+                  <Button size="sm" variant="secondary" className="mt-6" onClick={() => { setSuccess(false); setTicketNumber(null); }}>
                     Send another message
                   </Button>
                 </div>
@@ -154,11 +183,11 @@ export default function ContactPage() {
                     </div>
                   </div>
                   <div className="flex flex-col gap-1.5">
-                    <label className="text-[11px] font-semibold text-ink-muted">Subject</label>
+                    <label className="text-[11px] font-semibold text-ink-muted">Subject / Query Topic</label>
                     <Input
                       required
                       name="subject"
-                      placeholder="e.g. Question about my plan"
+                      placeholder="e.g. Data rights inquiry, Billing question, Plan upgrade"
                       value={formData.subject}
                       onChange={handleInputChange}
                       className="h-9 text-[12px]"
@@ -170,15 +199,19 @@ export default function ContactPage() {
                       required
                       rows={5}
                       name="message"
-                      placeholder="How can we help?"
+                      placeholder="Please describe your question or grievance in detail..."
                       value={formData.message}
                       onChange={handleInputChange}
                       className="text-[12px]"
                     />
                   </div>
 
+                  <p className="text-[11px] text-ink-faint">
+                    By submitting this form, you acknowledge that our Grievance Officer will receive your inquiry and generate a tracking ticket.
+                  </p>
+
                   <Button type="submit" className="mt-2 w-full h-9" disabled={submitMutation.isPending}>
-                    {submitMutation.isPending ? "Sending…" : "Send message"}
+                    {submitMutation.isPending ? "Submitting query…" : "Send message & generate ticket"}
                   </Button>
 
                   {submitMutation.isError && (

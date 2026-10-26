@@ -4,9 +4,9 @@ import "./globals.css";
 import { QueryProvider } from "@/lib/query-provider";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { RouteGuard } from "@/components/shared/route-guard";
-import { GoogleAnalytics } from "@next/third-parties/google";
 import { Toaster } from "react-hot-toast";
 import { ConfirmDialogProvider } from "@/components/ui/confirm-dialog";
+import { CookieBanner } from "@/components/cookie-banner";
 
 const fontSans = Inter({
   subsets: ["latin"],
@@ -59,7 +59,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           </TooltipProvider>
         </QueryProvider>
         <Toaster position="bottom-right" toastOptions={{ duration: 4000 }} />
-        <GoogleAnalytics gaId="G-N90NFD2TX9" />
+        <CookieBanner />
       </body>
     </html>
   );

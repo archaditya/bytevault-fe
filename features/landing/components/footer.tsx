@@ -1,3 +1,5 @@
+"use client";
+
 import Link from "next/link";
 import Image from "next/image";
 
@@ -55,9 +57,21 @@ export function Footer() {
         </div>
         <div className="mt-12 flex flex-col items-center justify-between gap-3 border-t border-border pt-6 text-[12px] text-ink-faint sm:flex-row">
           <span>&copy; {new Date().getFullYear()} PushPostVault. All rights reserved.</span>
-          <div className="flex gap-5">
+          <div className="flex flex-wrap items-center gap-5">
             <Link href="/terms" className="hover:text-ink">Terms &amp; Conditions</Link>
+            <Link href="/privacy" className="hover:text-ink">Privacy Policy</Link>
             <Link href="/subscription-policy" className="hover:text-ink">Subscription Policy</Link>
+            <button
+              type="button"
+              onClick={() => {
+                if (typeof window !== "undefined") {
+                  window.dispatchEvent(new CustomEvent("bytevault:open-cookie-settings"));
+                }
+              }}
+              className="hover:text-ink transition-colors cursor-pointer"
+            >
+              Cookie Settings
+            </button>
           </div>
         </div>
       </div>

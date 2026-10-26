@@ -25,6 +25,9 @@ function RegisterPage() {
   const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [termsAccepted, setTermsAccepted] = useState(false);
+  const [isAdult, setIsAdult] = useState(false);
+  const [marketingAccepted, setMarketingAccepted] = useState(false);
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -34,9 +37,23 @@ function RegisterPage() {
       return;
     }
 
+    if (!termsAccepted) {
+      toast.error("Please accept the Terms of Service and Privacy Policy to register.");
+      return;
+    }
+
+    if (!isAdult) {
+      toast.error("You must confirm you are 18 years or older under DPDP Act requirements.");
+      return;
+    }
+
     setLoading(true);
     try {
-      await register(email, password, firstName, lastName);
+      await register(email, password, firstName, lastName, {
+        termsAccepted,
+        isAdult,
+        marketingAccepted,
+      });
       toast.success(
         "Account created! Please check your email for the verification code.",
       );
@@ -108,9 +125,62 @@ function RegisterPage() {
               required
             />
           </div>
+
+          <div className="pt-2 space-y-3 text-[12px]">
+            <label className="flex items-start gap-2.5 cursor-pointer text-ink-muted hover:text-ink">
+              <input
+                type="checkbox"
+                checked={termsAccepted}
+                onChange={(e) => setTermsAccepted(e.target.checked)}
+                className="mt-0.5 h-4 w-4 rounded border-border-strong text-accent focus:ring-accent accent-accent"
+                required
+              />
+              <span className="leading-tight">
+                I agree to the{" "}
+                <Link href="/terms" target="_blank" className="text-ink underline hover:text-accent">
+                  Terms of Service
+                </Link>
+                ,{" "}
+                <Link href="/privacy" target="_blank" className="text-ink underline hover:text-accent">
+                  Privacy Policy
+                </Link>
+                , and{" "}
+                <Link href="/subscription-policy" target="_blank" className="text-ink underline hover:text-accent">
+                  Subscription Policy
+                </Link>
+                . <span className="text-danger">*</span>
+              </span>
+            </label>
+
+            <label className="flex items-start gap-2.5 cursor-pointer text-ink-muted hover:text-ink">
+              <input
+                type="checkbox"
+                checked={isAdult}
+                onChange={(e) => setIsAdult(e.target.checked)}
+                className="mt-0.5 h-4 w-4 rounded border-border-strong text-accent focus:ring-accent accent-accent"
+                required
+              />
+              <span className="leading-tight">
+                I confirm that I am 18 years of age or older (DPDP Act, 2023 requirement). <span className="text-danger">*</span>
+              </span>
+            </label>
+
+            <label className="flex items-start gap-2.5 cursor-pointer text-ink-muted hover:text-ink">
+              <input
+                type="checkbox"
+                checked={marketingAccepted}
+                onChange={(e) => setMarketingAccepted(e.target.checked)}
+                className="mt-0.5 h-4 w-4 rounded border-border-strong text-accent focus:ring-accent accent-accent"
+              />
+              <span className="leading-tight text-ink-faint">
+                (Optional) Keep me updated with service announcements and product releases.
+              </span>
+            </label>
+          </div>
+
           <Button
             type="submit"
-            className="w-full text-[13px]"
+            className="w-full text-[13px] mt-2"
             variant="primary"
             size="md"
             disabled={loading}
@@ -126,16 +196,6 @@ function RegisterPage() {
           >
             Sign in
           </Link>
-          <p className="mt-3 text-center text-[11px] text-ink-faint">
-            By signing up, you agree to our{" "}
-            <Link href="/terms" className="underline hover:text-ink">
-              Terms of Service
-            </Link>{" "}
-            and{" "}
-            <Link href="/subscription-policy" className="underline hover:text-ink">
-              Subscription Policy
-            </Link>.
-          </p>
         </div>
       </CardContent>
     </Card>
