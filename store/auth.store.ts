@@ -13,6 +13,11 @@ interface AuthState {
     password: string,
     firstName: string,
     lastName: string,
+    consentOptions?: {
+      termsAccepted?: boolean;
+      isAdult?: boolean;
+      marketingAccepted?: boolean;
+    },
   ) => Promise<void>;
   logout: () => Promise<void>;
   checkSession: () => Promise<void>;
@@ -122,7 +127,7 @@ export const useAuthStore = create<AuthState>((set) => ({
     }
   },
 
-  register: async (email, password, firstName, lastName) => {
+  register: async (email, password, firstName, lastName, consentOptions) => {
     set({ isLoading: true, error: null });
     try {
       const data = await apiClient("/api/v1/auth/register", {
@@ -132,6 +137,9 @@ export const useAuthStore = create<AuthState>((set) => ({
           password,
           first_name: firstName,
           last_name: lastName,
+          terms_accepted: consentOptions?.termsAccepted ?? true,
+          is_adult: consentOptions?.isAdult ?? true,
+          marketing_accepted: consentOptions?.marketingAccepted ?? false,
         }),
       });
       setTokens(data.tokens);

@@ -1,53 +1,102 @@
+import { Metadata } from "next";
 import { LandingNav } from "@/features/landing/components/landing-nav";
 import { Footer } from "@/features/landing/components/footer";
+import Link from "next/link";
+
+export const metadata: Metadata = {
+  title: "Terms and Conditions — PushPostVault",
+  description: "Terms of Service, acceptable use, and user agreements under Indian law.",
+};
 
 export default function TermsPage() {
   return (
-    <div className="flex min-h-screen flex-col bg-bg">
+    <div className="flex min-h-screen flex-col bg-bg text-ink font-sans">
       <LandingNav />
-      <main className="flex-1 container py-16 max-w-3xl text-ink font-sans">
-        <h1 className="text-3xl font-bold tracking-tight mb-8">Terms and Conditions</h1>
-        
-        <div className="space-y-6 text-[14px] leading-relaxed text-ink-muted">
+      <main className="flex-1 container py-16 max-w-3xl">
+        <div className="border-b border-border pb-6 mb-8">
+          <p className="label-eyebrow text-accent">User Agreement</p>
+          <h1 className="text-3xl font-bold tracking-tight text-ink mt-2">Terms and Conditions</h1>
+          <p className="text-[13px] text-ink-muted mt-2">
+            Last updated: October 2026 &bull; Compliant with Indian Contract Act, 1872 &amp; IT Intermediary Rules, 2021
+          </p>
+        </div>
+
+        <div className="space-y-8 text-[14px] leading-relaxed text-ink-muted">
           <section>
-            <h2 className="text-lg font-semibold text-ink mb-2">1. Terms</h2>
+            <h2 className="text-lg font-semibold text-ink mb-2">1. Agreement to Terms</h2>
             <p>
-              By accessing the website at PushPostVault, you are agreeing to be bound by these terms of service, all applicable laws and regulations, and agree that you are responsible for compliance with any applicable local laws.
+              By accessing or using PushPostVault (&ldquo;ByteVault&rdquo;, &ldquo;we&rdquo;, &ldquo;our&rdquo;), you enter into a legally binding agreement governed by the laws of India. If you do not agree to these terms, you must not access or use our services.
             </p>
           </section>
 
           <section>
-            <h2 className="text-lg font-semibold text-ink mb-2">2. Use License</h2>
+            <h2 className="text-lg font-semibold text-ink mb-2">2. Eligibility &amp; Age Restriction</h2>
             <p>
-              Permission is granted to temporarily download one copy of the materials (information or software) on PushPostVault's website for personal, non-commercial transitory viewing only. This is the grant of a license, not a transfer of title, and under this license you may not modify or copy the materials.
+              Under the Digital Personal Data Protection Act, 2023, you must be at least 18 years of age to register for an account or upload files. By registering, you confirm that you are at least 18 years old and have the legal capacity to enter into a valid contract under the Indian Contract Act, 1872.
             </p>
           </section>
 
           <section>
-            <h2 className="text-lg font-semibold text-ink mb-2">3. Disclaimer</h2>
+            <h2 className="text-lg font-semibold text-ink mb-2">3. User Conduct &amp; Prohibited Content (IT Intermediary Rules, 2021)</h2>
             <p>
-              The materials on PushPostVault's website are provided on an 'as is' basis. PushPostVault makes no warranties, expressed or implied, and hereby disclaims and negates all other warranties including, without limitation, implied warranties or conditions of merchantability, fitness for a particular purpose, or non-infringement of intellectual property or other violation of rights.
+              As an intermediary under Rule 3(1)(b) of the Information Technology (Intermediary Guidelines and Digital Media Ethics Code) Rules, 2021, PushPostVault prohibits hosting, displaying, uploading, modifying, publishing, transmitting, or sharing any content that:
+            </p>
+            <ul className="list-disc pl-5 mt-2 space-y-1.5">
+              <li>Belongs to another person and to which you do not have any legal right;</li>
+              <li>Is defamatory, obscene, pornographic, pedophilic, invasive of another&apos;s privacy, insulting or harassing on the basis of gender, racially or ethnically objectionable;</li>
+              <li>Is harmful to children or promotes harm to minors;</li>
+              <li>Infringes any patent, trademark, copyright or other proprietary rights;</li>
+              <li>Deceives or misleads the addressee about the origin of the message or intentionally communicates misinformation;</li>
+              <li>Impersonates another person or entity;</li>
+              <li>Contains software viruses or any other computer code designed to interrupt, destroy or limit the functionality of computer resources;</li>
+              <li>Threatens the unity, integrity, defense, security or sovereignty of India, friendly relations with foreign states, or public order.</li>
+            </ul>
+            <p className="mt-2 text-[13px]">
+              We reserve the right to immediately remove violating content, suspend accounts, and report cybersecurity or national security incidents to CERT-In or appropriate law enforcement authorities.
             </p>
           </section>
 
           <section>
-            <h2 className="text-lg font-semibold text-ink mb-2">4. Limitations</h2>
+            <h2 className="text-lg font-semibold text-ink mb-2">4. Services, Quotas, &amp; Subscriptions</h2>
             <p>
-              In no event shall PushPostVault or its suppliers be liable for any damages (including, without limitation, damages for loss of data or profit, or due to business interruption) arising out of the use or inability to use the materials on PushPostVault's website, even if PushPostVault or a PushPostVault authorized representative has been notified orally or in writing of the possibility of such damage.
+              ByteVault provides 5GB of free cloud storage with standard file sharing. Upgraded tiers (Pro, Team) are billed through Razorpay. All fees, billing intervals, cancellation rules, and refund policies are detailed in our{" "}
+              <Link href="/subscription-policy" className="text-accent hover:underline">
+                Subscription Policy
+              </Link>.
             </p>
           </section>
 
           <section>
-            <h2 className="text-lg font-semibold text-ink mb-2">5. Accuracy of materials</h2>
+            <h2 className="text-lg font-semibold text-ink mb-2">5. Privacy &amp; Data Rights</h2>
             <p>
-              The materials appearing on PushPostVault's website could include technical, typographical, or photographic errors. PushPostVault does not warrant that any of the materials on its website are accurate, complete or current. PushPostVault may make changes to the materials contained on its website at any time without notice.
+              Your personal data is handled strictly in accordance with our{" "}
+              <Link href="/privacy" className="text-accent hover:underline">
+                Privacy Policy
+              </Link>. You retain all ownership rights to your files. You have the right to export your data or delete your account at any time.
             </p>
           </section>
 
           <section>
-            <h2 className="text-lg font-semibold text-ink mb-2">6. Links</h2>
+            <h2 className="text-lg font-semibold text-ink mb-2">6. Limitation of Liability &amp; Disclaimers</h2>
             <p>
-              PushPostVault has not reviewed all of the sites linked to its website and is not responsible for the contents of any such linked site. The inclusion of any link does not imply endorsement by PushPostVault of the site. Use of any such linked website is at the user's own risk.
+              Services are provided on an &ldquo;as is&rdquo; and &ldquo;as available&rdquo; basis. To the maximum extent permitted by applicable Indian law, PushPostVault and its service providers disclaim all warranties, express or implied, including merchantability or fitness for a particular purpose. In no event shall PushPostVault be liable for any indirect, incidental, punitive, or consequential damages resulting from lost files, business interruptions, or unauthorized access outside reasonable security safeguards.
+            </p>
+          </section>
+
+          <section>
+            <h2 className="text-lg font-semibold text-ink mb-2">7. Governing Law &amp; Jurisdiction</h2>
+            <p>
+              These Terms shall be governed by, construed, and enforced in accordance with the laws of the Republic of India. In the event of any dispute arising out of or in connection with these Terms, the parties submit to the exclusive jurisdiction of the competent courts of New Delhi, India.
+            </p>
+          </section>
+
+          <section>
+            <h2 className="text-lg font-semibold text-ink mb-2">8. Grievance Officer &amp; Notice</h2>
+            <p>
+              If you have any questions, concerns, or complaints regarding these Terms or any uploaded content, please contact our designated Grievance Officer at{" "}
+              <a href="mailto:akkpk933@gmail.com" className="text-accent hover:underline">
+                akkpk933@gmail.com
+              </a>.
             </p>
           </section>
         </div>
