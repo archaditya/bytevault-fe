@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from "react";
 import { Bell, CheckCheck, Loader2 } from "lucide-react";
-import { apiClient } from "@/lib/api-client";
+import { apiClient, getAccessToken } from "@/lib/api-client";
+import { useAuthStore } from "@/store";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -19,11 +20,13 @@ interface Notification {
 }
 
 export function NotificationBell() {
+  const { isAuthenticated } = useAuthStore();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [loading, setLoading] = useState(false);
 
   const fetchNotifications = async () => {
+    if (!isAuthenticated || !getAccessToken()) return;
     setLoading(true);
     try {
       const data = await apiClient("/api/v1/notifications");
@@ -37,8 +40,10 @@ export function NotificationBell() {
   };
 
   useEffect(() => {
-    fetchNotifications();
-  }, []);
+    if (isAuthenticated && getAccessToken()) {
+      fetchNotifications();
+    }
+  }, [isAuthenticated]);
 
   const handleMarkAsRead = async (id: string) => {
     try {

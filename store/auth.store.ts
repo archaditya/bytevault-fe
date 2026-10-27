@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import { User } from "@/types";
 import { apiClient, setTokens, getAccessToken } from "@/lib/api-client";
+import { useTransferStore } from "./transfer.store";
 
 interface AuthState {
   user: User | null;
@@ -103,7 +104,10 @@ export const useAuthStore = create<AuthState>((set) => ({
   isLoading: true,
   error: null,
 
-  setUser: (user: User | null) => set({ user, isAuthenticated: !!user }),
+  setUser: (user: User | null) => {
+    set({ user, isAuthenticated: !!user });
+    useTransferStore.getState().initUserTransfers(user ? user.id : null);
+  },
 
   login: async (email: string, password: string) => {
     set({ isLoading: true, error: null });
@@ -118,6 +122,7 @@ export const useAuthStore = create<AuthState>((set) => ({
       }
       const frontendUser = mapBackendUserToFrontend(data.user);
       set({ user: frontendUser, isAuthenticated: true, isLoading: false });
+      useTransferStore.getState().initUserTransfers(frontendUser.id);
 
       // Auto-register FCM push token if available
       registerPushTokenIfAvailable();
@@ -148,6 +153,7 @@ export const useAuthStore = create<AuthState>((set) => ({
       }
       const frontendUser = mapBackendUserToFrontend(data.user);
       set({ user: frontendUser, isAuthenticated: true, isLoading: false });
+      useTransferStore.getState().initUserTransfers(frontendUser.id);
 
       registerPushTokenIfAvailable();
     } catch (err: any) {
@@ -173,6 +179,7 @@ export const useAuthStore = create<AuthState>((set) => ({
       if (typeof window !== "undefined") {
         localStorage.removeItem("login_provider");
       }
+      useTransferStore.getState().clearTransfers();
       set({ user: null, isAuthenticated: false, isLoading: false });
       if (typeof window !== "undefined") {
         window.location.href = "/login";
@@ -183,6 +190,7 @@ export const useAuthStore = create<AuthState>((set) => ({
   checkSession: async () => {
     const token = getAccessToken();
     if (!token) {
+      useTransferStore.getState().clearTransfers();
       set({ user: null, isAuthenticated: false, isLoading: false });
       return;
     }
@@ -190,10 +198,12 @@ export const useAuthStore = create<AuthState>((set) => ({
       const data = await apiClient("/api/v1/me");
       const frontendUser = mapBackendUserToFrontend(data.user);
       set({ user: frontendUser, isAuthenticated: true, isLoading: false });
+      useTransferStore.getState().initUserTransfers(frontendUser.id);
       registerPushTokenIfAvailable();
     } catch (err) {
       console.error("Session verification failed:", err);
       setTokens(null);
+      useTransferStore.getState().clearTransfers();
       set({ user: null, isAuthenticated: false, isLoading: false });
     }
   },

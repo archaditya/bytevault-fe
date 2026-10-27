@@ -304,6 +304,48 @@ export function useAdminActivity(page = 1, limit = 20, startDate?: string, endDa
   });
 }
 
+export interface AdminAuditLogEntry {
+  id: string;
+  tenant_id?: string;
+  actor_user_id?: string;
+  actor_type: string;
+  action: string;
+  resource_type: string;
+  resource_id?: string;
+  status: string;
+  request_id?: string;
+  ip_address?: string;
+  user_agent?: string;
+  metadata?: Record<string, any>;
+  created_at: string;
+}
+
+export function useAdminAuditLogs(
+  page = 1,
+  limit = 20,
+  startDate?: string,
+  endDate?: string,
+  action?: string,
+  resourceType?: string
+) {
+  return useQuery<{ audit_logs: AdminAuditLogEntry[]; total: number }>({
+    queryKey: ["admin", "audit-logs", page, limit, startDate, endDate, action, resourceType],
+    queryFn: async () => {
+      const offset = (page - 1) * limit;
+      const queryParts = [`limit=${limit}`, `offset=${offset}`];
+      if (startDate) queryParts.push(`start_date=${encodeURIComponent(startDate)}`);
+      if (endDate) queryParts.push(`end_date=${encodeURIComponent(endDate)}`);
+      if (action) queryParts.push(`action=${encodeURIComponent(action)}`);
+      if (resourceType) queryParts.push(`resource_type=${encodeURIComponent(resourceType)}`);
+      const data = await apiClient(`/api/v1/admin/audit-logs?${queryParts.join("&")}`);
+      return {
+        audit_logs: data.audit_logs || [],
+        total: data.total ?? (data.audit_logs?.length || 0),
+      };
+    },
+  });
+}
+
 export function useAdminFiles(params: {
   search?: string;
   cursor?: string;

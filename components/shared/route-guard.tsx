@@ -81,5 +81,42 @@ export function RouteGuard({ children }: { children: React.ReactNode }) {
     );
   }
 
+  // Unauthenticated user attempting to access a protected page:
+  // Render spinner and hold children unmounted while router redirects to /login
+  if (!isAuthenticated && !isPublicPath(pathname)) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-bg">
+        <div className="flex flex-col items-center gap-2">
+          <div className="h-8 w-8 animate-spin rounded-full border-2 border-accent border-t-transparent" />
+          <span className="font-mono text-[12px] text-ink-muted">
+            Redirecting to sign in...
+          </span>
+        </div>
+      </div>
+    );
+  }
+
+  // Authenticated user landing on an auth page:
+  // Render spinner while redirecting to dashboard / redirect target
+  const isAuthPage =
+    pathname.startsWith("/login") ||
+    pathname.startsWith("/register") ||
+    pathname.startsWith("/forgot-password") ||
+    pathname.startsWith("/reset-password") ||
+    pathname.startsWith("/verify-email");
+
+  if (isAuthenticated && isAuthPage && (!pathname.startsWith("/verify-email") || user?.isVerified)) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-bg">
+        <div className="flex flex-col items-center gap-2">
+          <div className="h-8 w-8 animate-spin rounded-full border-2 border-accent border-t-transparent" />
+          <span className="font-mono text-[12px] text-ink-muted">
+            Loading your workspace...
+          </span>
+        </div>
+      </div>
+    );
+  }
+
   return <>{children}</>;
 }

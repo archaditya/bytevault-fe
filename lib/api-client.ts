@@ -67,7 +67,37 @@ async function runTokenRefresh(): Promise<string | null> {
   }
 }
 
+function isProtectedApiPath(path: string): boolean {
+  if (
+    path.startsWith("/api/v1/auth/login") ||
+    path.startsWith("/api/v1/auth/register") ||
+    path.startsWith("/api/v1/auth/forgot-password") ||
+    path.startsWith("/api/v1/auth/reset-password") ||
+    path.startsWith("/api/v1/shares/public") ||
+    path.startsWith("/api/v1/instant") ||
+    path.startsWith("/api/v1/contact") ||
+    path.startsWith("/api/v1/upload-invites/public") ||
+    path.startsWith("/api/v1/health")
+  ) {
+    return false;
+  }
+  return (
+    path.startsWith("/api/v1/me") ||
+    path.startsWith("/api/v1/folders") ||
+    path.startsWith("/api/v1/files") ||
+    path.startsWith("/api/v1/notifications") ||
+    path.startsWith("/api/v1/admin") ||
+    path.startsWith("/api/v1/upload-invites") ||
+    path.startsWith("/api/v1/packages") ||
+    path.startsWith("/api/v1/subscriptions")
+  );
+}
+
 export async function apiClient(path: string, options: RequestInit = {}): Promise<any> {
+  if (isProtectedApiPath(path) && !accessToken && !refreshToken) {
+    throw new Error("Unauthorized: Active session required");
+  }
+
   const headers = new Headers(options.headers || {});
   
   if (!headers.has("Content-Type") && !(options.body instanceof FormData)) {
