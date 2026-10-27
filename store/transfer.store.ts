@@ -15,6 +15,7 @@ interface TransferState {
   initUserTransfers: (userId: string | null) => void;
   loadFromLocalStorage: () => void;
   clearTransfers: () => void;
+  resetStore: () => void;
   addTransfer: (tx: TransferSession) => void;
   updateTransfer: (id: string, updates: Partial<TransferSession>) => void;
   removeTransfer: (id: string) => void;
@@ -87,6 +88,12 @@ export const useTransferStore = create<TransferState>((set, get) => {
     },
 
     clearTransfers: () => {
+      const { currentUserId } = get();
+      save([], currentUserId);
+      set({ transfers: [] });
+    },
+
+    resetStore: () => {
       set({ transfers: [], currentUserId: null });
     },
 

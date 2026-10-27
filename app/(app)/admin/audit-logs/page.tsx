@@ -94,7 +94,7 @@ export default function AdminAuditLogsPage() {
         id: al.id,
         created_at: al.created_at,
         user_id: al.actor_user_id || undefined,
-        user_email: undefined,
+        user_email: (al.metadata as any)?.user_email || (al.metadata as any)?.email || undefined,
         action: al.action,
         resource_type: al.resource_type,
         resource_id: al.resource_id,
@@ -105,7 +105,7 @@ export default function AdminAuditLogsPage() {
 
   const totalLogs = hasAuditLogs ? (auditData?.total || 0) : (activityData?.total || 0);
   const totalPages = Math.max(1, Math.ceil(totalLogs / pageSize));
-  const isLoading = auditLoading && activityLoading;
+  const isLoading = auditLoading || activityLoading;
 
   const handlePresetChange = (preset: "all" | "today" | "7d" | "30d" | "custom") => {
     setDatePreset(preset);

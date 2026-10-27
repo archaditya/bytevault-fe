@@ -179,7 +179,7 @@ export const useAuthStore = create<AuthState>((set) => ({
       if (typeof window !== "undefined") {
         localStorage.removeItem("login_provider");
       }
-      useTransferStore.getState().clearTransfers();
+      useTransferStore.getState().resetStore();
       set({ user: null, isAuthenticated: false, isLoading: false });
       if (typeof window !== "undefined") {
         window.location.href = "/login";

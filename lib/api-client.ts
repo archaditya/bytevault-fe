@@ -94,8 +94,16 @@ function isProtectedApiPath(path: string): boolean {
 }
 
 export async function apiClient(path: string, options: RequestInit = {}): Promise<any> {
-  if (isProtectedApiPath(path) && !accessToken && !refreshToken) {
-    throw new Error("Unauthorized: Active session required");
+  if (isProtectedApiPath(path)) {
+    if (!accessToken && !refreshToken) {
+      throw new Error("Unauthorized: Active session required");
+    }
+    if (!accessToken && refreshToken) {
+      const refreshedToken = await runTokenRefresh();
+      if (!refreshedToken) {
+        throw new Error("Unauthorized: Session refresh failed");
+      }
+    }
   }
 
   const headers = new Headers(options.headers || {});
