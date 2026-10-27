@@ -18,6 +18,7 @@ function isPublicPath(pathname: string): boolean {
     pathname.startsWith("/s/") ||
     pathname.startsWith("/collect/") ||
     pathname.startsWith("/terms") ||
+    pathname.startsWith("/privacy") ||
     pathname.startsWith("/subscription-policy")
   );
 }
