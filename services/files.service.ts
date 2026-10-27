@@ -585,21 +585,16 @@ export function useFileImageBlob(fileId: string, enabled: boolean = true) {
       if (token) {
         headers["Authorization"] = `Bearer ${token}`;
       }
-      let res = await fetch(`/api/v1/files/${fileId}/thumbnail`, { headers });
+      const res = await fetch(`/api/v1/files/${fileId}/thumbnail`, { headers });
       if (!res.ok) {
-        // Fallback to raw endpoint if thumbnail is still generating
-        res = await fetch(`/api/v1/files/raw/${fileId}`, { headers });
-        if (!res.ok) {
-          throw new Error("Thumbnail not available");
-        }
+        return null;
       }
       const blob = await res.blob();
       return URL.createObjectURL(blob);
     },
     enabled: enabled && !!fileId,
     staleTime: 5 * 60 * 1000,
-    retry: 1,
-    retryDelay: 1500,
+    retry: 0,
   });
 }
 
