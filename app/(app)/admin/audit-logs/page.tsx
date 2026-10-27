@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useAuthStore } from "@/store";
-import { useAdminActivity } from "@/services";
+import { useAdminActivity, useAdminAuditLogs } from "@/services";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -73,6 +73,13 @@ export default function AdminAuditLogsPage() {
 
   const effectiveDates = getEffectiveDates();
 
+  const { data: auditData, isLoading: auditLoading } = useAdminAuditLogs(
+    activityPage,
+    pageSize,
+    effectiveDates.start || undefined,
+    effectiveDates.end || undefined
+  );
+
   const { data: activityData, isLoading: activityLoading } = useAdminActivity(
     activityPage,
     pageSize,
@@ -80,8 +87,25 @@ export default function AdminAuditLogsPage() {
     effectiveDates.end || undefined
   );
 
-  const totalLogs = activityData?.total || 0;
+  // Prioritize new structured audit_logs if available, fallback to activityData
+  const hasAuditLogs = auditData?.audit_logs && auditData.audit_logs.length > 0;
+  const logsList = hasAuditLogs
+    ? auditData!.audit_logs.map((al) => ({
+        id: al.id,
+        created_at: al.created_at,
+        user_id: al.actor_user_id || undefined,
+        user_email: (al.metadata as any)?.user_email || (al.metadata as any)?.email || undefined,
+        action: al.action,
+        resource_type: al.resource_type,
+        resource_id: al.resource_id,
+        ip_address: al.ip_address,
+        metadata: al.metadata,
+      }))
+    : (activityData?.logs || []);
+
+  const totalLogs = hasAuditLogs ? (auditData?.total || 0) : (activityData?.total || 0);
   const totalPages = Math.max(1, Math.ceil(totalLogs / pageSize));
+  const isLoading = auditLoading || activityLoading;
 
   const handlePresetChange = (preset: "all" | "today" | "7d" | "30d" | "custom") => {
     setDatePreset(preset);
@@ -209,13 +233,13 @@ export default function AdminAuditLogsPage() {
           </CardTitle>
         </CardHeader>
         <CardContent className="p-0">
-          {activityLoading ? (
+          {isLoading ? (
             <div className="p-6 flex flex-col gap-2">
               <Skeleton className="h-8 w-full" />
               <Skeleton className="h-8 w-full" />
               <Skeleton className="h-8 w-full" />
             </div>
-          ) : !activityData?.logs || activityData.logs.length === 0 ? (
+          ) : !logsList || logsList.length === 0 ? (
             <div className="p-6 text-sm text-ink-muted text-center">No system events logged.</div>
           ) : (
             <div className="flex flex-col font-sans">
@@ -229,7 +253,7 @@ export default function AdminAuditLogsPage() {
                     <span>IP Address</span>
                     <span>Details</span>
                   </div>
-                  {activityData.logs.map((log) => (
+                  {logsList.map((log) => (
                     <div
                       key={log.id}
                       className="grid grid-cols-[1.4fr_1.6fr_1.2fr_1.3fr_1fr_1.5fr] gap-4 items-center border-b border-border px-4 py-3 text-[13px] hover:bg-bg-overlay/20 transition-colors"

@@ -74,6 +74,11 @@ export async function apiClient(path: string, options: RequestInit = {}): Promis
     headers.set("Content-Type", "application/json");
   }
 
+  // If accessToken in memory is not set but refreshToken exists, refresh session first
+  if (!accessToken && refreshToken) {
+    await runTokenRefresh().catch(() => null);
+  }
+
   if (accessToken) {
     headers.set("Authorization", `Bearer ${accessToken}`);
   }

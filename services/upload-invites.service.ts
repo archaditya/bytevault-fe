@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { apiClient } from "@/lib/api-client";
+import { apiClient, getAccessToken } from "@/lib/api-client";
 
 // ─────────────────────────────────────────────────────────────
 // Types (mirror backend/internal/model/upload_invite.go)
@@ -82,6 +82,7 @@ export function useUploadInvites() {
       const data = await apiClient("/api/v1/upload-invites?limit=50");
       return (data?.invites ?? []) as UploadInvite[];
     },
+    enabled: typeof window !== "undefined" ? !!getAccessToken() : true,
   });
 }
 

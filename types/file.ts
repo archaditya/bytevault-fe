@@ -31,6 +31,9 @@ export interface FileRecord {
   status?: string; // UPLOADING | READY | FAILED
   folderId?: string;
   thumbnailUrl?: string;
+  chunkCount?: number;
+  uploadDurationMs?: number;
+  transferSpeedBps?: number;
 }
 
 export interface FileTransferHistoryEntry {

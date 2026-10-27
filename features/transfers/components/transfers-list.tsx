@@ -2,7 +2,7 @@
 
 import { useMemo, useEffect } from "react";
 import { useTransfers, useTransferStats } from "@/services";
-import { useTransferStore } from "@/store";
+import { useTransferStore, useAuthStore } from "@/store";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { TransferCard } from "./transfer-card";
 import { EmptyState } from "@/components/shared/empty-state";
@@ -23,13 +23,14 @@ const tabs: { value: TransferTab; label: string }[] = [
 ];
 
 export function TransfersList() {
+  const { user } = useAuthStore();
   const { data: transfers, isLoading } = useTransfers();
   const { data: stats } = useTransferStats();
-  const { activeTab, setActiveTab, directionFilter, setDirectionFilter, loadFromLocalStorage } = useTransferStore();
+  const { activeTab, setActiveTab, directionFilter, setDirectionFilter, initUserTransfers } = useTransferStore();
 
   useEffect(() => {
-    loadFromLocalStorage();
-  }, [loadFromLocalStorage]);
+    initUserTransfers(user?.id ?? null);
+  }, [user?.id, initUserTransfers]);
 
   const filtered = useMemo(() => {
     if (!transfers) return [];

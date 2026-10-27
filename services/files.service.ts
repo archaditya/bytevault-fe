@@ -480,6 +480,9 @@ export function mapBackendFileToFrontend(f: any): FileRecord {
     status: f.status || "READY",
     folderId: f.folder_id || undefined,
     thumbnailUrl: f.thumbnail_url || undefined,
+    chunkCount: f.chunk_count || 1,
+    uploadDurationMs: f.upload_duration_ms || 0,
+    transferSpeedBps: f.transfer_speed_bps || 0,
   };
 }
 
@@ -519,6 +522,7 @@ export function useFiles(params: {
         next_cursor: data.pagination?.next_cursor || undefined,
       };
     },
+    enabled: typeof window !== "undefined" ? !!getAccessToken() : true,
     refetchInterval: (query) => {
       const files = query.state.data?.files;
       const hasPending = files?.some((f: any) => f.status === "PENDING_SCAN");
@@ -623,6 +627,7 @@ export function useFoldersFlat() {
       }
       return [];
     },
+    enabled: typeof window !== "undefined" ? !!getAccessToken() : true,
   });
 }
 
@@ -632,6 +637,7 @@ export function useQuota() {
     queryFn: async () => {
       return apiClient("/api/v1/me/quota");
     },
+    enabled: typeof window !== "undefined" ? !!getAccessToken() : true,
   });
 }
 
@@ -1017,10 +1023,18 @@ export function useUploadFileMutation() {
             speedHistory: [{ t: 1, bytesPerSecond: speed }],
           });
 
+          const durationMs = Date.now() - startTime;
+          const transferSpeedBps = Math.round((file.size / (durationMs / 1000 || 1)));
+
           appendLog("Finalizing metadata handshake with backend.");
           await apiClient(`/api/v1/files/${file_id}/complete`, {
             method: "POST",
-            body: JSON.stringify({ content_hash: hash || undefined }),
+            body: JSON.stringify({
+              content_hash: hash || undefined,
+              chunk_count: 1,
+              upload_duration_ms: durationMs,
+              transfer_speed_bps: transferSpeedBps,
+            }),
             signal: abortController.signal,
           });
 
@@ -1047,6 +1061,7 @@ export function useUploadFileMutation() {
         // --- MULTIPART UPLOAD ---
         let fileId = "";
         let uploadId = "";
+        const multipartStartTime = Date.now();
 
         try {
           appendLog(`Initiating multipart upload session (${totalParts} parts).`);
@@ -1174,6 +1189,9 @@ export function useUploadFileMutation() {
 
           const completedParts = await Promise.all(uploadPromises);
 
+          const totalDurationMs = Date.now() - multipartStartTime;
+          const transferSpeedBps = Math.round((file.size / (totalDurationMs / 1000 || 1)));
+
           appendLog("Assembling parts and validating signature integrity.");
           await apiClient(`/api/v1/files/${fileId}/complete-multipart`, {
             method: "POST",
@@ -1181,6 +1199,9 @@ export function useUploadFileMutation() {
               upload_id: uploadId,
               parts: completedParts.sort((a, b) => a.part_number - b.part_number),
               content_hash: hash || undefined,
+              chunk_count: completedParts.length,
+              upload_duration_ms: totalDurationMs,
+              transfer_speed_bps: transferSpeedBps,
             }),
             signal: abortController.signal,
           });
