@@ -26,7 +26,7 @@ export function NotificationBell() {
   const [loading, setLoading] = useState(false);
 
   const fetchNotifications = async () => {
-    if (!isAuthenticated || !getAccessToken()) return;
+    if (!isAuthenticated) return;
     setLoading(true);
     try {
       const data = await apiClient("/api/v1/notifications");
@@ -40,7 +40,7 @@ export function NotificationBell() {
   };
 
   useEffect(() => {
-    if (isAuthenticated && getAccessToken()) {
+    if (isAuthenticated) {
       fetchNotifications();
     }
   }, [isAuthenticated]);
