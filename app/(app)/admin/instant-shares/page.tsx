@@ -9,12 +9,48 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Flame, Settings } from "lucide-react";
+import { Flame, Settings, Clock, Radio } from "lucide-react";
 import toast from "react-hot-toast";
 import { formatBytes, formatRelativeTime } from "@/lib/utils";
 
+function formatDuration(createdStr?: string, burnedStr?: string, status?: string) {
+  if (!createdStr) return "—";
+  const created = new Date(createdStr).getTime();
+  if (isNaN(created)) return "—";
+  const ended = burnedStr ? new Date(burnedStr).getTime() : Date.now();
+  const diffSec = Math.max(0, Math.floor((ended - created) / 1000));
+
+  let timeFormatted = "";
+  if (diffSec < 60) {
+    timeFormatted = `${diffSec}s`;
+  } else {
+    const mins = Math.floor(diffSec / 60);
+    const sec = diffSec % 60;
+    if (mins < 60) {
+      timeFormatted = sec > 0 ? `${mins}m ${sec}s` : `${mins}m`;
+    } else {
+      const hrs = Math.floor(mins / 60);
+      const remMins = mins % 60;
+      timeFormatted = `${hrs}h ${remMins}m`;
+    }
+  }
+
+  if (status === "BURNED") {
+    return `Burned in ${timeFormatted}`;
+  }
+  if (status === "EXPIRED") {
+    return `Expired (${timeFormatted})`;
+  }
+  if (status === "UPLOADING") {
+    return `Uploading (${timeFormatted})`;
+  }
+  return `Active for ${timeFormatted}`;
+}
+
 export default function AdminInstantSharesPage() {
   const [page, setPage] = useState(1);
+  const [typeFilter, setTypeFilter] = useState<"all" | "live" | "instant">("all");
+  const [statusFilter, setStatusFilter] = useState<string>("all");
 
   // Dynamic Form State for Admin Governance Controls
   const [maxUploadGb, setMaxUploadGb] = useState<number>(2);
@@ -149,9 +185,63 @@ export default function AdminInstantSharesPage() {
 
       {/* Live Transaction Telemetry Logs Table */}
       <Card className="bg-bg-surface border-border-strong">
-        <CardHeader className="pb-3 border-b border-border flex flex-row items-center justify-between">
-          <CardTitle className="text-sm font-semibold">Anonymous Upload Transactions</CardTitle>
-          <span className="text-xs text-ink-muted">Total {data?.total || 0} events</span>
+        <CardHeader className="pb-3 border-b border-border flex flex-col md:flex-row md:items-center justify-between gap-3">
+          <div>
+            <CardTitle className="text-sm font-semibold">Anonymous Upload Transactions</CardTitle>
+            <p className="text-[11px] text-ink-muted">
+              Total {data?.total || 0} events recorded across all guest sessions.
+            </p>
+          </div>
+
+          {/* Filtering toolbar */}
+          <div className="flex flex-wrap items-center gap-2 text-xs">
+            {/* Mode Filter */}
+            <div className="flex items-center rounded-lg border border-border bg-bg-raised p-0.5">
+              <button
+                type="button"
+                onClick={() => setTypeFilter("all")}
+                className={`px-2.5 py-1 rounded-md text-[11px] font-medium transition-colors ${
+                  typeFilter === "all" ? "bg-accent text-white" : "text-ink-muted hover:text-ink"
+                }`}
+              >
+                All Modes
+              </button>
+              <button
+                type="button"
+                onClick={() => setTypeFilter("live")}
+                className={`flex items-center gap-1 px-2.5 py-1 rounded-md text-[11px] font-medium transition-colors ${
+                  typeFilter === "live" ? "bg-emerald-500 text-black font-semibold" : "text-ink-muted hover:text-ink"
+                }`}
+              >
+                <Radio className="w-3 h-3" /> Live Only
+              </button>
+              <button
+                type="button"
+                onClick={() => setTypeFilter("instant")}
+                className={`px-2.5 py-1 rounded-md text-[11px] font-medium transition-colors ${
+                  typeFilter === "instant" ? "bg-accent/20 text-accent font-semibold" : "text-ink-muted hover:text-ink"
+                }`}
+              >
+                Standard
+              </button>
+            </div>
+
+            {/* Status Filter */}
+            <div className="flex items-center rounded-lg border border-border bg-bg-raised p-0.5">
+              {["all", "UPLOADING", "ACTIVE", "BURNED", "EXPIRED"].map((st) => (
+                <button
+                  key={st}
+                  type="button"
+                  onClick={() => setStatusFilter(st)}
+                  className={`px-2 py-1 rounded-md text-[11px] font-medium transition-colors ${
+                    statusFilter === st ? "bg-border-strong text-ink font-semibold" : "text-ink-muted hover:text-ink"
+                  }`}
+                >
+                  {st === "all" ? "All" : st}
+                </button>
+              ))}
+            </div>
+          </div>
         </CardHeader>
         <CardContent className="p-0">
           {isLoading ? (
@@ -163,56 +253,91 @@ export default function AdminInstantSharesPage() {
             <div className="p-6 text-xs text-ink-muted text-center">No guest instant uploads recorded.</div>
           ) : (
             <div className="w-full overflow-x-auto">
-              <table className="w-full text-left text-xs font-mono">
-                <thead className="bg-bg-raised text-ink-faint uppercase text-[10px] font-semibold border-b border-border">
-                  <tr>
-                    <th className="p-3">File Name</th>
-                    <th className="p-3">Size</th>
-                    <th className="p-3">Status</th>
-                    <th className="p-3">Downloads</th>
-                    <th className="p-3">Guest IP</th>
-                    <th className="p-3">Expires At</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-border">
-                  {data.shares.map((s: any) => (
-                    <tr key={s.id} className="hover:bg-bg-overlay/20">
-                      <td className="p-3 font-semibold text-ink truncate max-w-xs">
-                        <div className="flex items-center gap-1.5 truncate">
-                          {s.is_live && (
-                            <Badge variant="info" className="text-[9px] px-1.5 py-0 uppercase tracking-wider bg-accent/15 text-accent border border-accent/30 shrink-0">
-                              LIVE
+              {(() => {
+                const filtered = data.shares.filter((s: any) => {
+                  if (typeFilter === "live" && !s.is_live) return false;
+                  if (typeFilter === "instant" && s.is_live) return false;
+                  if (statusFilter !== "all" && s.status !== statusFilter) return false;
+                  return true;
+                });
+
+                if (filtered.length === 0) {
+                  return (
+                    <div className="p-8 text-center text-xs text-ink-muted">
+                      No records match the selected filter criteria.
+                    </div>
+                  );
+                }
+
+                return (
+                  <table className="w-full text-left text-xs font-mono">
+                    <thead className="bg-bg-raised text-ink-faint uppercase text-[10px] font-semibold border-b border-border">
+                      <tr>
+                        <th className="p-3">File Name</th>
+                        <th className="p-3">Mode</th>
+                        <th className="p-3">Size</th>
+                        <th className="p-3">Status</th>
+                        <th className="p-3">Duration / Lifespan</th>
+                        <th className="p-3">Downloads</th>
+                        <th className="p-3">Guest IP</th>
+                        <th className="p-3">Created</th>
+                        <th className="p-3">Expires At</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-border">
+                      {filtered.map((s: any) => (
+                        <tr key={s.id} className="hover:bg-bg-overlay/20">
+                          <td className="p-3 font-semibold text-ink truncate max-w-xs">
+                            <span className="truncate" title={s.filename}>{s.filename}</span>
+                          </td>
+                          <td className="p-3">
+                            {s.is_live ? (
+                              <Badge variant="default" className="text-[9px] px-1.5 py-0 uppercase tracking-wider bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 shrink-0 flex items-center gap-1 w-fit">
+                                <Radio className="w-2.5 h-2.5 animate-pulse" /> LIVE
+                              </Badge>
+                            ) : (
+                              <Badge variant="muted" className="text-[9px] px-1.5 py-0 uppercase tracking-wider text-ink-muted border-border shrink-0">
+                                INSTANT
+                              </Badge>
+                            )}
+                          </td>
+                          <td className="p-3">{formatBytes(s.file_size)}</td>
+                          <td className="p-3">
+                            <Badge
+                              variant={
+                                s.status === "READY" || s.status === "ACTIVE"
+                                  ? "live"
+                                  : s.status === "BURNED"
+                                  ? "danger"
+                                  : s.status === "EXPIRED"
+                                  ? "muted"
+                                  : "info"
+                              }
+                              className="text-[10px]"
+                            >
+                              {s.status}
                             </Badge>
-                          )}
-                          <span className="truncate">{s.filename}</span>
-                        </div>
-                      </td>
-                      <td className="p-3">{formatBytes(s.file_size)}</td>
-                      <td className="p-3">
-                        <Badge
-                          variant={
-                            s.status === "READY" || s.status === "ACTIVE"
-                              ? "live"
-                              : s.status === "BURNED"
-                              ? "danger"
-                              : s.status === "EXPIRED"
-                              ? "muted"
-                              : "info"
-                          }
-                          className="text-[10px]"
-                        >
-                          {s.status}
-                        </Badge>
-                      </td>
-                      <td className="p-3">
-                        {s.download_count} / {s.max_downloads}
-                      </td>
-                      <td className="p-3 text-accent">{s.ip_address || "Unknown"}</td>
-                      <td className="p-3 text-ink-muted">{formatRelativeTime(s.expires_at)}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+                          </td>
+                          <td className="p-3 text-ink-muted">
+                            <span className="flex items-center gap-1 text-[11px]">
+                              <Clock className="w-3 h-3 text-ink-faint" />
+                              {formatDuration(s.created_at, s.burned_at, s.status)}
+                            </span>
+                          </td>
+                          <td className="p-3">
+                            {s.download_count} / {s.max_downloads}
+                          </td>
+                          <td className="p-3 text-accent">{s.ip_address || "Unknown"}</td>
+                          <td className="p-3 text-ink-muted text-[11px]">
+                            {s.created_at ? new Date(s.created_at).toLocaleTimeString() : "—"}
+                          </td>
+                          <td className="p-3 text-ink-muted">{formatRelativeTime(s.expires_at)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                );
+              })()}
             </div>
           )}
 

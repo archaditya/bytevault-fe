@@ -42,6 +42,8 @@ interface LiveEphemeralShare {
   has_password: boolean;
   preview_url?: string;
   is_live: boolean;
+  progress_pct?: number;
+  uploaded_bytes?: number;
 }
 
 export default function LiveShareReceiverPage() {
@@ -92,14 +94,14 @@ export default function LiveShareReceiverPage() {
     fetchMetadata();
   }, [fetchMetadata]);
 
-  // Polling while status is UPLOADING
+  // Polling while status is UPLOADING (live stream telemetry updates every 1.5s)
   useEffect(() => {
     if (!share || share.status !== "UPLOADING" || burned) return;
 
     const timer = setInterval(() => {
       setPollCount((prev) => prev + 1);
       fetchMetadata();
-    }, 2500);
+    }, 1500);
 
     return () => clearInterval(timer);
   }, [share, burned, fetchMetadata]);
@@ -305,13 +307,40 @@ export default function LiveShareReceiverPage() {
           <div className="pt-6 space-y-4">
             {isUploading ? (
               <div className="space-y-4">
-                <div className="p-4 rounded-xl bg-bg-raised border border-border text-center space-y-2">
-                  <div className="flex items-center justify-center gap-2 text-accent text-xs font-medium">
-                    <Radio className="w-4 h-4 animate-pulse" />
-                    <span>Synchronizing with sender stream...</span>
+                {/* Live Stream Telemetry Progress Box */}
+                <div className="p-5 rounded-xl bg-bg-raised border border-border space-y-3.5">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2 text-accent text-xs font-semibold">
+                      <Radio className="w-4 h-4 animate-pulse text-accent" />
+                      <span>Live Transfer Stream Active</span>
+                    </div>
+                    <span className="font-mono text-xs font-bold text-accent">
+                      {share.progress_pct || 0}%
+                    </span>
                   </div>
-                  <p className="text-[11px] text-ink-muted max-w-md mx-auto">
-                    You do not need to refresh. This page updates automatically. Once the upload finishes, the download will begin.
+
+                  {/* Dynamic Progress Bar */}
+                  <div className="space-y-1.5">
+                    <div className="w-full bg-border/60 rounded-full h-2.5 overflow-hidden p-0.5">
+                      <div
+                        className="bg-accent h-full rounded-full transition-all duration-500 ease-out shadow-[0_0_12px_rgba(255,106,0,0.4)]"
+                        style={{ width: `${Math.max(share.progress_pct || 0, 4)}%` }}
+                      />
+                    </div>
+                    <div className="flex items-center justify-between text-[11px] font-mono text-ink-muted">
+                      <span>
+                        {formatBytes(share.uploaded_bytes || 0)} of {formatBytes(share.file_size)} streamed
+                      </span>
+                      <span>
+                        {(share.progress_pct || 0) >= 100
+                          ? "Assembling parts in R2..."
+                          : "Streaming chunks in parallel"}
+                      </span>
+                    </div>
+                  </div>
+
+                  <p className="text-[11px] text-ink-muted leading-relaxed">
+                    You do not need to refresh. Chunks are streaming directly to encrypted storage. When the sender finishes, your download triggers automatically.
                   </p>
                 </div>
 
@@ -331,7 +360,8 @@ export default function LiveShareReceiverPage() {
                   disabled
                   className="w-full h-12 text-xs md:text-sm font-semibold rounded-xl bg-bg-raised text-ink-muted border border-border flex items-center justify-center gap-2 cursor-not-allowed"
                 >
-                  <Clock className="w-4 h-4" /> Awaiting Sender Upload Completion...
+                  <Loader2 className="w-4 h-4 animate-spin text-accent" />
+                  Streaming Live ({share.progress_pct || 0}%) — Awaiting Completion
                 </Button>
               </div>
             ) : (

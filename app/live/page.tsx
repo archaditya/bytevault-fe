@@ -299,11 +299,24 @@ export default function LiveSharePage() {
       const chunkLoadedBytes = new Array(totalParts).fill(0);
       let lastTimestamp = Date.now();
       let lastLoadedBytes = 0;
+      let lastReportTime = 0;
+
+      const reportProgressToBackend = (pct: number, bytes: number) => {
+        const now = Date.now();
+        if (now - lastReportTime < 1000) return;
+        lastReportTime = now;
+        fetch(`/api/v1/ephemeral/progress/${token}`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ progress_pct: pct, uploaded_bytes: bytes }),
+        }).catch(() => {});
+      };
 
       const updateProgress = () => {
         const totalLoaded = chunkLoadedBytes.reduce((acc, bytes) => acc + bytes, 0);
         const pct = Math.min(99, Math.round((totalLoaded / file.size) * 100));
         setProgress(pct);
+        reportProgressToBackend(pct, totalLoaded);
 
         const now = Date.now();
         const timeDiff = (now - lastTimestamp) / 1000;
@@ -380,6 +393,13 @@ export default function LiveSharePage() {
 
       await Promise.all(workers);
       if (workerError) throw workerError;
+
+      // Report full 100% progress
+      fetch(`/api/v1/ephemeral/progress/${token}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ progress_pct: 100, uploaded_bytes: file.size }),
+      }).catch(() => {});
 
       // 4. Assemble in Cloud Storage
       setStatusText("Finalizing and locking file in cloud storage...");
