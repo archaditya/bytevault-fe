@@ -121,6 +121,66 @@ export default function LiveSharePage() {
 
   const maxSizeBytes = config.max_file_size_gb * 1024 * 1024 * 1024;
 
+  // Window-level full-page drag-and-drop
+  useEffect(() => {
+    const handleDragEnter = (e: DragEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      dragCounter.current += 1;
+      if (e.dataTransfer?.items && e.dataTransfer.items.length > 0) {
+        setIsDraggingOver(true);
+      }
+    };
+
+    const handleDragLeave = (e: DragEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      dragCounter.current -= 1;
+      if (dragCounter.current <= 0) {
+        dragCounter.current = 0;
+        setIsDraggingOver(false);
+      }
+    };
+
+    const handleDragOver = (e: DragEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+    };
+
+    const handleDrop = (e: DragEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      dragCounter.current = 0;
+      setIsDraggingOver(false);
+
+      if (uploading) return;
+
+      if (e.dataTransfer?.files && e.dataTransfer.files.length > 0) {
+        const droppedFile = e.dataTransfer.files[0];
+        if (droppedFile.size > maxSizeBytes) {
+          toast.error(
+            `File exceeds dynamic guest limit of ${formatBytes(maxSizeBytes)}. Sign in for larger files.`
+          );
+          return;
+        }
+        setFile(droppedFile);
+        toast.success(`Selected ${droppedFile.name}`);
+      }
+    };
+
+    window.addEventListener("dragenter", handleDragEnter);
+    window.addEventListener("dragleave", handleDragLeave);
+    window.addEventListener("dragover", handleDragOver);
+    window.addEventListener("drop", handleDrop);
+
+    return () => {
+      window.removeEventListener("dragenter", handleDragEnter);
+      window.removeEventListener("dragleave", handleDragLeave);
+      window.removeEventListener("dragover", handleDragOver);
+      window.removeEventListener("drop", handleDrop);
+    };
+  }, [maxSizeBytes, uploading]);
+
   const uploadChunkWithProgress = async (
     url: string,
     body: Blob,
@@ -372,6 +432,21 @@ export default function LiveSharePage() {
   return (
     <div className="min-h-screen flex flex-col bg-bg text-ink selection:bg-accent/20 selection:text-accent font-sans">
       <LandingNav />
+
+      {/* Full-Page Drag Overlay */}
+      {isDraggingOver && !uploading && (
+        <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-bg/90 backdrop-blur-md border-4 border-dashed border-emerald-500 m-4 rounded-3xl animate-in fade-in duration-150 pointer-events-none">
+          <div className="flex flex-col items-center gap-4 text-center">
+            <div className="flex h-20 w-20 items-center justify-center rounded-full bg-emerald-500/20 text-emerald-400">
+              <UploadCloud className="h-10 w-10 animate-bounce" />
+            </div>
+            <h2 className="text-2xl font-bold text-ink">Drop your file anywhere</h2>
+            <p className="text-sm text-ink-muted">
+              File will be staged for Live Pipelined Transfer
+            </p>
+          </div>
+        </div>
+      )}
 
       <main className="flex-1 max-w-4xl mx-auto px-4 py-12 md:py-16 w-full flex flex-col items-center justify-center">
         {/* Header */}
