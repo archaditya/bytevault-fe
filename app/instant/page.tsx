@@ -202,17 +202,36 @@ export default function InstantUploadPage() {
     contentType: string,
     onProgress: (loaded: number, total: number) => void,
     onRegisterXhr?: (xhr: XMLHttpRequest) => void,
-    maxRetries = 2
+    maxRetries = 2,
+    signal?: AbortSignal
   ): Promise<string> => {
     let lastError: any = null;
     for (let attempt = 0; attempt <= maxRetries; attempt++) {
+      if (signal?.aborted) {
+        throw new Error("Upload aborted");
+      }
       let isAborted = false;
       try {
         return await new Promise<string>((resolve, reject) => {
+          if (signal?.aborted) {
+            isAborted = true;
+            return reject(new Error("Upload aborted"));
+          }
+
           const xhr = new XMLHttpRequest();
           if (onRegisterXhr) {
             onRegisterXhr(xhr);
           }
+
+          const onSignalAbort = () => {
+            isAborted = true;
+            xhr.abort();
+          };
+          signal?.addEventListener("abort", onSignalAbort, { once: true });
+
+          const cleanup = () => {
+            signal?.removeEventListener("abort", onSignalAbort);
+          };
 
           xhr.open("PUT", url, true);
           xhr.setRequestHeader("Content-Type", contentType);
@@ -224,6 +243,7 @@ export default function InstantUploadPage() {
           };
 
           xhr.onload = () => {
+            cleanup();
             if (xhr.status >= 200 && xhr.status < 300) {
               const rawEtag = xhr.getResponseHeader("ETag") || xhr.getResponseHeader("etag") || "";
               resolve(rawEtag.replace(/"/g, ""));
@@ -236,11 +256,13 @@ export default function InstantUploadPage() {
           };
 
           xhr.onabort = () => {
+            cleanup();
             isAborted = true;
             reject(new Error("Upload aborted"));
           };
 
           xhr.onerror = () => {
+            cleanup();
             const err: any = new Error(
               "Network transmission error during upload. Please check your internet connection."
             );
@@ -249,6 +271,7 @@ export default function InstantUploadPage() {
           };
 
           xhr.ontimeout = () => {
+            cleanup();
             const err: any = new Error(
               "Upload connection timed out. Server took too long to respond."
             );
@@ -260,12 +283,24 @@ export default function InstantUploadPage() {
         });
       } catch (err: any) {
         lastError = err;
-        if (isAborted || err?.message === "Upload aborted") {
+        if (isAborted || signal?.aborted || err?.message === "Upload aborted") {
           throw err;
         }
         if (err?.retryable !== false && attempt < maxRetries) {
           onProgress(0, body.size);
-          await new Promise((res) => setTimeout(res, 1000 * Math.pow(2, attempt)));
+          await new Promise<void>((resolve, reject) => {
+            if (signal?.aborted) {
+              return reject(new Error("Upload aborted"));
+            }
+            const timer = setTimeout(resolve, 1000 * Math.pow(2, attempt));
+            if (signal) {
+              const onDelayAbort = () => {
+                clearTimeout(timer);
+                reject(new Error("Upload aborted"));
+              };
+              signal.addEventListener("abort", onDelayAbort, { once: true });
+            }
+          });
           continue;
         }
         throw err;
@@ -391,8 +426,17 @@ export default function InstantUploadPage() {
 
         const refreshJson = await refreshRes.json();
         if (!refreshRes.ok) {
-          clearSavedSession();
-          setSavedSession(null);
+          const detail = (refreshJson.detail || refreshJson.error || "").toLowerCase();
+          const isDeadSession =
+            refreshRes.status === 404 ||
+            refreshRes.status === 410 ||
+            detail.includes("expired") ||
+            detail.includes("not found");
+
+          if (isDeadSession) {
+            clearSavedSession();
+            setSavedSession(null);
+          }
           throw new Error(
             refreshJson.detail ||
               refreshJson.error ||
@@ -425,11 +469,12 @@ export default function InstantUploadPage() {
 
         const completedParts: { part_number: number; etag: string }[] = [...session.completedParts];
         const activeXhrs = new Set<XMLHttpRequest>();
+        const abortController = new AbortController();
         let nextPartIdx = 0;
         let workerError: Error | null = null;
 
         const worker = async () => {
-          while (nextPartIdx < pendingPartUrls.length && !workerError) {
+          while (nextPartIdx < pendingPartUrls.length && !workerError && !abortController.signal.aborted) {
             const currentIdx = nextPartIdx++;
             const partInfo = pendingPartUrls[currentIdx];
             const partNum = partInfo.part_number;
@@ -455,7 +500,9 @@ export default function InstantUploadPage() {
                   }
                   currentXhr = xhr;
                   activeXhrs.add(xhr);
-                }
+                },
+                2,
+                abortController.signal
               );
 
               if (currentXhr) {
@@ -476,6 +523,7 @@ export default function InstantUploadPage() {
                 activeXhrs.delete(currentXhr);
               }
               workerError = err;
+              abortController.abort();
               activeXhrs.forEach((xhr) => {
                 try {
                   xhr.abort();
@@ -671,11 +719,12 @@ export default function InstantUploadPage() {
 
         const completedParts: { part_number: number; etag: string }[] = [];
         const activeXhrs = new Set<XMLHttpRequest>();
+        const abortController = new AbortController();
         let nextPartIdx = 0;
         let workerError: Error | null = null;
 
         const worker = async () => {
-          while (nextPartIdx < part_urls.length && !workerError) {
+          while (nextPartIdx < part_urls.length && !workerError && !abortController.signal.aborted) {
             const currentIdx = nextPartIdx++;
             const partInfo = part_urls[currentIdx];
             const partNum = partInfo.part_number;
@@ -701,7 +750,9 @@ export default function InstantUploadPage() {
                   }
                   currentXhr = xhr;
                   activeXhrs.add(xhr);
-                }
+                },
+                2,
+                abortController.signal
               );
 
               if (currentXhr) {
@@ -722,6 +773,7 @@ export default function InstantUploadPage() {
                 activeXhrs.delete(currentXhr);
               }
               workerError = err;
+              abortController.abort();
               activeXhrs.forEach((xhr) => {
                 try {
                   xhr.abort();
