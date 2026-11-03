@@ -348,7 +348,7 @@ export default function InstantSharePage() {
               {/* Left Side: Rich Preview Area */}
               <div
                 className={cn(
-                  "flex-1 min-w-0 flex flex-col rounded-xl border border-border bg-bg-raised/60 overflow-hidden min-h-[260px] md:min-h-[640px] relative transition-all order-2 md:order-1",
+                  "flex-1 min-w-0 flex flex-col rounded-xl border border-border bg-bg-raised/60 overflow-hidden min-h-[260px] md:min-h-[640px] relative transition-all order-1",
                   isFullscreen && "fixed inset-0 z-50 rounded-none border-none bg-bg-base"
                 )}
               >
@@ -475,7 +475,7 @@ export default function InstantSharePage() {
               </div>
 
               {/* Right Side: Download & Actions (order-1 on mobile for instant zero-scroll access) */}
-              <div className="w-full md:w-80 md:flex-shrink-0 flex flex-col justify-between p-2 order-1 md:order-2">
+              <div className="w-full md:w-80 md:flex-shrink-0 flex flex-col justify-between p-2 order-2">
                 <div className="space-y-4 md:space-y-5">
                   {/* File Profile Header */}
                   <div className="text-center md:text-left">
