@@ -17,7 +17,6 @@ import {
 } from "lucide-react";
 import toast from "react-hot-toast";
 import { formatBytes } from "@/lib/utils";
-import { getOptimalChunkSize } from "@/services";
 
 interface EphemeralConfig {
   max_file_size_gb: number;
@@ -81,6 +80,61 @@ function formatExpiry(mins: number): string {
   return `${mins} minutes`;
 }
 
+interface NetworkUploadProfile {
+  concurrency: number;
+  chunkSize: number;
+}
+
+/**
+ * Dynamically computes concurrency workers and chunk size based on:
+ * 1. Network conditions (Cellular/3G vs Fast Fiber via Network Information API)
+ * 2. Device type (Mobile RAM limitations vs Desktop)
+ * 3. File size (5MB up to 2GB)
+ */
+function getUploadProfile(fileSizeBytes: number): NetworkUploadProfile {
+  const MB = 1024 * 1024;
+
+  const nav = typeof navigator !== "undefined" ? (navigator as any) : null;
+  const conn = nav?.connection || nav?.mozConnection || nav?.webkitConnection;
+
+  const isSlowConnection =
+    Boolean(conn?.saveData) ||
+    conn?.effectiveType === "2g" ||
+    conn?.effectiveType === "slow-2g" ||
+    conn?.effectiveType === "3g" ||
+    (typeof conn?.rtt === "number" && conn.rtt > 300);
+
+  const isMobile =
+    typeof window !== "undefined" &&
+    (window.innerWidth < 768 || /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent));
+
+  // Concurrency ceiling:
+  // - Cellular / Mobile: 3 workers (prevents TCP bufferbloat & tab memory crash)
+  // - Fast Desktop / Fiber: 6 workers (saturates pipe without exceeding browser HTTP connection limits)
+  let concurrency = 4;
+  if (isSlowConnection || isMobile) {
+    concurrency = 3;
+  } else if (fileSizeBytes > 300 * MB) {
+    concurrency = 6;
+  } else if (fileSizeBytes <= 50 * MB) {
+    concurrency = 3;
+  }
+
+  // Chunk size:
+  // - Cellular/Mobile: 10MB chunks save incremental progress often so packet drops lose minimal data
+  // - Fast Desktop: 15MB - 25MB chunks maximize throughput & reduce presigned URL overhead
+  let chunkSize = 10 * MB;
+  if (isSlowConnection || isMobile) {
+    chunkSize = fileSizeBytes <= 100 * MB ? 5 * MB : 10 * MB;
+  } else {
+    if (fileSizeBytes <= 50 * MB) chunkSize = 5 * MB;
+    else if (fileSizeBytes <= 500 * MB) chunkSize = 15 * MB;
+    else chunkSize = 25 * MB;
+  }
+
+  return { concurrency, chunkSize };
+}
+
 export default function InstantUploadPage() {
   const [config, setConfig] = useState<EphemeralConfig>({
     max_file_size_gb: 2, // 2GB default fallback
@@ -141,48 +195,83 @@ export default function InstantUploadPage() {
 
   // Convert GB to bytes for file size comparison
   const maxSizeBytes = config.max_file_size_gb * 1024 * 1024 * 1024;
-  const CONCURRENT_WORKERS = 3; // Upload up to 3 chunks in parallel
 
-  const uploadChunkWithProgress = (
+  const uploadChunkWithProgress = async (
     url: string,
     body: Blob,
     contentType: string,
     onProgress: (loaded: number, total: number) => void,
-    onRegisterXhr?: (xhr: XMLHttpRequest) => void
+    onRegisterXhr?: (xhr: XMLHttpRequest) => void,
+    maxRetries = 2
   ): Promise<string> => {
-    return new Promise((resolve, reject) => {
-      const xhr = new XMLHttpRequest();
-      if (onRegisterXhr) {
-        onRegisterXhr(xhr);
+    let lastError: any = null;
+    for (let attempt = 0; attempt <= maxRetries; attempt++) {
+      let isAborted = false;
+      try {
+        return await new Promise<string>((resolve, reject) => {
+          const xhr = new XMLHttpRequest();
+          if (onRegisterXhr) {
+            onRegisterXhr(xhr);
+          }
+
+          xhr.open("PUT", url, true);
+          xhr.setRequestHeader("Content-Type", contentType);
+
+          xhr.upload.onprogress = (e) => {
+            if (e.lengthComputable) {
+              onProgress(e.loaded, e.total);
+            }
+          };
+
+          xhr.onload = () => {
+            if (xhr.status >= 200 && xhr.status < 300) {
+              const rawEtag = xhr.getResponseHeader("ETag") || xhr.getResponseHeader("etag") || "";
+              resolve(rawEtag.replace(/"/g, ""));
+            } else {
+              const isRetryable = xhr.status >= 500 && xhr.status < 600;
+              const err: any = new Error(`Storage PUT failed with status ${xhr.status}`);
+              err.retryable = isRetryable;
+              reject(err);
+            }
+          };
+
+          xhr.onabort = () => {
+            isAborted = true;
+            reject(new Error("Upload aborted"));
+          };
+
+          xhr.onerror = () => {
+            const err: any = new Error(
+              "Network transmission error during upload. Please check your internet connection."
+            );
+            err.retryable = true;
+            reject(err);
+          };
+
+          xhr.ontimeout = () => {
+            const err: any = new Error(
+              "Upload connection timed out. Server took too long to respond."
+            );
+            err.retryable = true;
+            reject(err);
+          };
+
+          xhr.send(body);
+        });
+      } catch (err: any) {
+        lastError = err;
+        if (isAborted || err?.message === "Upload aborted") {
+          throw err;
+        }
+        if (err?.retryable !== false && attempt < maxRetries) {
+          onProgress(0, body.size);
+          await new Promise((res) => setTimeout(res, 1000 * Math.pow(2, attempt)));
+          continue;
+        }
+        throw err;
       }
-
-      xhr.open("PUT", url, true);
-      xhr.setRequestHeader("Content-Type", contentType);
-
-      xhr.upload.onprogress = (e) => {
-        if (e.lengthComputable) {
-          onProgress(e.loaded, e.total);
-        }
-      };
-
-      xhr.onload = () => {
-        if (xhr.status >= 200 && xhr.status < 300) {
-          const rawEtag = xhr.getResponseHeader("ETag") || xhr.getResponseHeader("etag") || "";
-          resolve(rawEtag.replace(/"/g, ""));
-        } else {
-          reject(new Error(`Storage PUT failed with status ${xhr.status}`));
-        }
-      };
-
-      xhr.onerror = () =>
-        reject(
-          new Error("Network transmission error during upload. Please check your internet connection.")
-        );
-      xhr.ontimeout = () =>
-        reject(new Error("Upload connection timed out. Server took too long to respond."));
-
-      xhr.send(body);
-    });
+    }
+    throw lastError;
   };
 
   const handleDiscardUnfinished = useCallback(async () => {
@@ -361,6 +450,9 @@ export default function InstantUploadPage() {
                   updateProgress();
                 },
                 (xhr) => {
+                  if (currentXhr) {
+                    activeXhrs.delete(currentXhr);
+                  }
                   currentXhr = xhr;
                   activeXhrs.add(xhr);
                 }
@@ -395,8 +487,9 @@ export default function InstantUploadPage() {
           }
         };
 
+        const { concurrency } = getUploadProfile(resumeFile.size);
         const workers = Array.from(
-          { length: Math.min(CONCURRENT_WORKERS, pendingPartUrls.length) },
+          { length: Math.min(concurrency, pendingPartUrls.length) },
           () => worker()
         );
 
@@ -483,7 +576,7 @@ export default function InstantUploadPage() {
     setStatusText("Preparing upload...");
 
     try {
-      const dynamicChunkSize = getOptimalChunkSize(file.size);
+      const { concurrency, chunkSize: dynamicChunkSize } = getUploadProfile(file.size);
       const isMultipart = file.size > dynamicChunkSize;
 
       if (!isMultipart) {
@@ -603,6 +696,9 @@ export default function InstantUploadPage() {
                   updateProgress();
                 },
                 (xhr) => {
+                  if (currentXhr) {
+                    activeXhrs.delete(currentXhr);
+                  }
                   currentXhr = xhr;
                   activeXhrs.add(xhr);
                 }
@@ -638,7 +734,7 @@ export default function InstantUploadPage() {
         };
 
         const workers = Array.from(
-          { length: Math.min(CONCURRENT_WORKERS, totalParts) },
+          { length: Math.min(concurrency, totalParts) },
           () => worker()
         );
 
