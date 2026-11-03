@@ -177,7 +177,16 @@ export default function AdminInstantSharesPage() {
                 <tbody className="divide-y divide-border">
                   {data.shares.map((s: any) => (
                     <tr key={s.id} className="hover:bg-bg-overlay/20">
-                      <td className="p-3 font-semibold text-ink truncate max-w-xs">{s.filename}</td>
+                      <td className="p-3 font-semibold text-ink truncate max-w-xs">
+                        <div className="flex items-center gap-1.5 truncate">
+                          {s.is_live && (
+                            <Badge variant="info" className="text-[9px] px-1.5 py-0 uppercase tracking-wider bg-accent/15 text-accent border border-accent/30 shrink-0">
+                              LIVE
+                            </Badge>
+                          )}
+                          <span className="truncate">{s.filename}</span>
+                        </div>
+                      </td>
                       <td className="p-3">{formatBytes(s.file_size)}</td>
                       <td className="p-3">
                         <Badge
