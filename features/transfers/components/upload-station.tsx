@@ -265,6 +265,60 @@ export function UploadStation() {
     [maxFileSizeBytes, maxFileSizeMb]
   );
 
+  const [isWindowDragging, setIsWindowDragging] = useState(false);
+  const dragCounter = useRef(0);
+
+  useEffect(() => {
+    const handleWindowDragEnter = (e: DragEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      if (e.dataTransfer && e.dataTransfer.types.includes("Files")) {
+        dragCounter.current++;
+        setIsWindowDragging(true);
+      }
+    };
+
+    const handleWindowDragLeave = (e: DragEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      if (e.dataTransfer && e.dataTransfer.types.includes("Files")) {
+        dragCounter.current--;
+        if (dragCounter.current <= 0) {
+          setIsWindowDragging(false);
+          dragCounter.current = 0;
+        }
+      }
+    };
+
+    const handleWindowDragOver = (e: DragEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+    };
+
+    const handleWindowDrop = (e: DragEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      setIsWindowDragging(false);
+      dragCounter.current = 0;
+
+      if (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+        addFilesToQueue(Array.from(e.dataTransfer.files));
+      }
+    };
+
+    window.addEventListener("dragenter", handleWindowDragEnter);
+    window.addEventListener("dragleave", handleWindowDragLeave);
+    window.addEventListener("dragover", handleWindowDragOver);
+    window.addEventListener("drop", handleWindowDrop);
+
+    return () => {
+      window.removeEventListener("dragenter", handleWindowDragEnter);
+      window.removeEventListener("dragleave", handleWindowDragLeave);
+      window.removeEventListener("dragover", handleWindowDragOver);
+      window.removeEventListener("drop", handleWindowDrop);
+    };
+  }, [addFilesToQueue]);
+
   const handleDragEnter = (e: React.DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
@@ -297,6 +351,7 @@ export function UploadStation() {
     if (item?.status === "uploading") {
       cancelUpload(id);
     }
+    useTransferStore.getState().removeTransfer(id);
     setQueue((prev) => prev.filter((item) => item.id !== id));
   };
 
@@ -475,6 +530,21 @@ export function UploadStation() {
 
   return (
     <div className="w-full rounded-xl border border-border-strong bg-bg-surface p-5 shadow-sm space-y-4">
+      {/* Full-Screen Drag and Drop Overlay for /transfers */}
+      {isWindowDragging && (
+        <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-black/75 backdrop-blur-md border-4 border-dashed border-accent animate-in fade-in-50 duration-150 pointer-events-none">
+          <div className="flex flex-col items-center gap-3 p-8 rounded-2xl bg-bg-surface border border-accent/40 shadow-2xl">
+            <div className="p-4 rounded-full bg-accent/15 border border-accent/30 text-accent-bright animate-bounce">
+              <Upload className="h-10 w-10" />
+            </div>
+            <h2 className="text-xl font-bold text-ink">Drop files anywhere to upload</h2>
+            <p className="text-sm text-ink-muted">
+              Files will be immediately queued in Upload Studio for {selectedFolder?.name || "Home (Root)"}
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* Hidden file input */}
       <input
         type="file"

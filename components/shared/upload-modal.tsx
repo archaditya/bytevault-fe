@@ -406,6 +406,7 @@ export function UploadModal({ open, onOpenChange }: UploadModalProps) {
     if (item?.status === "uploading") {
       cancelUpload(id);
     }
+    useTransferStore.getState().removeTransfer(id);
     setQueue((prev) => prev.filter((item) => item.id !== id));
   };
 
@@ -422,6 +423,46 @@ export function UploadModal({ open, onOpenChange }: UploadModalProps) {
     }
 
     let allSuccessful = true;
+
+    // Upfront registration of all batch files in useTransferStore
+    items.forEach((item, index) => {
+      if (item.status === "success") return;
+      const existing = useTransferStore.getState().transfers.find((t) => t.id === item.id);
+      if (!existing) {
+        useTransferStore.getState().addTransfer({
+          id: item.id,
+          fileName: item.file.name,
+          fileId: "",
+          direction: "upload",
+          status: index === 0 ? "active" : "queued",
+          providerId: "r2",
+          sizeBytes: item.file.size,
+          transferredBytes: 0,
+          speedBytesPerSecond: 0,
+          etaSeconds: null,
+          retryCount: 0,
+          startedAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+          completedAt: null,
+          chunkSize: item.file.size,
+          totalChunks: 1,
+          chunks: [],
+          logs: [
+            {
+              id: Math.random().toString(),
+              timestamp: new Date().toISOString(),
+              level: "info",
+              message: index === 0 ? "Starting upload" : "Queued in batch upload",
+            },
+          ],
+          speedHistory: [],
+          initiatedBy: "Me",
+          etags: [],
+          partUrls: [],
+          folderId: selectedFolderId,
+        });
+      }
+    });
 
     for (let i = 0; i < items.length; i++) {
       const item = items[i];

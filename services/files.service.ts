@@ -954,7 +954,24 @@ export function useUploadFileMutation() {
         folderId,
       };
 
-      useTransferStore.getState().addTransfer(newTx);
+      const existingTx = useTransferStore.getState().transfers.find((t) => t.id === txId);
+      if (existingTx) {
+        useTransferStore.getState().updateTransfer(txId, {
+          ...newTx,
+          status: "active",
+          logs: [
+            ...(existingTx.logs || []),
+            {
+              id: Math.random().toString(),
+              timestamp: new Date().toISOString(),
+              level: "info",
+              message: "Upload session activated.",
+            },
+          ],
+        });
+      } else {
+        useTransferStore.getState().addTransfer(newTx);
+      }
 
       const abortController = new AbortController();
       activeUploadsRegistry.set(txId, { file, abortController, folderId });
