@@ -358,7 +358,7 @@ export function TransferCard({ transfer }: { transfer: TransferSession }) {
                 value={resolvedShareUrl}
                 className="h-9 text-xs font-mono bg-bg-raised text-ink selection:bg-accent/20"
                 onFocus={(e) => e.target.select()}
-        
+              />
               <Button
                 type="button"
                 size="sm"
