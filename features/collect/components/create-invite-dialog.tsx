@@ -37,9 +37,12 @@ const FILE_OPTIONS = [
   { value: "50", label: "50 files" },
 ];
 const EXPIRY_OPTIONS = [
+  { value: "1", label: "1 hour" },
+  { value: "6", label: "6 hours" },
+  { value: "12", label: "12 hours" },
   { value: "24", label: "1 day" },
+  { value: "72", label: "3 days" },
   { value: "168", label: "7 days" },
-  { value: "720", label: "30 days" },
 ];
 
 export function CreateInviteDialog({
@@ -53,8 +56,7 @@ export function CreateInviteDialog({
   const [label, setLabel] = useState("");
   const [sizeGb, setSizeGb] = useState("0.5");
   const [maxFiles, setMaxFiles] = useState("20");
-  const [expiryHours, setExpiryHours] = useState("168");
-  const [passcode, setPasscode] = useState("");
+  const [expiryHours, setExpiryHours] = useState("24");
   const [created, setCreated] = useState<UploadInvite | null>(null);
   const [copied, setCopied] = useState(false);
 
@@ -62,8 +64,7 @@ export function CreateInviteDialog({
     setLabel("");
     setSizeGb("0.5");
     setMaxFiles("20");
-    setExpiryHours("168");
-    setPasscode("");
+    setExpiryHours("24");
     setCreated(null);
     setCopied(false);
     create.reset();
@@ -82,7 +83,6 @@ export function CreateInviteDialog({
         max_total_bytes: Number(sizeGb) * GB,
         max_files: Number(maxFiles),
         expiry_hours: Number(expiryHours),
-        passcode,
       },
       {
         onSuccess: (invite) => setCreated(invite),
@@ -112,8 +112,7 @@ export function CreateInviteDialog({
             <DialogHeader>
               <DialogTitle>Your request link is ready</DialogTitle>
               <DialogDescription>
-                Send it to your client. Anyone with the link can upload
-                {created.has_passcode ? ", once they enter the passcode" : ""}. Files arrive in
+                Send it to your client. Anyone with the link can upload. Files arrive in
                 Received{created.label ? ` / ${created.label}` : ""} in your Files.
               </DialogDescription>
             </DialogHeader>
@@ -214,21 +213,6 @@ export function CreateInviteDialog({
                   ))}
                 </select>
               </div>
-            </div>
-
-            <div className="flex flex-col gap-1.5">
-              <Label htmlFor="invite-passcode" className="text-[13px] text-ink-muted">
-                Passcode (optional)
-              </Label>
-              <Input
-                id="invite-passcode"
-                type="password"
-                autoComplete="new-password"
-                value={passcode}
-                onChange={(e) => setPasscode(e.target.value)}
-                placeholder="Your client must enter this before uploading"
-                className="h-9 text-[13px]"
-              />
             </div>
 
             {create.isError && (
