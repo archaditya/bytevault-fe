@@ -9,6 +9,7 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useSubmitContactQueryMutation } from "@/services/admin.service";
+import toast from "react-hot-toast";
 import { AlertTriangle, ShieldAlert, CheckCircle2, Mail, ExternalLink } from "lucide-react";
 
 export default function ReportAbusePage() {
@@ -21,6 +22,7 @@ export default function ReportAbusePage() {
   });
   const [submitted, setSubmitted] = useState(false);
   const [ticketNumber, setTicketNumber] = useState<string | null>(null);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const submitMutation = useSubmitContactQueryMutation();
 
@@ -33,6 +35,7 @@ export default function ReportAbusePage() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    setErrorMessage(null);
     const payload = {
       name: formData.name,
       email: formData.email,
@@ -46,6 +49,11 @@ export default function ReportAbusePage() {
         const ticket = res?.data?.ticket_number || res?.ticket_number || null;
         setTicketNumber(ticket);
         setFormData({ name: "", email: "", fileUrl: "", category: "copyright", description: "" });
+      },
+      onError: (err: any) => {
+        const msg = err?.message || "Failed to submit abuse report. Please try again or email abuse@pushport.com directly.";
+        setErrorMessage(msg);
+        toast.error(msg);
       },
     });
   };
@@ -173,6 +181,12 @@ export default function ReportAbusePage() {
                     className="bg-bg border-border text-xs"
                   />
                 </div>
+
+                {errorMessage && (
+                  <p className="text-xs text-rose-400 bg-rose-500/10 border border-rose-500/20 rounded p-2.5" role="alert">
+                    {errorMessage}
+                  </p>
+                )}
 
                 <Button
                   type="submit"
