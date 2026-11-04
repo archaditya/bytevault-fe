@@ -25,7 +25,7 @@ export default function TermsPage() {
           <section>
             <h2 className="text-lg font-semibold text-ink mb-2">1. Agreement to Terms</h2>
             <p>
-              By accessing or using PushPostVault (&ldquo;ByteVault&rdquo;, &ldquo;we&rdquo;, &ldquo;our&rdquo;), you enter into a legally binding agreement governed by the laws of India. If you do not agree to these terms, you must not access or use our services.
+              By accessing or using PushPostVault (&ldquo;we&rdquo;, &ldquo;our&rdquo;), operated by PushPort Technologies (Archaditya, Proprietor), you enter into a legally binding agreement governed by the laws of India. If you do not agree to these terms, you must not access or use our services.
             </p>
           </section>
 
@@ -59,7 +59,7 @@ export default function TermsPage() {
           <section>
             <h2 className="text-lg font-semibold text-ink mb-2">4. Services, Quotas, &amp; Subscriptions</h2>
             <p>
-              ByteVault provides 5GB of free cloud storage with standard file sharing. Upgraded tiers (Pro, Team) are billed through Razorpay. All fees, billing intervals, cancellation rules, and refund policies are detailed in our{" "}
+              PushPostVault provides 5GB of free cloud storage with standard file sharing. Upgraded tiers (Pro, Team) are billed through Razorpay. All fees, billing intervals, cancellation rules, and refund policies are detailed in our{" "}
               <Link href="/subscription-policy" className="text-accent hover:underline">
                 Subscription Policy
               </Link>.
@@ -93,11 +93,15 @@ export default function TermsPage() {
           <section>
             <h2 className="text-lg font-semibold text-ink mb-2">8. Grievance Officer &amp; Notice</h2>
             <p>
-              If you have any questions, concerns, or complaints regarding these Terms or any uploaded content, please contact our designated Grievance Officer at{" "}
-              <a href="mailto:akkpk933@gmail.com" className="text-accent hover:underline">
-                akkpk933@gmail.com
-              </a>.
+              In accordance with Rule 3(2) of the Information Technology (Intermediary Guidelines and Digital Media Ethics Code) Rules, 2021, if you have any questions, concerns, or complaints regarding these Terms, content takedowns, or abusive material, please contact:
             </p>
+            <div className="mt-3 bg-bg-surface border border-border p-4 rounded-md text-[13px] space-y-1.5">
+              <p><strong className="text-ink">Grievance Officer:</strong> Archaditya (Proprietor)</p>
+              <p><strong className="text-ink">Entity:</strong> PushPort Technologies (PushPostVault)</p>
+              <p><strong className="text-ink">Grievance Redressal:</strong> <a href="mailto:grievance@pushport.com" className="text-accent hover:underline">grievance@pushport.com</a></p>
+              <p><strong className="text-ink">Abuse &amp; DMCA Takedown:</strong> <a href="mailto:abuse@pushport.com" className="text-accent hover:underline">abuse@pushport.com</a></p>
+              <p><strong className="text-ink">General Support:</strong> <a href="mailto:support@pushport.com" className="text-accent hover:underline">support@pushport.com</a></p>
+            </div>
           </section>
         </div>
       </main>

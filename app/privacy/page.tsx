@@ -25,7 +25,7 @@ export default function PrivacyPolicyPage() {
           <section>
             <h2 className="text-lg font-semibold text-ink mb-2">1. Introduction &amp; Data Fiduciary Overview</h2>
             <p>
-              PushPostVault (&ldquo;ByteVault&rdquo;, &ldquo;we&rdquo;, &ldquo;our&rdquo;, or &ldquo;us&rdquo;) respects your privacy and is dedicated to protecting your personal data. This Privacy Policy acts as our statutory Privacy Notice pursuant to Section 5 of India&apos;s Digital Personal Data Protection Act, 2023 (DPDP Act) and the Information Technology (Reasonable Security Practices and Procedures and Sensitive Personal Data or Information) Rules, 2011.
+              PushPostVault (&ldquo;we&rdquo;, &ldquo;our&rdquo;, or &ldquo;us&rdquo;), operated by PushPort Technologies (Archaditya, Proprietor), respects your privacy and is dedicated to protecting your personal data. This Privacy Policy acts as our statutory Privacy Notice pursuant to Section 5 of India&apos;s Digital Personal Data Protection Act, 2023 (DPDP Act) and the Information Technology (Reasonable Security Practices and Procedures and Sensitive Personal Data or Information) Rules, 2011.
             </p>
             <p className="mt-2">
               This notice outlines what personal data we collect, why we collect it, how long we retain it, who we share it with, and your statutory rights regarding your information.
@@ -58,7 +58,7 @@ export default function PrivacyPolicyPage() {
 
           <section>
             <h2 className="text-lg font-semibold text-ink mb-2">4. Third-Party Data Processors</h2>
-            <p>We do not sell, rent, or trade your personal data. We engage contracted third-party processors under strict security standards:</p>
+            <p>We do not sell, rent, or trade your personal data. We engage contracted third-party processors under strict confidentiality and security standards:</p>
             <div className="overflow-x-auto mt-3">
               <table className="w-full text-left text-[13px] border border-border rounded-md">
                 <thead className="bg-bg-surface text-ink font-medium border-b border-border">
@@ -72,22 +72,37 @@ export default function PrivacyPolicyPage() {
                   <tr>
                     <td className="p-2.5 font-medium text-ink">Cloudflare R2 / S3</td>
                     <td className="p-2.5">Encrypted Object Storage</td>
-                    <td className="p-2.5">Encrypted file payloads &amp; avatars</td>
+                    <td className="p-2.5">Encrypted file payloads &amp; avatars (encrypted at rest)</td>
                   </tr>
                   <tr>
-                    <td className="p-2.5 font-medium text-ink">Razorpay</td>
+                    <td className="p-2.5 font-medium text-ink">Razorpay Software Pvt. Ltd.</td>
                     <td className="p-2.5">Payment Gateway</td>
-                    <td className="p-2.5">Subscription billing &amp; tax invoicing</td>
+                    <td className="p-2.5">Subscription billing &amp; GST tax invoicing (PCI-DSS Level 1)</td>
                   </tr>
                   <tr>
                     <td className="p-2.5 font-medium text-ink">Brevo (Sendinblue)</td>
                     <td className="p-2.5">Transactional Email</td>
-                    <td className="p-2.5">Email verification OTPs &amp; invoices</td>
+                    <td className="p-2.5">Email verification OTPs, security alerts &amp; billing receipts</td>
+                  </tr>
+                  <tr>
+                    <td className="p-2.5 font-medium text-ink">Google Cloud Vision API</td>
+                    <td className="p-2.5">Image Tagging (Optional)</td>
+                    <td className="p-2.5">Ephemeral image labeling when auto-categorization is enabled</td>
+                  </tr>
+                  <tr>
+                    <td className="p-2.5 font-medium text-ink">Cloudflare Workers AI / HuggingFace</td>
+                    <td className="p-2.5">Automated Content Moderation</td>
+                    <td className="p-2.5">Ephemeral image safety checks &amp; NSFW screening (no data retention)</td>
+                  </tr>
+                  <tr>
+                    <td className="p-2.5 font-medium text-ink">Google Firebase (FCM)</td>
+                    <td className="p-2.5">Push Notifications</td>
+                    <td className="p-2.5">Device registration tokens &amp; background status alerts</td>
                   </tr>
                   <tr>
                     <td className="p-2.5 font-medium text-ink">PostgreSQL / Redis</td>
-                    <td className="p-2.5">Infrastructure / DB</td>
-                    <td className="p-2.5">Session tokens, user metadata, audit records</td>
+                    <td className="p-2.5">Infrastructure &amp; State</td>
+                    <td className="p-2.5">Session tokens, user metadata, rate limits, audit records</td>
                   </tr>
                 </tbody>
               </table>
@@ -132,10 +147,12 @@ export default function PrivacyPolicyPage() {
             <p>
               In compliance with Section 8(9) of the DPDP Act, 2023 and Rule 5(9) of the IT Rules, 2011, you may direct any privacy questions, rights requests, or data grievances to our designated Grievance Officer:
             </p>
-            <div className="mt-3 bg-bg-surface border border-border p-4 rounded-md text-[13px] space-y-1">
-              <p><strong className="text-ink">Grievance Officer:</strong> Archaditya (Data Protection Lead)</p>
-              <p><strong className="text-ink">Entity:</strong> PushPostVault / ByteVault</p>
-              <p><strong className="text-ink">Email:</strong> <a href="mailto:akkpk933@gmail.com" className="text-accent hover:underline">akkpk933@gmail.com</a></p>
+            <div className="mt-3 bg-bg-surface border border-border p-4 rounded-md text-[13px] space-y-1.5">
+              <p><strong className="text-ink">Grievance Officer:</strong> Archaditya (Data Protection Lead &amp; Proprietor)</p>
+              <p><strong className="text-ink">Entity:</strong> PushPort Technologies (PushPostVault)</p>
+              <p><strong className="text-ink">Data Grievance Email:</strong> <a href="mailto:grievance@pushport.com" className="text-accent hover:underline">grievance@pushport.com</a></p>
+              <p><strong className="text-ink">Abuse &amp; DMCA Takedown:</strong> <a href="mailto:abuse@pushport.com" className="text-accent hover:underline">abuse@pushport.com</a></p>
+              <p><strong className="text-ink">General Support:</strong> <a href="mailto:support@pushport.com" className="text-accent hover:underline">support@pushport.com</a></p>
               <p><strong className="text-ink">Redressal Timelines:</strong> Acknowledged within 48 hours; resolved within 30 days.</p>
               <p className="pt-2 text-[12px] text-ink-muted">
                 If your grievance is not resolved satisfactorily, you hold the statutory right to escalate the matter to the <strong className="text-ink">Data Protection Board of India (DPBI)</strong>.

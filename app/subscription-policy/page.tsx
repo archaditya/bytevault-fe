@@ -154,12 +154,15 @@ export default function SubscriptionPolicyPage() {
 
           {/* Section 5: Strict Refund Policy */}
           <section className="border-l-4 border-accent pl-5 py-2 bg-accent/5 rounded-r-lg space-y-2">
-            <h2 className="text-lg font-semibold text-accent">5. Strict No-Refund & No-Cashback Policy</h2>
+            <h2 className="text-lg font-semibold text-accent">5. Refund, Cancellation &amp; Chargeback Policy</h2>
             <p className="font-medium text-ink">
-              All subscription charges, recurring renewals, and upgrade fees are final and strictly non-refundable.
+              All subscription charges, recurring renewals, and upgrade fees are final and non-refundable once storage has been allocated.
             </p>
-            <p className="text-xs text-ink-muted">
-              Because storage allocations and bandwidth infrastructure are provisioned immediately upon transaction confirmation, PushPostVault does not grant cash refunds, prorated credits, or partial chargebacks for early cancellations or unused storage allocations.
+            <p className="text-xs text-ink-muted leading-relaxed">
+              Because cloud storage allocations and dedicated ingress/egress bandwidth infrastructure are provisioned immediately upon transaction confirmation, PushPostVault does not grant cash refunds, prorated credits, or partial chargebacks for early cancellations or unused storage allocations during an active billing cycle.
+            </p>
+            <p className="text-xs text-ink-muted leading-relaxed pt-1">
+              <strong>Billing Anomalies &amp; Duplicate Debits:</strong> In the rare event of a verified technical error or duplicate debit caused by network interruptions or payment gateway latency, PushPort Technologies will issue a 100% refund of the duplicate transaction back to the original source payment method within 5–7 business days upon receiving notification at <a href="mailto:support@pushport.com" className="text-accent hover:underline">support@pushport.com</a>.
             </p>
           </section>
 
@@ -167,10 +170,10 @@ export default function SubscriptionPolicyPage() {
           <section className="space-y-3">
             <h2 className="text-lg font-semibold text-ink flex items-center gap-2">
               <FileText className="w-4 h-4 text-accent" />
-              <span>6. Invoices & Billing History</span>
+              <span>6. GST Invoices &amp; Tax Compliance</span>
             </h2>
             <p>
-              A digital tax invoice is generated for every successful charge and is accessible under Account Settings &gt; Billing. Invoices include GST compliance details, transaction IDs, package specifications, and downloadable HTML/PDF copies.
+              Subscription pricing is listed inclusive of applicable Goods and Services Tax (GST) under Indian taxation law. Services are categorized under SAC 998315 (Hosting and IT infrastructure provisioning services). A statutory digital tax invoice is generated for every completed charge by PushPort Technologies via Razorpay and is permanently available under Account Settings &gt; Billing. Customers requiring B2B input tax credit (ITC) can input their valid GSTIN during checkout or invoice profile setup.
             </p>
           </section>
 
