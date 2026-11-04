@@ -187,7 +187,7 @@ export function PipelineStatusDialog({
             </div>
           </div>
 
-          {/* Step 2: Antivirus & Security Scan */}
+          {/* Step 2: Content & Policy Verification */}
           <div className="flex items-start gap-3">
             <div
               className={`mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full ${
@@ -205,18 +205,18 @@ export function PipelineStatusDialog({
             <div className="flex-1 min-w-0">
               <div className="flex items-center justify-between">
                 <span className="text-xs font-semibold text-ink">
-                  2. Security & Malware Scan
+                  2. Content & Policy Verification
                 </span>
                 <span
                   className={`text-[10px] font-mono font-medium ${
                     isReady ? "text-success" : "text-amber-400"
                   }`}
                 >
-                  {isReady ? "Passed" : "Scanning…"}
+                  {isReady ? "Passed" : "Verifying…"}
                 </span>
               </div>
               <p className="text-[11px] text-ink-faint">
-                Integrity evaluation, heuristic verification, and content moderation.
+                Integrity evaluation, size bounds, and policy compliance verification.
               </p>
             </div>
           </div>

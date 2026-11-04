@@ -52,8 +52,8 @@ export function LiveShareShowcase() {
                   <span className="text-amber-400">~15 mins waiting</span>
                 </div>
                 <div className="p-3 rounded-lg bg-danger/10 border border-danger/20 flex items-center justify-between font-bold text-rose-400">
-                  <span>Total End-to-End Latency</span>
-                  <span>~30 minutes</span>
+                  <span>Traditional Sequential Delay</span>
+                  <span>Wait until 100% before sharing</span>
                 </div>
               </div>
             </div>
@@ -67,7 +67,7 @@ export function LiveShareShowcase() {
           {/* ByteVault Live Pipeline */}
           <div className="rounded-2xl border-2 border-emerald-500/40 bg-gradient-to-br from-emerald-500/5 via-bg-surface to-bg-raised p-6 sm:p-8 flex flex-col justify-between space-y-6 shadow-xl relative overflow-hidden">
             <div className="absolute top-0 right-0 bg-emerald-500 text-black text-[10px] font-black uppercase tracking-wider px-3 py-1 rounded-bl-xl">
-              50% Faster Handoff
+              Pipelined Delivery • Zero Waiting
             </div>
 
             <div className="space-y-4">
@@ -86,7 +86,7 @@ export function LiveShareShowcase() {
 
               <div className="space-y-3 pt-2 font-mono text-xs">
                 <div className="p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-between text-emerald-300">
-                  <span>Generate Link & Share with Recipient</span>
+                  <span>Generate Link &amp; Share with Recipient</span>
                   <span className="font-bold">Instant (0 Seconds)</span>
                 </div>
                 <div className="p-3 rounded-lg bg-bg-raised border border-emerald-500/20 flex items-center justify-between">
@@ -94,8 +94,8 @@ export function LiveShareShowcase() {
                   <span className="text-emerald-400">Pipelined Concurrently</span>
                 </div>
                 <div className="p-3 rounded-lg bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-between font-bold text-emerald-300">
-                  <span>Total End-to-End Latency</span>
-                  <span>~15 minutes (Cuts wait time in half)</span>
+                  <span>Concurrent Handoff Delivery</span>
+                  <span>Auto-download upon final assembly</span>
                 </div>
               </div>
             </div>
@@ -103,7 +103,7 @@ export function LiveShareShowcase() {
             <div className="pt-2 flex flex-col sm:flex-row items-center justify-between gap-4">
               <div className="text-[11px] text-ink-muted flex items-center gap-2">
                 <ShieldCheck className="w-4 h-4 text-emerald-400 shrink-0" />
-                <span>Encrypted multipart R2 chunks • Auto single-use burn</span>
+                <span>AES-256 encrypted at rest &bull; Auto single-use burn</span>
               </div>
               <Link href="/live" className="w-full sm:w-auto">
                 <Button className="w-full sm:w-auto bg-emerald-500 hover:bg-emerald-400 text-black font-semibold text-xs h-10 px-5 gap-2">

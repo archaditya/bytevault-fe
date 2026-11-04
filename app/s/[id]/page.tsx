@@ -264,7 +264,7 @@ export default function PublicSharePage({
                   </>
                 )}
                 <span>•</span>
-                <span className="font-mono text-ink-muted">End-to-End Encrypted</span>
+                <span className="font-mono text-ink-muted">Encrypted at Rest (AES-256)</span>
               </div>
               <button
                 type="button"

@@ -17,6 +17,7 @@ const columns = [
     title: "Support",
     links: [
       { label: "Contact Us", href: "/contact" },
+      { label: "Report Abuse", href: "/report" },
     ],
   },
 ];
@@ -61,6 +62,7 @@ export function Footer() {
             <Link href="/terms" className="hover:text-ink">Terms &amp; Conditions</Link>
             <Link href="/privacy" className="hover:text-ink">Privacy Policy</Link>
             <Link href="/subscription-policy" className="hover:text-ink">Subscription Policy</Link>
+            <Link href="/report" className="hover:text-ink">Report Abuse</Link>
             <button
               type="button"
               onClick={() => {
