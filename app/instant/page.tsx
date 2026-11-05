@@ -36,16 +36,17 @@ interface SavedEphemeralSession {
   expiresAt: string;
 }
 
-const EPHEMERAL_STORAGE_KEY = "ByteVault-ephemeral-upload";
+const EPHEMERAL_STORAGE_KEY = "pushpostvault-ephemeral-upload";
 
 function getSavedSession(): SavedEphemeralSession | null {
   if (typeof window === "undefined") return null;
   try {
-    const raw = localStorage.getItem(EPHEMERAL_STORAGE_KEY);
+    const raw = localStorage.getItem(EPHEMERAL_STORAGE_KEY) || localStorage.getItem("ByteVault-ephemeral-upload");
     if (!raw) return null;
     const session: SavedEphemeralSession = JSON.parse(raw);
     if (new Date(session.expiresAt).getTime() <= Date.now()) {
       localStorage.removeItem(EPHEMERAL_STORAGE_KEY);
+      localStorage.removeItem("ByteVault-ephemeral-upload");
       return null;
     }
     return session;
@@ -65,6 +66,7 @@ function clearSavedSession() {
   if (typeof window === "undefined") return;
   try {
     localStorage.removeItem(EPHEMERAL_STORAGE_KEY);
+    localStorage.removeItem("ByteVault-ephemeral-upload");
   } catch {}
 }
 

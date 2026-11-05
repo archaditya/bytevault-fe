@@ -14,7 +14,7 @@ export default function GlobalError({
 }) {
   useEffect(() => {
     // Log unexpected errors for client monitoring
-    console.error("ByteVault App Error Boundary caught an exception:", error);
+    console.error("PushPostVault App Error Boundary caught an exception:", error);
   }, [error]);
 
   return (

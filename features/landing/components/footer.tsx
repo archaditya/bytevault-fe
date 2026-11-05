@@ -67,7 +67,7 @@ export function Footer() {
               type="button"
               onClick={() => {
                 if (typeof window !== "undefined") {
-                  window.dispatchEvent(new CustomEvent("bytevault:open-cookie-settings"));
+                  window.dispatchEvent(new CustomEvent("pushpostvault:open-cookie-settings"));
                 }
               }}
               className="hover:text-ink transition-colors cursor-pointer"

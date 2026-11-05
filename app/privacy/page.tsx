@@ -25,7 +25,7 @@ export default function PrivacyPolicyPage() {
           <section>
             <h2 className="text-lg font-semibold text-ink mb-2">1. Introduction &amp; Data Fiduciary Overview</h2>
             <p>
-              PushPostVault (&ldquo;we&rdquo;, &ldquo;our&rdquo;, or &ldquo;us&rdquo;), operated by PushPort Technologies (Archaditya, Proprietor), respects your privacy and is dedicated to protecting your personal data. This Privacy Policy acts as our statutory Privacy Notice pursuant to Section 5 of India&apos;s Digital Personal Data Protection Act, 2023 (DPDP Act) and the Information Technology (Reasonable Security Practices and Procedures and Sensitive Personal Data or Information) Rules, 2011.
+              PushPostVault (&ldquo;we&rdquo;, &ldquo;our&rdquo;, or &ldquo;us&rdquo;), operated by PushPostVault Technologies (Archaditya, Proprietor), respects your privacy and is dedicated to protecting your personal data. This Privacy Policy acts as our statutory Privacy Notice pursuant to Section 5 of India&apos;s Digital Personal Data Protection Act, 2023 (DPDP Act) and the Information Technology (Reasonable Security Practices and Procedures and Sensitive Personal Data or Information) Rules, 2011.
             </p>
             <p className="mt-2">
               This notice outlines what personal data we collect, why we collect it, how long we retain it, who we share it with, and your statutory rights regarding your information.
@@ -149,10 +149,10 @@ export default function PrivacyPolicyPage() {
             </p>
             <div className="mt-3 bg-bg-surface border border-border p-4 rounded-md text-[13px] space-y-1.5">
               <p><strong className="text-ink">Grievance Officer:</strong> Archaditya (Data Protection Lead &amp; Proprietor)</p>
-              <p><strong className="text-ink">Entity:</strong> PushPort Technologies (PushPostVault)</p>
-              <p><strong className="text-ink">Data Grievance Email:</strong> <a href="mailto:grievance@pushport.com" className="text-accent hover:underline">grievance@pushport.com</a></p>
-              <p><strong className="text-ink">Abuse &amp; DMCA Takedown:</strong> <a href="mailto:abuse@pushport.com" className="text-accent hover:underline">abuse@pushport.com</a></p>
-              <p><strong className="text-ink">General Support:</strong> <a href="mailto:support@pushport.com" className="text-accent hover:underline">support@pushport.com</a></p>
+              <p><strong className="text-ink">Entity:</strong> PushPostVault Technologies</p>
+              <p><strong className="text-ink">Data Grievance Email:</strong> <a href="mailto:grievance@pushpostvault.com" className="text-accent hover:underline">grievance@pushpostvault.com</a></p>
+              <p><strong className="text-ink">Abuse &amp; DMCA Takedown:</strong> <a href="mailto:abuse@pushpostvault.com" className="text-accent hover:underline">abuse@pushpostvault.com</a></p>
+              <p><strong className="text-ink">General Support:</strong> <a href="mailto:support@pushpostvault.com" className="text-accent hover:underline">support@pushpostvault.com</a></p>
               <p><strong className="text-ink">Redressal Timelines:</strong> Acknowledged within 48 hours; resolved within 30 days.</p>
               <p className="pt-2 text-[12px] text-ink-muted">
                 If your grievance is not resolved satisfactorily, you hold the statutory right to escalate the matter to the <strong className="text-ink">Data Protection Board of India (DPBI)</strong>.

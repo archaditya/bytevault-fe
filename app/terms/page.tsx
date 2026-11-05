@@ -25,7 +25,7 @@ export default function TermsPage() {
           <section>
             <h2 className="text-lg font-semibold text-ink mb-2">1. Agreement to Terms</h2>
             <p>
-              By accessing or using PushPostVault (&ldquo;we&rdquo;, &ldquo;our&rdquo;), operated by PushPort Technologies (Archaditya, Proprietor), you enter into a legally binding agreement governed by the laws of India. If you do not agree to these terms, you must not access or use our services.
+              By accessing or using PushPostVault (&ldquo;we&rdquo;, &ldquo;our&rdquo;), operated by PushPostVault Technologies (Archaditya, Proprietor), you enter into a legally binding agreement governed by the laws of India. If you do not agree to these terms, you must not access or use our services.
             </p>
           </section>
 
@@ -97,10 +97,10 @@ export default function TermsPage() {
             </p>
             <div className="mt-3 bg-bg-surface border border-border p-4 rounded-md text-[13px] space-y-1.5">
               <p><strong className="text-ink">Grievance Officer:</strong> Archaditya (Proprietor)</p>
-              <p><strong className="text-ink">Entity:</strong> PushPort Technologies (PushPostVault)</p>
-              <p><strong className="text-ink">Grievance Redressal:</strong> <a href="mailto:grievance@pushport.com" className="text-accent hover:underline">grievance@pushport.com</a></p>
-              <p><strong className="text-ink">Abuse &amp; DMCA Takedown:</strong> <a href="mailto:abuse@pushport.com" className="text-accent hover:underline">abuse@pushport.com</a></p>
-              <p><strong className="text-ink">General Support:</strong> <a href="mailto:support@pushport.com" className="text-accent hover:underline">support@pushport.com</a></p>
+              <p><strong className="text-ink">Entity:</strong> PushPostVault Technologies</p>
+              <p><strong className="text-ink">Grievance Redressal:</strong> <a href="mailto:grievance@pushpostvault.com" className="text-accent hover:underline">grievance@pushpostvault.com</a></p>
+              <p><strong className="text-ink">Abuse &amp; DMCA Takedown:</strong> <a href="mailto:abuse@pushpostvault.com" className="text-accent hover:underline">abuse@pushpostvault.com</a></p>
+              <p><strong className="text-ink">General Support:</strong> <a href="mailto:support@pushpostvault.com" className="text-accent hover:underline">support@pushpostvault.com</a></p>
             </div>
           </section>
         </div>

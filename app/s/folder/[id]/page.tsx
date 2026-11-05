@@ -340,7 +340,7 @@ export default function PublicSharedFolderPage({
     }, 2500);
   };
 
-  // "Save to My ByteVault" action
+  // "Save to My PushPostVault" action
   const handleSaveToVault = async () => {
     if (!isAuthenticated) {
       setShowSaveModal(true);
@@ -490,7 +490,7 @@ export default function PublicSharedFolderPage({
                 href="/"
                 className="hover:text-text-primary transition-colors flex items-center gap-1"
               >
-                <span>ByteVault</span>
+                <span>PushPostVault</span>
               </Link>
               <ChevronRight className="h-3 w-3" />
               <span className="text-text-muted">Shared</span>
@@ -564,7 +564,7 @@ export default function PublicSharedFolderPage({
                     disabled={isSavingToVault}
                     variant="outline"
                     className="h-11 rounded-xl border-accent/40 bg-accent/10 hover:bg-accent/20 text-accent-bright gap-2 font-medium"
-                    title="Save this shared folder directly to your personal ByteVault account"
+                    title="Save this shared folder directly to your personal PushPostVault account"
                   >
                     {isSavingToVault ? (
                       <>
@@ -1226,7 +1226,7 @@ export default function PublicSharedFolderPage({
           </DialogContent>
         </Dialog>
 
-        {/* 6. "Save to My ByteVault" Modal for Guests */}
+        {/* 6. "Save to My PushPostVault" Modal for Guests */}
         <Dialog open={showSaveModal} onOpenChange={setShowSaveModal}>
           <DialogContent className="max-w-md p-6 rounded-2xl bg-bg-surface border-border-strong shadow-2xl">
             <div className="flex flex-col items-center text-center">
@@ -1234,7 +1234,7 @@ export default function PublicSharedFolderPage({
                 <Cloud className="h-8 w-8" />
               </div>
               <DialogTitle className="text-xl font-bold text-text-primary">
-                Save Folder to ByteVault
+                Save Folder to PushPostVault
               </DialogTitle>
               <p className="text-xs text-text-secondary mt-2 leading-relaxed">
                 Keep this folder in your personal cloud storage. Stream media,

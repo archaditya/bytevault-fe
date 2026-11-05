@@ -113,7 +113,7 @@ export default function SharedLinksPage() {
           <Share2 className="h-8 w-8 text-ink-faint mb-3" />
           <p className="font-semibold text-ink">No shared links found</p>
           <p className="text-xs text-ink-muted mt-1 max-w-sm">
-            Share a folder or file from your Vault to generate public sharing URLs that anyone can browse on ByteVault.
+            Share a folder or file from your Vault to generate public sharing URLs that anyone can browse on PushPostVault.
           </p>
         </div>
       ) : (

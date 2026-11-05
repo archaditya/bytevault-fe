@@ -22,7 +22,7 @@ interface TransferState {
 }
 
 function getStorageKey(userId: string | null): string {
-  return userId ? `ByteVault-transfers-${userId}` : "ByteVault-transfers-guest";
+  return userId ? `pushpostvault-transfers-${userId}` : "pushpostvault-transfers-guest";
 }
 
 function cleanLegacyTransfers() {

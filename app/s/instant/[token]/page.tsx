@@ -329,7 +329,7 @@ export default function InstantSharePage() {
             <div className="flex items-center justify-between px-2 text-xs">
               <div className="flex items-center gap-2 text-ink-muted">
                 <span className="flex h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
-                <span className="font-semibold text-ink">ByteVault Instant Ephemeral Share</span>
+                <span className="font-semibold text-ink">PushPostVault Instant Ephemeral Share</span>
                 <span>•</span>
                 <span className="font-mono text-ink-muted">Self-Destructing File</span>
               </div>
@@ -619,7 +619,7 @@ export default function InstantSharePage() {
                     <Sparkles className="h-3.5 w-3.5 text-amber-400" /> Want to share large files?
                   </p>
                   <p className="text-[11px] text-ink-muted leading-relaxed">
-                    Send files with links you control, expiration dates, and download limits on ByteVault.
+                    Send files with links you control, expiration dates, and download limits on PushPostVault.
                   </p>
                   <Button
                     asChild
