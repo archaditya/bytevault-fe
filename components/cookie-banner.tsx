@@ -13,7 +13,7 @@ export interface CookiePreferences {
   decidedAt: string;
 }
 
-const STORAGE_KEY = "bytevault_cookie_consent";
+const STORAGE_KEY = "pushpostvault_cookie_consent";
 
 export function CookieBanner() {
   const [mounted, setMounted] = useState(false);
@@ -24,7 +24,7 @@ export function CookieBanner() {
   useEffect(() => {
     setMounted(true);
     try {
-      const stored = localStorage.getItem(STORAGE_KEY);
+      const stored = localStorage.getItem(STORAGE_KEY) || localStorage.getItem("bytevault_cookie_consent");
       if (!stored) {
         setShowBanner(true);
       } else {
@@ -39,8 +39,10 @@ export function CookieBanner() {
       setShowCustomizeModal(true);
     };
 
+    window.addEventListener("pushpostvault:open-cookie-settings", handleOpenSettings);
     window.addEventListener("bytevault:open-cookie-settings", handleOpenSettings);
     return () => {
+      window.removeEventListener("pushpostvault:open-cookie-settings", handleOpenSettings);
       window.removeEventListener("bytevault:open-cookie-settings", handleOpenSettings);
     };
   }, []);

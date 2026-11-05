@@ -54,7 +54,7 @@ export function PrivacyDataSection() {
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `bytevault-data-export-${user?.id || "me"}.json`;
+      a.download = `pushpostvault-data-export-${user?.id || "me"}.json`;
       document.body.appendChild(a);
       a.click();
       window.URL.revokeObjectURL(url);

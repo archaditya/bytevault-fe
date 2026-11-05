@@ -51,7 +51,7 @@ export default function ReportAbusePage() {
         setFormData({ name: "", email: "", fileUrl: "", category: "copyright", description: "" });
       },
       onError: (err: any) => {
-        const msg = err?.message || "Failed to submit abuse report. Please try again or email abuse@pushport.com directly.";
+        const msg = err?.message || "Failed to submit abuse report. Please try again or email abuse@pushpostvault.com directly.";
         setErrorMessage(msg);
         toast.error(msg);
       },
@@ -85,7 +85,7 @@ export default function ReportAbusePage() {
             <div className="bg-bg border border-border rounded-lg p-4 text-xs text-ink-muted max-w-md mx-auto text-left space-y-1.5">
               <p><strong className="text-ink">Resolution SLA:</strong> Acknowledged within 24 hours.</p>
               <p><strong className="text-ink">Expedited Takedown:</strong> Harmful, infringing, or illegal files are disabled within 24–36 hours upon verification.</p>
-              <p><strong className="text-ink">Direct Desk:</strong> <a href="mailto:abuse@pushport.com" className="text-accent hover:underline">abuse@pushport.com</a></p>
+              <p><strong className="text-ink">Direct Desk:</strong> <a href="mailto:abuse@pushpostvault.com" className="text-accent hover:underline">abuse@pushpostvault.com</a></p>
             </div>
             <div className="pt-4">
               <Button onClick={() => setSubmitted(false)} variant="outline" className="text-xs">
@@ -106,8 +106,8 @@ export default function ReportAbusePage() {
               </p>
               <p className="text-[12px] text-ink-faint">
                 Direct statutory takedown notices may also be dispatched directly to{" "}
-                <a href="mailto:abuse@pushport.com" className="text-accent hover:underline font-mono">
-                  abuse@pushport.com
+                <a href="mailto:abuse@pushpostvault.com" className="text-accent hover:underline font-mono">
+                  abuse@pushpostvault.com
                 </a>.
               </p>
             </div>

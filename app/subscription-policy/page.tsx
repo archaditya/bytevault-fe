@@ -162,7 +162,7 @@ export default function SubscriptionPolicyPage() {
               Because cloud storage allocations and dedicated ingress/egress bandwidth infrastructure are provisioned immediately upon transaction confirmation, PushPostVault does not grant cash refunds, prorated credits, or partial chargebacks for early cancellations or unused storage allocations during an active billing cycle.
             </p>
             <p className="text-xs text-ink-muted leading-relaxed pt-1">
-              <strong>Billing Anomalies &amp; Duplicate Debits:</strong> In the rare event of a verified technical error or duplicate debit caused by network interruptions or payment gateway latency, PushPort Technologies will issue a 100% refund of the duplicate transaction back to the original source payment method within 5–7 business days upon receiving notification at <a href="mailto:support@pushport.com" className="text-accent hover:underline">support@pushport.com</a>.
+              <strong>Billing Anomalies &amp; Duplicate Debits:</strong> In the rare event of a verified technical error or duplicate debit caused by network interruptions or payment gateway latency, PushPostVault Technologies will issue a 100% refund of the duplicate transaction back to the original source payment method within 5–7 business days upon receiving notification at <a href="mailto:support@pushpostvault.com" className="text-accent hover:underline">support@pushpostvault.com</a>.
             </p>
           </section>
 
@@ -173,7 +173,7 @@ export default function SubscriptionPolicyPage() {
               <span>6. GST Invoices &amp; Tax Compliance</span>
             </h2>
             <p>
-              Subscription pricing is listed inclusive of applicable Goods and Services Tax (GST) under Indian taxation law. Services are categorized under SAC 998315 (Hosting and IT infrastructure provisioning services). A statutory digital tax invoice is generated for every completed charge by PushPort Technologies via Razorpay and is permanently available under Account Settings &gt; Billing. Customers requiring B2B input tax credit (ITC) can input their valid GSTIN during checkout or invoice profile setup.
+              Subscription pricing is listed inclusive of applicable Goods and Services Tax (GST) under Indian taxation law. Services are categorized under SAC 998315 (Hosting and IT infrastructure provisioning services). A statutory digital tax invoice is generated for every completed charge by PushPostVault Technologies via Razorpay and is permanently available under Account Settings &gt; Billing. Customers requiring B2B input tax credit (ITC) can input their valid GSTIN during checkout or invoice profile setup.
             </p>
           </section>
 

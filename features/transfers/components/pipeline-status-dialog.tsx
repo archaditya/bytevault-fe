@@ -162,7 +162,7 @@ export function PipelineStatusDialog({
         <p className="text-xs text-ink-muted leading-relaxed mt-2">
           {isReady
             ? "All backend security scans, thumbnails, and indexing pipelines have completed successfully!"
-            : "Upload received. ByteVault background workers are performing security verification, NTFS/malware scans, and media thumbnailing."}
+            : "Upload received. PushPostVault background workers are performing security verification, NTFS/malware scans, and media thumbnailing."}
         </p>
 
         {/* Interactive Step-by-Step Pipeline Tracker */}

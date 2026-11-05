@@ -12,7 +12,7 @@ export default function GlobalRootError({
   reset: () => void;
 }) {
   useEffect(() => {
-    console.error("ByteVault Global Root Layout Error:", error);
+    console.error("PushPostVault Global Root Layout Error:", error);
   }, [error]);
 
   return (
