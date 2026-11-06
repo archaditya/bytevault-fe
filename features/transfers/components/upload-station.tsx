@@ -269,10 +269,16 @@ export function UploadStation() {
   const dragCounter = useRef(0);
 
   useEffect(() => {
+    const isFileDrag = (e: DragEvent) => {
+      if (!e.dataTransfer) return false;
+      const types = Array.from(e.dataTransfer.types || []);
+      return types.some((t) => t.toLowerCase() === "files" || t === "application/x-moz-file");
+    };
+
     const handleWindowDragEnter = (e: DragEvent) => {
       e.preventDefault();
       e.stopPropagation();
-      if (e.dataTransfer && e.dataTransfer.types.includes("Files")) {
+      if (isFileDrag(e)) {
         dragCounter.current++;
         setIsWindowDragging(true);
       }
@@ -281,18 +287,19 @@ export function UploadStation() {
     const handleWindowDragLeave = (e: DragEvent) => {
       e.preventDefault();
       e.stopPropagation();
-      if (e.dataTransfer && e.dataTransfer.types.includes("Files")) {
-        dragCounter.current--;
-        if (dragCounter.current <= 0) {
-          setIsWindowDragging(false);
-          dragCounter.current = 0;
-        }
+      dragCounter.current--;
+      if (dragCounter.current <= 0) {
+        setIsWindowDragging(false);
+        dragCounter.current = 0;
       }
     };
 
     const handleWindowDragOver = (e: DragEvent) => {
       e.preventDefault();
       e.stopPropagation();
+      if (e.dataTransfer) {
+        e.dataTransfer.dropEffect = "copy";
+      }
     };
 
     const handleWindowDrop = (e: DragEvent) => {
@@ -532,8 +539,30 @@ export function UploadStation() {
     <div className="w-full rounded-xl border border-border-strong bg-bg-surface p-5 shadow-sm space-y-4">
       {/* Full-Screen Drag and Drop Overlay for /transfers */}
       {isWindowDragging && (
-        <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-black/75 backdrop-blur-md border-4 border-dashed border-accent animate-in fade-in-50 duration-150 pointer-events-none">
-          <div className="flex flex-col items-center gap-3 p-8 rounded-2xl bg-bg-surface border border-accent/40 shadow-2xl">
+        <div
+          onDragOver={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            if (e.dataTransfer) e.dataTransfer.dropEffect = "copy";
+          }}
+          onDragLeave={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            setIsWindowDragging(false);
+            dragCounter.current = 0;
+          }}
+          onDrop={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            setIsWindowDragging(false);
+            dragCounter.current = 0;
+            if (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+              addFilesToQueue(Array.from(e.dataTransfer.files));
+            }
+          }}
+          className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-black/80 backdrop-blur-md border-4 border-dashed border-accent animate-in fade-in-50 duration-150 cursor-copy"
+        >
+          <div className="flex flex-col items-center gap-3 p-8 rounded-2xl bg-bg-surface border border-accent/40 shadow-2xl pointer-events-none">
             <div className="p-4 rounded-full bg-accent/15 border border-accent/30 text-accent-bright animate-bounce">
               <Upload className="h-10 w-10" />
             </div>
