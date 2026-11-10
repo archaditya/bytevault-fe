@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Bell, CheckCheck, Loader2 } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { Bell, CheckCheck, Loader2, ShieldAlert, MessageSquare, AlertCircle } from "lucide-react";
 import { apiClient, getAccessToken } from "@/lib/api-client";
 import { useAuthStore } from "@/store";
 import {
@@ -13,13 +14,20 @@ import {
 
 interface Notification {
   id: string;
+  type?: string;
   title: string;
   body: string;
+  metadata?: {
+    path?: string;
+    type?: string;
+    [key: string]: any;
+  } | null;
   is_read: boolean;
   created_at: string;
 }
 
 export function NotificationBell() {
+  const router = useRouter();
   const { isAuthenticated } = useAuthStore();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
@@ -57,6 +65,16 @@ export function NotificationBell() {
     }
   };
 
+  const handleClickNotification = async (n: Notification) => {
+    if (!n.is_read) {
+      await handleMarkAsRead(n.id);
+    }
+    const targetPath = n.metadata?.path;
+    if (targetPath) {
+      router.push(targetPath);
+    }
+  };
+
   const handleMarkAllRead = async () => {
     try {
       await apiClient("/api/v1/notifications/read-all", { method: "POST" });
@@ -65,6 +83,17 @@ export function NotificationBell() {
     } catch (err) {
       console.error("Failed to update notifications");
     }
+  };
+
+  const renderIcon = (n: Notification) => {
+    const t = n.type || n.metadata?.type || "";
+    if (t.includes("abuse") || t.includes("moderation") || t.includes("nsfw")) {
+      return <ShieldAlert className="h-4 w-4 text-rose-400 shrink-0 mt-0.5" />;
+    }
+    if (t.includes("contact")) {
+      return <MessageSquare className="h-4 w-4 text-accent shrink-0 mt-0.5" />;
+    }
+    return <AlertCircle className="h-4 w-4 text-ink-muted shrink-0 mt-0.5" />;
   };
 
   return (
@@ -92,7 +121,7 @@ export function NotificationBell() {
             </button>
           )}
         </div>
-        <div className="max-h-64 overflow-y-auto">
+        <div className="max-h-80 overflow-y-auto">
           {loading ? (
             <div className="flex h-32 items-center justify-center">
               <Loader2 className="h-5 w-5 text-accent animate-spin" />
@@ -107,16 +136,19 @@ export function NotificationBell() {
               {notifications.map((n) => (
                 <div
                   key={n.id}
-                  onClick={() => !n.is_read && handleMarkAsRead(n.id)}
-                  className={`flex flex-col gap-1 p-3 cursor-pointer transition hover:bg-bg/50 ${
+                  onClick={() => handleClickNotification(n)}
+                  className={`flex items-start gap-2.5 p-3 cursor-pointer transition hover:bg-bg/60 ${
                     !n.is_read ? "bg-accent/5 border-l-2 border-accent" : ""
                   }`}
                 >
-                  <span className="text-xs font-medium">{n.title}</span>
-                  <span className="text-[11px] text-ink-muted">{n.body}</span>
-                  <span className="text-[9px] text-ink-faint">
-                    {new Date(n.created_at).toLocaleDateString()}
-                  </span>
+                  {renderIcon(n)}
+                  <div className="flex flex-col min-w-0 flex-1 gap-0.5">
+                    <span className="text-xs font-medium text-ink truncate">{n.title}</span>
+                    <span className="text-[11px] text-ink-muted line-clamp-2 leading-relaxed">{n.body}</span>
+                    <span className="text-[9px] text-ink-faint mt-1">
+                      {new Date(n.created_at).toLocaleString()}
+                    </span>
+                  </div>
                 </div>
               ))}
             </div>

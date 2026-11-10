@@ -103,12 +103,20 @@ export default function ContactPage() {
               <div className="h-9 w-9 bg-accent/15 text-accent rounded-md flex items-center justify-center shrink-0">
                 <Mail className="h-5 w-5" />
               </div>
-              <div className="min-w-0">
-                <p className="text-[13px] font-semibold text-ink">Email</p>
-                <p className="text-[11px] text-ink-muted mt-0.5">For billing, account &amp; grievance support.</p>
-                <a href="mailto:akkpk933@gmail.com" className="inline-flex items-center gap-1 text-[11px] text-accent mt-2 hover:underline">
-                  akkpk933@gmail.com <ExternalLink className="h-3 w-3" />
-                </a>
+              <div className="min-w-0 flex flex-col gap-1.5">
+                <div>
+                  <p className="text-[13px] font-semibold text-ink">Support Desk</p>
+                  <p className="text-[11px] text-ink-muted">General billing, account &amp; platform inquiries.</p>
+                  <a href="mailto:support@pushpostvault.com" className="inline-flex items-center gap-1 text-[11px] text-accent hover:underline mt-0.5">
+                    support@pushpostvault.com <ExternalLink className="h-2.5 w-2.5" />
+                  </a>
+                </div>
+                <div className="pt-1.5 border-t border-border/40">
+                  <p className="text-[11px] font-medium text-ink">Direct Founder &amp; Escalation:</p>
+                  <a href="mailto:akkpk933@gmail.com" className="inline-flex items-center gap-1 text-[11px] text-accent hover:underline mt-0.5">
+                    akkpk933@gmail.com <ExternalLink className="h-2.5 w-2.5" />
+                  </a>
+                </div>
               </div>
             </Card>
 

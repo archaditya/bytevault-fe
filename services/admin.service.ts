@@ -639,5 +639,194 @@ export function useUpdateAdminSettings() {
   });
 }
 
+export interface AbuseReport {
+  id: string;
+  ticket_number: string;
+  file_id?: string | null;
+  target_url: string;
+  category: string;
+  reporter_name: string;
+  reporter_email: string;
+  description: string;
+  evidence_url?: string | null;
+  status: "pending" | "investigating" | "actioned_takedown" | "dismissed";
+  admin_notes?: string | null;
+  reviewed_by?: string | null;
+  reviewed_at?: string | null;
+  created_at: string;
+  updated_at: string;
+  file_name?: string | null;
+  file_size?: number | null;
+  file_content_type?: string | null;
+  file_status?: string | null;
+  uploader_id?: string | null;
+  uploader_email?: string | null;
+  uploader_strikes?: number | null;
+  reviewer_email?: string | null;
+}
+
+export function useSubmitAbuseReportMutation() {
+  return useMutation({
+    mutationFn: async (req: {
+      reporter_name: string;
+      reporter_email: string;
+      category: string;
+      target_url: string;
+      description: string;
+      evidence_url?: string;
+    }) => {
+      const response = await fetch("/api/v1/report/abuse", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(req),
+      });
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || errorData.detail || "Failed to submit abuse report.");
+      }
+      return response.json();
+    },
+  });
+}
+
+export function useAdminAbuseReports(page = 1, limit = 20, status?: string) {
+  return useQuery<{ reports: AbuseReport[]; total: number }>({
+    queryKey: ["admin", "moderation", "reports", page, limit, status],
+    queryFn: async () => {
+      const qs = new URLSearchParams();
+      qs.set("page", String(page));
+      qs.set("limit", String(limit));
+      if (status) qs.set("status", status);
+
+      const token = getAccessToken();
+      const res = await fetch(`/api/v1/admin/moderation/reports?${qs.toString()}`, {
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+      });
+      if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+      const json = await res.json();
+      return {
+        reports: json.data?.reports || [],
+        total: json.data?.pagination?.total || 0,
+      };
+    },
+  });
+}
+
+export function useTakedownAbuseReportMutation() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, admin_notes }: { id: string; admin_notes?: string }) => {
+      const token = getAccessToken();
+      const res = await fetch(`/api/v1/admin/moderation/reports/${id}/takedown`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({ admin_notes }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || "Failed to take down report target");
+      }
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin", "moderation"] });
+      queryClient.invalidateQueries({ queryKey: ["admin", "files"] });
+    },
+  });
+}
+
+export function useStrikeReportUploaderMutation() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, admin_notes }: { id: string; admin_notes?: string }) => {
+      const token = getAccessToken();
+      const res = await fetch(`/api/v1/admin/moderation/reports/${id}/strike`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({ admin_notes }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || "Failed to strike uploader");
+      }
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin", "moderation"] });
+      queryClient.invalidateQueries({ queryKey: ["admin", "files"] });
+    },
+  });
+}
+
+export function useDismissAbuseReportMutation() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, admin_notes }: { id: string; admin_notes?: string }) => {
+      const token = getAccessToken();
+      const res = await fetch(`/api/v1/admin/moderation/reports/${id}/dismiss`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({ admin_notes }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || "Failed to dismiss abuse report");
+      }
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin", "moderation"] });
+    },
+  });
+}
+
+export interface AdminFilePreviewData {
+  file_id: string;
+  filename: string;
+  file_size: number;
+  content_type: string;
+  status: string;
+  is_public: boolean;
+  created_at: string;
+  preview_url?: string;
+  uploader_email?: string;
+  uploader_strikes?: number;
+  account_created?: string;
+}
+
+export function useAdminFilePreview(fileId: string | null) {
+  return useQuery<AdminFilePreviewData>({
+    queryKey: ["admin", "moderation", "preview", fileId],
+    queryFn: async () => {
+      const token = getAccessToken();
+      const res = await fetch(`/api/v1/admin/moderation/files/${fileId}/preview`, {
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || "Failed to load preview");
+      }
+      const json = await res.json();
+      return json.data;
+    },
+    enabled: !!fileId,
+  });
+}
+
 
 

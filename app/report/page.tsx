@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { useSubmitContactQueryMutation } from "@/services/admin.service";
+import { useSubmitAbuseReportMutation } from "@/services/admin.service";
 import toast from "react-hot-toast";
 import { AlertTriangle, ShieldAlert, CheckCircle2, Mail, ExternalLink } from "lucide-react";
 
@@ -23,24 +23,89 @@ export default function ReportAbusePage() {
   const [submitted, setSubmitted] = useState(false);
   const [ticketNumber, setTicketNumber] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [urlValidationError, setUrlValidationError] = useState<string | null>(null);
 
-  const submitMutation = useSubmitContactQueryMutation();
+  const submitMutation = useSubmitAbuseReportMutation();
+
+  const validateTargetUrl = (input: string): string | null => {
+    const trimmed = input.trim();
+    if (!trimmed) return "File Link or Shared URL is required.";
+    const lower = trimmed.toLowerCase();
+
+    if (
+      lower.includes("/e/instant/") ||
+      lower.includes("/s/instant/") ||
+      lower.includes("/instant/") ||
+      lower.includes("/live/")
+    ) {
+      return "Instant Shares expire automatically within 15–60 minutes and cannot be reported. Only persistent public shared links (e.g. /s/...) can be reported for takedown.";
+    }
+
+    const uuidPattern = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/;
+    if (uuidPattern.test(trimmed)) return null;
+
+    try {
+      let urlToParse = trimmed;
+      if (!urlToParse.startsWith("http://") && !urlToParse.startsWith("https://")) {
+        urlToParse = "https://" + urlToParse;
+      }
+      const parsed = new URL(urlToParse);
+      const host = parsed.hostname.toLowerCase();
+      const isPPVDomain =
+        host === "pushpostvault.com" ||
+        host === "www.pushpostvault.com" ||
+        host === "localhost" ||
+        host === "127.0.0.1";
+
+      if (!isPPVDomain) {
+        return "Only PushPostVault shared links (https://pushpostvault.com/s/...) or file UUIDs can be reported.";
+      }
+      if (!parsed.pathname.startsWith("/s/")) {
+        return "URL must point to a public shared file path starting with /s/ (e.g. https://pushpostvault.com/s/<file-id>).";
+      }
+      const shareId = parsed.pathname.replace(/^\/s\//, "").replace(/\/$/, "");
+      if (!shareId || shareId.length < 8) {
+        return "The link does not contain a valid shared file identifier.";
+      }
+    } catch {
+      return "Please enter a valid URL (e.g. https://pushpostvault.com/s/xyz) or File UUID.";
+    }
+
+    return null;
+  };
 
   const handleInputChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
   ) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
+    if (name === "fileUrl") {
+      if (value.trim()) {
+        setUrlValidationError(validateTargetUrl(value));
+      } else {
+        setUrlValidationError(null);
+      }
+    }
   };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMessage(null);
+
+    const urlErr = validateTargetUrl(formData.fileUrl);
+    if (urlErr) {
+      setUrlValidationError(urlErr);
+      setErrorMessage(urlErr);
+      toast.error(urlErr);
+      return;
+    }
+
     const payload = {
-      name: formData.name,
-      email: formData.email,
-      subject: `[Abuse Report - ${formData.category.toUpperCase()}] ${formData.fileUrl}`,
-      message: `Abuse Category: ${formData.category}\nFile/Resource Link: ${formData.fileUrl}\n\nViolation Details:\n${formData.description}`,
+      reporter_name: formData.name,
+      reporter_email: formData.email,
+      category: formData.category,
+      target_url: formData.fileUrl.trim(),
+      description: formData.description,
     };
 
     submitMutation.mutate(payload, {
@@ -158,15 +223,32 @@ export default function ReportAbusePage() {
                 </div>
 
                 <div className="space-y-1.5">
-                  <label className="text-xs font-semibold text-ink">File Link or Shared URL</label>
+                  <label className="text-xs font-semibold text-ink flex items-center justify-between">
+                    <span>File Link or Shared URL</span>
+                    {urlValidationError && (
+                      <span className="text-[11px] text-rose-400 font-normal">Invalid URL format</span>
+                    )}
+                  </label>
                   <Input
                     name="fileUrl"
                     required
                     placeholder="https://pushpostvault.com/s/xyz or File UUID"
                     value={formData.fileUrl}
                     onChange={handleInputChange}
-                    className="bg-bg border-border text-xs font-mono"
+                    className={`bg-bg border text-xs font-mono transition-colors ${
+                      urlValidationError ? "border-rose-500/80 focus-visible:ring-rose-500/50" : "border-border"
+                    }`}
                   />
+                  {urlValidationError ? (
+                    <p className="text-[11px] text-rose-400 font-medium flex items-center gap-1 mt-1">
+                      <AlertTriangle className="h-3 w-3 shrink-0" />
+                      {urlValidationError}
+                    </p>
+                  ) : (
+                    <p className="text-[11px] text-ink-muted">
+                      Must be a persistent public shared link (<code className="text-accent">https://pushpostvault.com/s/...</code>) or File UUID. Temporary Instant Shares expire automatically and are not eligible for takedown.
+                    </p>
+                  )}
                 </div>
 
                 <div className="space-y-1.5">
