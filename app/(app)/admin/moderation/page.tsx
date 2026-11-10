@@ -161,7 +161,7 @@ export default function AdminModerationPage() {
       description: `Are you sure you want to dismiss report #${report.ticket_number}? The reported file will remain untouched.`,
       confirmLabel: "Dismiss Report",
       cancelLabel: "Cancel",
-      variant: "neutral",
+      variant: "default",
     });
     if (!ok) return;
 
