@@ -1,7 +1,27 @@
 import { create } from "zustand";
-import { TransferSession, TransferStatus } from "@/types";
+import { TransferSession, TransferStatus, TransferLifecycleState } from "@/types";
 
 export type TransferTab = "all" | TransferStatus;
+
+/**
+ * Normalizes any legacy lower-case transfer status into the unified lifecycle enum.
+ */
+export function normalizeTransferState(status: TransferStatus): TransferLifecycleState {
+  switch (status) {
+    case "active":
+      return "UPLOADING";
+    case "paused":
+      return "PAUSED";
+    case "completed":
+      return "COMPLETED";
+    case "failed":
+      return "FAILED";
+    case "queued":
+      return "QUEUED";
+    default:
+      return (status as TransferLifecycleState) || "IDLE";
+  }
+}
 
 interface TransferState {
   activeTab: TransferTab;

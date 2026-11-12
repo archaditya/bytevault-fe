@@ -1,6 +1,18 @@
 export type TransferDirection = "upload" | "download";
 
+export type TransferLifecycleState =
+  | "IDLE"
+  | "QUEUED"
+  | "PREPARING"
+  | "UPLOADING"
+  | "ASSEMBLING"
+  | "COMPLETED"
+  | "PAUSED"
+  | "FAILED"
+  | "CANCELLED";
+
 export type TransferStatus =
+  | TransferLifecycleState
   | "active"
   | "paused"
   | "completed"

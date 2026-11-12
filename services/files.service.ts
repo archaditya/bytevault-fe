@@ -349,6 +349,7 @@ export async function resumeUpload(txId: string, file?: File) {
     const completedParts = await Promise.all(uploadPromises);
 
     appendLog("Assembling parts and validating signature integrity.");
+    store.updateTransfer(txId, { status: "ASSEMBLING" });
     await apiClient(`/api/v1/files/${fileId}/complete-multipart`, {
       method: "POST",
       body: JSON.stringify({
@@ -359,7 +360,7 @@ export async function resumeUpload(txId: string, file?: File) {
     });
 
     store.updateTransfer(txId, {
-      status: "completed",
+      status: "COMPLETED",
       completedAt: new Date().toISOString(),
     });
     appendLog("Multipart upload successfully completed.");
@@ -1051,7 +1052,7 @@ export function useUploadFileMutation() {
           });
 
           useTransferStore.getState().updateTransfer(txId, {
-            status: "completed",
+            status: "COMPLETED",
             transferredBytes: file.size,
             completedAt: new Date().toISOString(),
             chunks: [{ index: 0, status: "complete", retries: 0 }],
@@ -1205,6 +1206,7 @@ export function useUploadFileMutation() {
           const transferSpeedBps = Math.round((file.size / (totalDurationMs / 1000 || 1)));
 
           appendLog("Assembling parts and validating signature integrity.");
+          useTransferStore.getState().updateTransfer(txId, { status: "ASSEMBLING" });
           await apiClient(`/api/v1/files/${fileId}/complete-multipart`, {
             method: "POST",
             body: JSON.stringify({
@@ -1219,7 +1221,7 @@ export function useUploadFileMutation() {
           });
 
           useTransferStore.getState().updateTransfer(txId, {
-            status: "completed",
+            status: "COMPLETED",
             completedAt: new Date().toISOString(),
           });
           appendLog("Multipart upload successfully completed.");
