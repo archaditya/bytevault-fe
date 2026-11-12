@@ -14,6 +14,18 @@ interface TransferProgressProps {
 }
 
 const indicatorByStatus: Record<TransferStatus, string> = {
+  // Unified Lifecycle States
+  IDLE: "bg-ink-faint",
+  QUEUED: "bg-ink-faint",
+  PREPARING: "bg-sky-500",
+  UPLOADING: "bg-live",
+  ASSEMBLING: "bg-amber-500",
+  COMPLETED: "bg-success",
+  PAUSED: "bg-ink-faint",
+  FAILED: "bg-danger",
+  CANCELLED: "bg-danger",
+
+  // Legacy Lowercase Mappings
   active: "bg-live",
   paused: "bg-ink-faint",
   completed: "bg-success",

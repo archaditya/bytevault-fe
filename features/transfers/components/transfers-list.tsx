@@ -10,7 +10,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Inbox, ArrowUp, ArrowDown, Activity } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { TransferTab } from "@/store/transfer.store";
+import { TransferTab, normalizeTransferState } from "@/store/transfer.store";
 import { UploadStation } from "./upload-station";
 
 const tabs: { value: TransferTab; label: string }[] = [
@@ -35,7 +35,16 @@ export function TransfersList() {
   const filtered = useMemo(() => {
     if (!transfers) return [];
     return transfers.filter((t) => {
-      const matchesTab = activeTab === "all" || t.status === activeTab;
+      const normStatus = normalizeTransferState(t.status);
+      const matchesTab =
+        activeTab === "all" ||
+        t.status === activeTab ||
+        normStatus === activeTab ||
+        (activeTab === "active" && (normStatus === "UPLOADING" || normStatus === "ASSEMBLING" || normStatus === "PREPARING")) ||
+        (activeTab === "completed" && normStatus === "COMPLETED") ||
+        (activeTab === "paused" && normStatus === "PAUSED") ||
+        (activeTab === "failed" && (normStatus === "FAILED" || normStatus === "CANCELLED")) ||
+        (activeTab === "queued" && normStatus === "QUEUED");
       const matchesDirection = directionFilter === "all" || t.direction === directionFilter;
       return matchesTab && matchesDirection;
     });
