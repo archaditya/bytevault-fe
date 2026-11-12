@@ -408,11 +408,15 @@ export default function InstantSharePage() {
                       />
                     </div>
                   ) : isVideo && previewUrl ? (
-                    <video
-                      src={previewUrl}
-                      controls
-                      className="w-full h-full max-h-[580px] object-contain bg-black rounded-lg"
-                    />
+                    <div className="relative w-full h-full flex items-center justify-center p-2 bg-black/80 rounded-lg">
+                      <video
+                        src={previewUrl}
+                        controls
+                        playsInline
+                        preload="metadata"
+                        className="w-full h-full max-h-[580px] object-contain rounded-lg shadow-2xl"
+                      />
+                    </div>
                   ) : isAudio && previewUrl ? (
                     <div className="flex-1 flex flex-col items-center justify-center p-8 bg-bg-surface gap-4">
                       <div className="flex h-20 w-20 items-center justify-center rounded-3xl bg-pink-500/10 text-pink-400 border border-pink-500/20 shadow-xl">

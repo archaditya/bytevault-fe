@@ -14,9 +14,28 @@ import {
   File as FileIcon,
   X,
   RotateCw,
+  QrCode,
+  Mail,
+  Share2,
 } from "lucide-react";
 import toast from "react-hot-toast";
-import { formatBytes } from "@/lib/utils";
+import { formatBytes, cn } from "@/lib/utils";
+
+function WhatsAppIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="currentColor">
+      <path d="M12.031 2C6.512 2 2.025 6.486 2.025 12.008c0 1.956.568 3.784 1.554 5.334L2 22l4.825-1.545a9.96 9.96 0 0 0 5.206 1.553h.004c5.518 0 10.005-4.486 10.005-10.008 0-2.673-1.041-5.186-2.932-7.078C17.216 3.03 14.704 2 12.031 2zm5.836 14.186c-.244.686-1.42 1.309-1.957 1.393-.497.078-1.127.112-3.606-.914-2.822-1.168-4.63-4.047-4.772-4.234-.139-.188-1.134-1.508-1.134-2.875 0-1.368.718-2.037.973-2.318.255-.281.558-.352.744-.352.186 0 .373.002.535.01.174.009.407-.066.637.484.244.584.834 2.034.908 2.182.074.148.124.322.025.518-.099.197-.149.32-.297.493-.149.174-.313.388-.446.521-.149.148-.304.309-.131.606.174.297.772 1.272 1.657 2.059 1.14 1.013 2.102 1.328 2.4 1.452.298.124.472.112.646-.087.174-.199.744-.867.943-1.165.199-.297.397-.248.67-.149.273.099 1.737.818 2.035.967.298.149.497.223.571.347.075.124.075.72-.169 1.406z" />
+    </svg>
+  );
+}
+
+function TelegramIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="currentColor">
+      <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.64 6.8c-.15 1.58-.8 5.42-1.13 7.19-.14.75-.42 1-.68 1.03-.58.05-1.02-.38-1.58-.75-.88-.58-1.38-.94-2.23-1.5-.99-.65-.35-1.01.22-1.59.15-.15 2.71-2.48 2.76-2.69a.2.2 0 0 0-.05-.18c-.06-.05-.14-.03-.21-.02-.09.02-1.49.95-4.22 2.79-.4.27-.76.41-1.08.4-.36-.01-1.04-.2-1.55-.37-.63-.2-1.12-.31-1.08-.66.02-.18.27-.36.74-.55 2.92-1.27 4.86-2.11 5.83-2.52 2.77-1.16 3.35-1.36 3.73-1.36.08 0 .27.02.39.12.1.08.13.19.14.27-.01.06.01.24 0 .38z" />
+    </svg>
+  );
+}
 
 interface EphemeralConfig {
   max_file_size_gb: number;
@@ -151,6 +170,7 @@ export default function InstantUploadPage() {
 
   const [shareUrl, setShareUrl] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const [showQr, setShowQr] = useState(false);
   const [isDraggingOver, setIsDraggingOver] = useState(false);
   const [savedSession, setSavedSession] = useState<SavedEphemeralSession | null>(null);
   const dragCounter = useRef(0);
@@ -848,6 +868,45 @@ export default function InstantUploadPage() {
     setTimeout(() => setCopied(false), 2000);
   };
 
+  const handleWhatsAppShare = () => {
+    if (!shareUrl) return;
+    const text = encodeURIComponent(`Download file via ByteVault:\n${shareUrl}`);
+    window.open(`https://api.whatsapp.com/send?text=${text}`, "_blank", "noopener,noreferrer");
+  };
+
+  const handleTelegramShare = () => {
+    if (!shareUrl) return;
+    const url = encodeURIComponent(shareUrl);
+    const text = encodeURIComponent("Download file via ByteVault");
+    window.open(`https://t.me/share/url?url=${url}&text=${text}`, "_blank", "noopener,noreferrer");
+  };
+
+  const handleEmailShare = () => {
+    if (!shareUrl) return;
+    const subject = encodeURIComponent(`File shared via ByteVault: ${file?.name || "Download Link"}`);
+    const body = encodeURIComponent(
+      `Hi,\n\nI've shared a file with you using ByteVault.\n\nYou can view and download it here:\n${shareUrl}\n\nPlease note: This link is temporary and will expire soon.\n\nBest,`
+    );
+    window.location.href = `mailto:?subject=${subject}&body=${body}`;
+  };
+
+  const handleNativeShare = async () => {
+    if (!shareUrl || typeof navigator === "undefined" || !navigator.share) return;
+    try {
+      await navigator.share({
+        title: file?.name || "Shared File",
+        text: "Download file via ByteVault:",
+        url: shareUrl,
+      });
+    } catch (err: any) {
+      if (err?.name !== "AbortError") {
+        toast.error("Sharing failed");
+      }
+    }
+  };
+
+  const canNativeShare = typeof navigator !== "undefined" && typeof navigator.share === "function";
+
   const expiryLabel = formatExpiry(config.expiry_minutes);
   const usesLabel = config.max_downloads_cap === 1 ? "once" : `${config.max_downloads_cap} times`;
 
@@ -909,11 +968,94 @@ export default function InstantUploadPage() {
                   </Button>
                 </div>
 
+                {/* Social Share & Quick Action Bar */}
+                <div className="flex flex-col gap-2.5 rounded-lg border border-border bg-bg-raised/40 p-3.5">
+                  <p className="text-[12px] font-medium text-ink-muted">Share directly via:</p>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={handleWhatsAppShare}
+                      className="inline-flex h-9 items-center gap-1.5 rounded-md border border-emerald-500/30 bg-emerald-500/10 px-3 text-[12px] font-medium text-emerald-400 transition-colors hover:bg-emerald-500/20 active:scale-95"
+                      title="Share to WhatsApp"
+                    >
+                      <WhatsAppIcon className="h-4 w-4" />
+                      WhatsApp
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={handleTelegramShare}
+                      className="inline-flex h-9 items-center gap-1.5 rounded-md border border-sky-500/30 bg-sky-500/10 px-3 text-[12px] font-medium text-sky-400 transition-colors hover:bg-sky-500/20 active:scale-95"
+                      title="Share to Telegram"
+                    >
+                      <TelegramIcon className="h-4 w-4" />
+                      Telegram
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={handleEmailShare}
+                      className="inline-flex h-9 items-center gap-1.5 rounded-md border border-border bg-bg-surface px-3 text-[12px] font-medium text-ink-muted transition-colors hover:bg-bg-raised hover:text-ink active:scale-95"
+                      title="Send via Email"
+                    >
+                      <Mail className="h-3.5 w-3.5" />
+                      Email
+                    </button>
+
+                    {canNativeShare && (
+                      <button
+                        type="button"
+                        onClick={handleNativeShare}
+                        className="inline-flex h-9 items-center gap-1.5 rounded-md border border-accent/30 bg-accent/10 px-3 text-[12px] font-medium text-accent-bright transition-colors hover:bg-accent/20 active:scale-95"
+                        title="Open device share sheet"
+                      >
+                        <Share2 className="h-3.5 w-3.5" />
+                        Share...
+                      </button>
+                    )}
+
+                    <button
+                      type="button"
+                      onClick={() => setShowQr((prev) => !prev)}
+                      className={cn(
+                        "inline-flex h-9 items-center gap-1.5 rounded-md border px-3 text-[12px] font-medium transition-colors active:scale-95",
+                        showQr
+                          ? "border-accent bg-accent/20 text-accent-bright"
+                          : "border-border bg-bg-surface text-ink-muted hover:bg-bg-raised hover:text-ink"
+                      )}
+                      title="Show scannable QR code"
+                    >
+                      <QrCode className="h-3.5 w-3.5" />
+                      QR Code
+                    </button>
+                  </div>
+
+                  {/* QR Code Scannable View */}
+                  {showQr && (
+                    <div className="mt-2 flex flex-col items-center justify-center rounded-lg border border-border bg-bg-surface p-4 text-center animate-in fade-in duration-200">
+                      <div className="rounded-md bg-white p-2.5 shadow-sm">
+                        <img
+                          src={`https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=${encodeURIComponent(
+                            shareUrl
+                          )}&margin=4`}
+                          alt="Instant Share QR Code"
+                          width={160}
+                          height={160}
+                          className="h-[160px] w-[160px] object-contain"
+                        />
+                      </div>
+                      <p className="mt-2.5 text-[12px] font-medium text-ink">Scan with your phone camera</p>
+                      <p className="text-[11px] text-ink-muted">Instantly open or download on mobile</p>
+                    </div>
+                  )}
+                </div>
+
                 <Button
                   variant="secondary"
                   onClick={() => {
                     setShareUrl(null);
                     setFile(null);
+                    setShowQr(false);
                   }}
                 >
                   Send another file
