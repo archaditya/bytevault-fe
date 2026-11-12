@@ -10,7 +10,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Inbox, ArrowUp, ArrowDown, Activity } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { TransferTab } from "@/store/transfer.store";
+import { TransferTab, normalizeTransferState } from "@/store/transfer.store";
 import { UploadStation } from "./upload-station";
 
 const tabs: { value: TransferTab; label: string }[] = [
@@ -35,9 +35,29 @@ export function TransfersList() {
   const filtered = useMemo(() => {
     if (!transfers) return [];
     return transfers.filter((t) => {
-      const matchesTab = activeTab === "all" || t.status === activeTab;
-      const matchesDirection = directionFilter === "all" || t.direction === directionFilter;
-      return matchesTab && matchesDirection;
+      // 1. Direction Filter
+      if (directionFilter !== "all" && t.direction !== directionFilter) {
+        return false;
+      }
+
+      // 2. Status Tab Filter (reconciles unified & legacy transfer statuses)
+      if (activeTab === "all") return true;
+
+      const norm = normalizeTransferState(t.status);
+      switch (activeTab) {
+        case "active":
+          return norm === "UPLOADING" || norm === "ASSEMBLING" || norm === "PREPARING";
+        case "completed":
+          return norm === "COMPLETED";
+        case "paused":
+          return norm === "PAUSED";
+        case "failed":
+          return norm === "FAILED" || norm === "CANCELLED";
+        case "queued":
+          return norm === "QUEUED" || norm === "IDLE";
+        default:
+          return t.status === activeTab || norm === activeTab;
+      }
     });
   }, [transfers, activeTab, directionFilter]);
 

@@ -32,7 +32,7 @@ import {
   checkFileConflicts,
   cancelUpload,
 } from "@/services";
-import { FolderRecord } from "@/types";
+import { FolderRecord, TransferLifecycleState } from "@/types";
 import { cn, formatBytes } from "@/lib/utils";
 import { useFilesStore } from "@/store/files.store";
 import { useTransferStore } from "@/store";
@@ -46,7 +46,7 @@ interface FolderTreeNode {
 interface QueuedFile {
   id: string;
   file: File;
-  status: "idle" | "uploading" | "success" | "error";
+  status: TransferLifecycleState | "idle" | "uploading" | "success" | "error";
   error?: string;
   conflictAction?: "replace" | "keep_both";
 }
@@ -859,7 +859,17 @@ export function UploadStation() {
                     <div className="flex items-center gap-3 shrink-0">
                       {item.status === "uploading" && (
                         <div className="flex items-center gap-2">
-                          <span className="font-mono text-xs font-bold text-accent">{percent}%</span>
+                          {activeTx?.status === "ASSEMBLING" ? (
+                            <span className="font-mono text-[11px] font-semibold text-amber-400 animate-pulse">
+                              Assembling...
+                            </span>
+                          ) : activeTx?.status === "PREPARING" ? (
+                            <span className="font-mono text-[11px] font-semibold text-sky-400 animate-pulse">
+                              Preparing...
+                            </span>
+                          ) : (
+                            <span className="font-mono text-xs font-bold text-accent">{percent}%</span>
+                          )}
                           <Loader2 className="h-4 w-4 text-accent animate-spin" />
                         </div>
                       )}

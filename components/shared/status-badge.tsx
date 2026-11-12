@@ -3,6 +3,18 @@ import { TransferStatus } from "@/types";
 import { ProviderStatus } from "@/types";
 
 const transferStatusConfig: Record<TransferStatus, { label: string; variant: "live" | "muted" | "success" | "danger" | "info" }> = {
+  // Unified Lifecycle States
+  IDLE: { label: "Idle", variant: "muted" },
+  QUEUED: { label: "Queued", variant: "info" },
+  PREPARING: { label: "Preparing", variant: "info" },
+  UPLOADING: { label: "Uploading", variant: "live" },
+  ASSEMBLING: { label: "Assembling", variant: "live" },
+  COMPLETED: { label: "Completed", variant: "success" },
+  PAUSED: { label: "Paused", variant: "muted" },
+  FAILED: { label: "Failed", variant: "danger" },
+  CANCELLED: { label: "Cancelled", variant: "muted" },
+
+  // Legacy Lowercase Mappings
   active: { label: "Active", variant: "live" },
   paused: { label: "Paused", variant: "muted" },
   completed: { label: "Completed", variant: "success" },
@@ -17,7 +29,7 @@ const providerStatusConfig: Record<ProviderStatus, { label: string; variant: "su
 };
 
 export function TransferStatusBadge({ status }: { status: TransferStatus }) {
-  const config = transferStatusConfig[status];
+  const config = transferStatusConfig[status] || { label: String(status), variant: "muted" as const };
   return (
     <Badge variant={config.variant} dot>
       {config.label}
