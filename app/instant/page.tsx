@@ -900,7 +900,8 @@ export default function InstantUploadPage() {
       });
     } catch (err: any) {
       if (err?.name !== "AbortError") {
-        toast.error("Sharing failed");
+        console.warn("[ByteVault] Native share dispatch failed:", err);
+        toast.error("Sharing failed or was blocked by device.");
       }
     }
   };
@@ -1041,6 +1042,8 @@ export default function InstantUploadPage() {
                           alt="Instant Share QR Code"
                           width={160}
                           height={160}
+                          loading="lazy"
+                          referrerPolicy="no-referrer"
                           className="h-[160px] w-[160px] object-contain"
                         />
                       </div>

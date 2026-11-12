@@ -35,18 +35,29 @@ export function TransfersList() {
   const filtered = useMemo(() => {
     if (!transfers) return [];
     return transfers.filter((t) => {
-      const normStatus = normalizeTransferState(t.status);
-      const matchesTab =
-        activeTab === "all" ||
-        t.status === activeTab ||
-        normStatus === activeTab ||
-        (activeTab === "active" && (normStatus === "UPLOADING" || normStatus === "ASSEMBLING" || normStatus === "PREPARING")) ||
-        (activeTab === "completed" && normStatus === "COMPLETED") ||
-        (activeTab === "paused" && normStatus === "PAUSED") ||
-        (activeTab === "failed" && (normStatus === "FAILED" || normStatus === "CANCELLED")) ||
-        (activeTab === "queued" && normStatus === "QUEUED");
-      const matchesDirection = directionFilter === "all" || t.direction === directionFilter;
-      return matchesTab && matchesDirection;
+      // 1. Direction Filter
+      if (directionFilter !== "all" && t.direction !== directionFilter) {
+        return false;
+      }
+
+      // 2. Status Tab Filter (reconciles unified & legacy transfer statuses)
+      if (activeTab === "all") return true;
+
+      const norm = normalizeTransferState(t.status);
+      switch (activeTab) {
+        case "active":
+          return norm === "UPLOADING" || norm === "ASSEMBLING" || norm === "PREPARING";
+        case "completed":
+          return norm === "COMPLETED";
+        case "paused":
+          return norm === "PAUSED";
+        case "failed":
+          return norm === "FAILED" || norm === "CANCELLED";
+        case "queued":
+          return norm === "QUEUED" || norm === "IDLE";
+        default:
+          return t.status === activeTab || norm === activeTab;
+      }
     });
   }, [transfers, activeTab, directionFilter]);
 
