@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
@@ -30,6 +30,7 @@ import {
   Sparkles,
   ArrowRight,
   Smartphone,
+  Radio,
 } from "lucide-react";
 import { LandingNav } from "@/features/landing/components/landing-nav";
 import { Footer } from "@/features/landing/components/footer";
@@ -40,10 +41,14 @@ interface EphemeralShare {
   filename: string;
   file_size: number;
   content_type?: string;
+  status?: string; // 'UPLOADING', 'ACTIVE', 'BURNED', 'EXPIRED'
   max_downloads: number;
   download_count: number;
   has_password: boolean;
   preview_url?: string;
+  is_live?: boolean;
+  progress_pct?: number;
+  uploaded_bytes?: number;
 }
 
 export default function InstantSharePage() {
@@ -63,6 +68,7 @@ export default function InstantSharePage() {
   const [loadingText, setLoadingText] = useState(false);
   const [mounted, setMounted] = useState(false);
   const [pageUrl, setPageUrl] = useState("");
+  const [autoDownload, setAutoDownload] = useState(true);
 
   useEffect(() => {
     setMounted(true);
@@ -81,42 +87,54 @@ export default function InstantSharePage() {
     return { isAndroid, isIOS, isMobile: isAndroid || isIOS };
   }, [mounted]);
 
-  useEffect(() => {
+  const fetchMetadata = useCallback(async () => {
     if (!token) {
       setBurned(true);
       setLoading(false);
       return;
     }
 
-    fetch(`/api/v1/ephemeral/metadata/${encodeURIComponent(token)}`)
-      .then(async (res) => {
-        if (!res.ok) {
-          throw new Error("File expired or unavailable");
+    try {
+      const res = await fetch(`/api/v1/ephemeral/metadata/${encodeURIComponent(token)}`);
+      if (!res.ok) {
+        throw new Error("File expired or unavailable");
+      }
+      const json = await res.json();
+      const shareData = json?.data?.share;
+      if (
+        shareData &&
+        typeof shareData.filename === "string" &&
+        typeof shareData.file_size === "number"
+      ) {
+        setShare(shareData);
+        if (shareData.preview_url) {
+          setUnlockedPreviewUrl(shareData.preview_url);
         }
-        return res.json();
-      })
-      .then((json) => {
-        const shareData = json?.data?.share;
-        if (
-          shareData &&
-          typeof shareData.filename === "string" &&
-          typeof shareData.file_size === "number"
-        ) {
-          setShare(shareData);
-          if (shareData.preview_url) {
-            setUnlockedPreviewUrl(shareData.preview_url);
-          }
-        } else {
-          setBurned(true);
-        }
-      })
-      .catch(() => {
+      } else {
         setBurned(true);
-      })
-      .finally(() => {
-        setLoading(false);
-      });
+      }
+    } catch {
+      setBurned(true);
+    } finally {
+      setLoading(false);
+    }
   }, [token]);
+
+  // Initial load
+  useEffect(() => {
+    fetchMetadata();
+  }, [fetchMetadata]);
+
+  // Polling while file is in-flight / uploading from sender
+  useEffect(() => {
+    if (!share || share.status !== "UPLOADING" || burned) return;
+
+    const timer = setInterval(() => {
+      fetchMetadata();
+    }, 1500);
+
+    return () => clearInterval(timer);
+  }, [share, burned, fetchMetadata]);
 
   const safeFilename = share?.filename || "";
   const hasExt = safeFilename.includes(".") && !safeFilename.startsWith(".");
@@ -223,6 +241,18 @@ export default function InstantSharePage() {
       setDownloading(false);
     }
   };
+
+  // Auto-download when transition happens from UPLOADING to ACTIVE
+  const prevStatusRef = useRef<string | undefined>(share?.status);
+  useEffect(() => {
+    if (prevStatusRef.current === "UPLOADING" && share?.status === "ACTIVE") {
+      toast.success("File upload complete! Ready to download.");
+      if (autoDownload && !share.has_password && !downloading && !downloadStarted) {
+        handleDownload();
+      }
+    }
+    prevStatusRef.current = share?.status;
+  }, [share?.status, autoDownload, share?.has_password, downloading, downloadStarted]);
 
   const copyShareLink = () => {
     if (typeof window !== "undefined") {
@@ -496,72 +526,120 @@ export default function InstantSharePage() {
                     </div>
                   </div>
 
-                  {/* Passcode Form & Download / Install Buttons - Right at top for mobile */}
-                  <form onSubmit={handleDownload} className="space-y-3 md:space-y-4">
-                    {share.has_password && (
-                      <div className="space-y-1.5">
-                        <Label htmlFor="passcode" className="flex items-center gap-1.5 text-xs text-ink-muted">
-                          <Lock className="h-3.5 w-3.5 text-ink-faint" /> Passcode required
-                        </Label>
-                        <Input
-                          id="passcode"
-                          type="password"
-                          autoComplete="off"
-                          placeholder="Enter passcode"
-                          value={password}
-                          onChange={(e) => setPassword(e.target.value)}
-                          className="h-10 border-border-strong bg-bg-raised text-xs rounded-xl"
-                          required
-                        />
+                  {/* In-Flight Uploading Standby or Download Form */}
+                  {share.status === "UPLOADING" ? (
+                    <div className="space-y-3.5 md:space-y-4">
+                      <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-4 text-xs space-y-3">
+                        <div className="flex items-center gap-2 font-medium text-amber-400">
+                          <Radio className="h-4 w-4 animate-pulse text-amber-400" />
+                          File is currently streaming from sender
+                        </div>
+                        <p className="text-[11px] text-ink-muted leading-relaxed">
+                          The sender has initiated the transfer. You are connected in standby mode and will be able to download the moment the upload completes.
+                        </p>
+                        {typeof share.progress_pct === "number" && share.progress_pct > 0 && (
+                          <div className="space-y-1">
+                            <div className="flex justify-between text-[11px] font-mono text-ink-muted">
+                              <span>Upload progress</span>
+                              <span className="text-amber-400 font-semibold">{share.progress_pct}%</span>
+                            </div>
+                            <div className="h-1.5 overflow-hidden rounded-full bg-bg-overlay">
+                              <div
+                                className="h-full bg-amber-400 transition-all duration-300"
+                                style={{ width: `${share.progress_pct}%` }}
+                              />
+                            </div>
+                          </div>
+                        )}
                       </div>
-                    )}
 
-                    <Button
-                      type="submit"
-                      disabled={downloading || left <= 0}
-                      className={cn(
-                        "w-full text-xs font-semibold h-11 rounded-xl shadow-lg transition-all",
-                        isAPK && deviceInfo.isAndroid
-                          ? "bg-green-600 hover:bg-green-500 text-white shadow-green-600/20"
-                          : "bg-accent hover:bg-accent/90 text-bg shadow-accent/20"
-                      )}
-                      size="lg"
-                    >
-                      {downloading ? (
-                        <>
-                          <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Preparing download…
-                        </>
-                      ) : (
-                        <>
-                          <Download className="mr-2 h-4 w-4" />
-                          {isAPK && deviceInfo.isAndroid
-                            ? "Download and install APK"
-                            : isAPK
-                            ? "Download APK"
-                            : isIPA
-                            ? "Download IPA"
-                            : "Download File"}
-                        </>
-                      )}
-                    </Button>
+                      {/* Auto-download toggle */}
+                      <label className="flex items-center gap-2 text-xs text-ink-muted cursor-pointer select-none px-1">
+                        <input
+                          type="checkbox"
+                          checked={autoDownload}
+                          onChange={(e) => setAutoDownload(e.target.checked)}
+                          className="rounded border-border bg-bg-raised text-accent focus:ring-accent"
+                        />
+                        <span>Auto-download when upload finishes</span>
+                      </label>
 
-                    {/* Android Installation Guidance */}
-                    {isAPK && deviceInfo.isAndroid && (
-                      <div className="rounded-xl border border-emerald-500/20 bg-emerald-950/20 p-3 text-xs text-left">
-                        <div className="flex items-start gap-2.5">
-                          <Smartphone className="h-4 w-4 text-emerald-400 shrink-0 mt-0.5" />
-                          <div className="space-y-0.5 text-[11px] leading-relaxed text-ink-muted">
-                            <p className="text-ink font-medium">
-                              {downloadStarted ? "Download in progress…" : "Installation note"}
-                            </p>
-                            <p className="text-ink-muted">
-                              Once download finishes, tap <strong className="text-emerald-400">&quot;Open&quot;</strong> on the browser prompt or pull down your notification drawer to install.
-                            </p>
+                      <Button
+                        disabled
+                        className="w-full text-xs font-semibold h-11 rounded-xl bg-bg-raised border border-border text-ink-muted cursor-not-allowed"
+                        size="lg"
+                      >
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin text-amber-400" />
+                        Waiting for upload to finish…
+                      </Button>
+                    </div>
+                  ) : (
+                    <form onSubmit={handleDownload} className="space-y-3 md:space-y-4">
+                      {share.has_password && (
+                        <div className="space-y-1.5">
+                          <Label htmlFor="passcode" className="flex items-center gap-1.5 text-xs text-ink-muted">
+                            <Lock className="h-3.5 w-3.5 text-ink-faint" /> Passcode required
+                          </Label>
+                          <Input
+                            id="passcode"
+                            type="password"
+                            autoComplete="off"
+                            placeholder="Enter passcode"
+                            value={password}
+                            onChange={(e) => setPassword(e.target.value)}
+                            className="h-10 border-border-strong bg-bg-raised text-xs rounded-xl"
+                            required
+                          />
+                        </div>
+                      )}
+
+                      <Button
+                        type="submit"
+                        disabled={downloading || left <= 0}
+                        className={cn(
+                          "w-full text-xs font-semibold h-11 rounded-xl shadow-lg transition-all",
+                          isAPK && deviceInfo.isAndroid
+                            ? "bg-green-600 hover:bg-green-500 text-white shadow-green-600/20"
+                            : "bg-accent hover:bg-accent/90 text-bg shadow-accent/20"
+                        )}
+                        size="lg"
+                      >
+                        {downloading ? (
+                          <>
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Preparing download…
+                          </>
+                        ) : (
+                          <>
+                            <Download className="mr-2 h-4 w-4" />
+                            {isAPK && deviceInfo.isAndroid
+                              ? "Download and install APK"
+                              : isAPK
+                              ? "Download APK"
+                              : isIPA
+                              ? "Download IPA"
+                              : "Download File"}
+                          </>
+                        )}
+                      </Button>
+
+                      {/* Android Installation Guidance */}
+                      {isAPK && deviceInfo.isAndroid && (
+                        <div className="rounded-xl border border-emerald-500/20 bg-emerald-950/20 p-3 text-xs text-left">
+                          <div className="flex items-start gap-2.5">
+                            <Smartphone className="h-4 w-4 text-emerald-400 shrink-0 mt-0.5" />
+                            <div className="space-y-0.5 text-[11px] leading-relaxed text-ink-muted">
+                              <p className="text-ink font-medium">
+                                {downloadStarted ? "Download in progress…" : "Installation note"}
+                              </p>
+                              <p className="text-ink-muted">
+                                Once download finishes, tap <strong className="text-emerald-400">&quot;Open&quot;</strong> on the browser prompt or pull down your notification drawer to install.
+                              </p>
+                            </div>
                           </div>
                         </div>
-                      </div>
-                    )}
-                  </form>
+                      )}
+                    </form>
+                  )}
 
                   {/* Downloads Left Progress Box */}
                   <div className="p-3 rounded-xl bg-bg-raised/70 border border-border text-xs space-y-2">

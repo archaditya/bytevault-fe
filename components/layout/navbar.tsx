@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Search, Upload, Loader2, Menu, Settings, LogOut, User } from "lucide-react";
+import { Search, Upload, Loader2, Menu, Settings, LogOut, User, Zap } from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
 import { Input } from "@/components/ui/input";
@@ -61,13 +61,39 @@ export function Navbar({ onMenuClick }: { onMenuClick?: () => void }) {
       <GlobalSearch />
 
       <div className="flex items-center gap-2 shrink-0">
+        {/* Instant Share Quick Action */}
+        <Button
+          size="sm"
+          variant="outline"
+          className="hidden sm:flex gap-1.5 items-center border-accent/40 bg-accent/10 text-accent-bright hover:bg-accent/20 hover:text-white"
+          asChild
+        >
+          <Link href="/instant">
+            <Zap className="h-3.5 w-3.5" />
+            Instant Share
+          </Link>
+        </Button>
+
+        {/* Mobile Instant Share Action */}
+        <Button
+          size="icon"
+          variant="outline"
+          className="sm:hidden border-accent/40 bg-accent/10 text-accent-bright hover:bg-accent/20"
+          asChild
+          aria-label="Instant Share"
+        >
+          <Link href="/instant">
+            <Zap className="h-4 w-4" />
+          </Link>
+        </Button>
+
         {/* Desktop upload button */}
         {!isAdmin && (
           <Button
             size="sm"
             variant="primary"
             className="hidden sm:flex gap-1.5 items-center"
-            onClick={() => setIsUploadModalOpen(true)}
+            onClick={() => router.push("/transfers")}
           >
             <Upload className="h-3.5 w-3.5" />
             Upload File
@@ -80,7 +106,7 @@ export function Navbar({ onMenuClick }: { onMenuClick?: () => void }) {
             size="icon"
             variant="primary"
             className="sm:hidden"
-            onClick={() => setIsUploadModalOpen(true)}
+            onClick={() => router.push("/transfers")}
             aria-label="Upload file"
           >
             <Upload className="h-4 w-4" />
@@ -127,12 +153,7 @@ export function Navbar({ onMenuClick }: { onMenuClick?: () => void }) {
         </DropdownMenu>
       </div>
 
-      {!isAdmin && (
-        <UploadModal
-          open={isUploadModalOpen}
-          onOpenChange={setIsUploadModalOpen}
-        />
-      )}
+      {/* Desktop & Mobile upload routes to /transfers */}
     </header>
   );
 }

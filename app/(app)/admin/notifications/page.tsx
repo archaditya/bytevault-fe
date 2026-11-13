@@ -15,6 +15,16 @@ import { Input } from "@/components/ui/input";
 import { BellRing, AlertTriangle } from "lucide-react";
 import toast from "react-hot-toast";
 
+const CATEGORY_PRESETS = [
+  { value: "announcement", label: "📢 General System Announcement", defaultPath: "/files" },
+  { value: "storage_quota", label: "💾 Storage & Quota Alert", defaultPath: "/storage/usage" },
+  { value: "file_share", label: "🔗 Files & Shared Links", defaultPath: "/shared" },
+  { value: "transfers", label: "⚡ Transfers & Pipeline Alert", defaultPath: "/transfers" },
+  { value: "subscription", label: "💳 Billing & Plan Renewal", defaultPath: "/pricing" },
+  { value: "security", label: "🔒 Account & Security Notice", defaultPath: "/settings" },
+  { value: "custom", label: "🛠️ Custom Action Link", defaultPath: "" },
+];
+
 export default function AdminNotificationsPage() {
   const { user: currentUser } = useAuthStore();
   const [notificationsPage, setNotificationsPage] = useState(1);
@@ -23,10 +33,20 @@ export default function AdminNotificationsPage() {
   const [targetType, setTargetType] = useState<"global" | "role" | "single">("global");
   const [targetUserId, setTargetUserId] = useState("");
   const [targetRole, setTargetRole] = useState("");
+  const [category, setCategory] = useState("announcement");
+  const [actionPath, setActionPath] = useState("/files");
   const [title, setTitle] = useState("");
   const [body, setBody] = useState("");
   const [priority, setPriority] = useState("normal");
   const [channels, setChannels] = useState<string[]>(["in_app"]);
+
+  const handleCategoryChange = (val: string) => {
+    setCategory(val);
+    const preset = CATEGORY_PRESETS.find((p) => p.value === val);
+    if (preset && preset.value !== "custom") {
+      setActionPath(preset.defaultPath);
+    }
+  };
 
   const isAdmin = currentUser?.role === "super_admin" || currentUser?.role === "admin";
 
@@ -69,6 +89,8 @@ export default function AdminNotificationsPage() {
         body,
         channels,
         priority,
+        category,
+        path: actionPath.trim() || undefined,
       });
       toast.success("Notification sent successfully!");
       setTitle("");
@@ -197,6 +219,36 @@ export default function AdminNotificationsPage() {
                   <option value="high">High Priority</option>
                   <option value="critical">Critical Priority</option>
                 </select>
+              </div>
+
+              <div className="flex flex-col gap-1.5">
+                <label className="text-xs font-semibold text-ink-muted font-sans">Notification Category / Purpose</label>
+                <select
+                  value={category}
+                  onChange={(e) => handleCategoryChange(e.target.value)}
+                  className="w-full rounded-md border border-border bg-bg-raised px-3 py-2 text-sm text-ink outline-none focus:border-accent"
+                >
+                  {CATEGORY_PRESETS.map((p) => (
+                    <option key={p.value} value={p.value}>
+                      {p.label}
+                    </option>
+                  ))}
+                </select>
+                <p className="text-[11px] text-ink-muted">
+                  Auto-configures the destination URL when clicked by the user.
+                </p>
+              </div>
+
+              <div className="flex flex-col gap-1.5">
+                <label className="text-xs font-semibold text-ink-muted font-sans">Action Destination Path</label>
+                <Input
+                  placeholder="e.g. /files, /storage/usage, /pricing"
+                  value={actionPath}
+                  onChange={(e) => setActionPath(e.target.value)}
+                />
+                <p className="text-[11px] text-ink-muted">
+                  Clicking this notification will navigate the user directly to this route.
+                </p>
               </div>
 
               <div className="flex flex-col gap-1.5">

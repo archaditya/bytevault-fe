@@ -331,75 +331,7 @@ export function UploadModal({ open, onOpenChange }: UploadModalProps) {
     }
   }, [maxFileSizeBytes, maxFileSizeMb]);
 
-  // Global window drag and drop listener
-  useEffect(() => {
-    // If user is already on /transfers, bypass global listener so UploadStation dropzone handles drops directly
-    if (pathname === "/transfers") {
-      setIsWindowDragging(false);
-      dragCounter.current = 0;
-      return;
-    }
-
-    const handleWindowDragEnter = (e: DragEvent) => {
-      e.preventDefault();
-      e.stopPropagation();
-
-      if (pathname === "/transfers") return;
-
-      if (e.dataTransfer && e.dataTransfer.types.includes("Files")) {
-        dragCounter.current++;
-        setIsWindowDragging(true);
-      }
-    };
-
-    const handleWindowDragLeave = (e: DragEvent) => {
-      e.preventDefault();
-      e.stopPropagation();
-
-      if (e.dataTransfer && e.dataTransfer.types.includes("Files")) {
-        dragCounter.current--;
-        if (dragCounter.current <= 0) {
-          setIsWindowDragging(false);
-          dragCounter.current = 0;
-        }
-      }
-    };
-
-    const handleWindowDragOver = (e: DragEvent) => {
-      e.preventDefault();
-      e.stopPropagation();
-    };
-
-    const handleWindowDrop = (e: DragEvent) => {
-      e.preventDefault();
-      e.stopPropagation();
-      setIsWindowDragging(false);
-      dragCounter.current = 0;
-
-      if (pathname === "/transfers") return;
-
-      if (
-        e.dataTransfer &&
-        e.dataTransfer.files &&
-        e.dataTransfer.files.length > 0
-      ) {
-        onOpenChange(true);
-        addFilesToQueue(Array.from(e.dataTransfer.files));
-      }
-    };
-
-    window.addEventListener("dragenter", handleWindowDragEnter);
-    window.addEventListener("dragleave", handleWindowDragLeave);
-    window.addEventListener("dragover", handleWindowDragOver);
-    window.addEventListener("drop", handleWindowDrop);
-
-    return () => {
-      window.removeEventListener("dragenter", handleWindowDragEnter);
-      window.removeEventListener("dragleave", handleWindowDragLeave);
-      window.removeEventListener("dragover", handleWindowDragOver);
-      window.removeEventListener("drop", handleWindowDrop);
-    };
-  }, [onOpenChange, addFilesToQueue, pathname]);
+  // Global window drag and drop listener has been moved to app layout for direct /transfers redirection
 
   const removeFileFromQueue = (id: string) => {
     const item = queue.find((q) => q.id === id);

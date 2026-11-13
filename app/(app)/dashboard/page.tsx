@@ -3,9 +3,7 @@
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuthStore } from "@/store";
-import { DashboardStats } from "@/features/dashboard/components/dashboard-stats";
-import { DashboardCharts } from "@/features/dashboard/components/dashboard-charts";
-import { StorageProviderWidget } from "@/features/dashboard/components/storage-providers";
+import { DashboardHome } from "@/features/dashboard/components/dashboard-home";
 
 export default function DashboardPage() {
   const { user } = useAuthStore();
@@ -22,14 +20,5 @@ export default function DashboardPage() {
     return null;
   }
 
-  // Standard User Dashboard View
-  return (
-    <div className="flex flex-col gap-6">
-      <DashboardStats />
-      <div className="w-full">
-        <StorageProviderWidget />
-      </div>
-      <DashboardCharts />
-    </div>
-  );
+  return <DashboardHome />;
 }

@@ -18,7 +18,7 @@ import { Suspense } from "react";
 function RegisterPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const redirectTo = searchParams.get("redirect") || "/dashboard";
+  const redirectTo = searchParams.get("redirect") || "/files";
   const register = useAuthStore((s) => s.register);
 
   const [firstName, setFirstName] = useState("");

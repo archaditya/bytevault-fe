@@ -137,23 +137,33 @@ export function FolderListRow({ folder }: { folder: FolderRecord }) {
             onClick={(e) => e.stopPropagation()}
             className="h-4 w-4 rounded border-border bg-bg-raised text-accent focus:ring-accent cursor-pointer shrink-0"
           />
-          <div className="relative flex items-center justify-center shrink-0">
-            <Folder className={cn("h-4.5 w-4.5 shrink-0", category.iconClass)} />
-            {category.type !== "default" && (
-              <span
-                className="absolute -bottom-1 -right-1 flex h-2.5 w-2.5 items-center justify-center rounded-full bg-bg-surface border"
-                style={{ borderColor: `${category.accentColor}66` }}
-              >
-                <CategoryIcon
-                  className="h-1.5 w-1.5"
-                  style={{ color: category.accentColor }}
-                />
-              </span>
-            )}
-          </div>
-          <span className="truncate" title={folder.name}>
-            {folder.name}
-          </span>
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              pushFolder(folder.id, folder.name);
+            }}
+            className="flex items-center gap-2.5 truncate text-left hover:text-accent-bright transition-colors cursor-pointer group"
+            title="Click to open folder"
+          >
+            <div className="relative flex items-center justify-center shrink-0">
+              <Folder className={cn("h-4.5 w-4.5 shrink-0 transition-transform group-hover:scale-110", category.iconClass)} />
+              {category.type !== "default" && (
+                <span
+                  className="absolute -bottom-1 -right-1 flex h-2.5 w-2.5 items-center justify-center rounded-full bg-bg-surface border"
+                  style={{ borderColor: `${category.accentColor}66` }}
+                >
+                  <CategoryIcon
+                    className="h-1.5 w-1.5"
+                    style={{ color: category.accentColor }}
+                  />
+                </span>
+              )}
+            </div>
+            <span className="truncate font-semibold" title={folder.name}>
+              {folder.name}
+            </span>
+          </button>
           <span
             className={cn(
               "hidden sm:inline-flex items-center rounded px-1.5 py-0.2 text-[9px] font-mono border uppercase tracking-wider shrink-0",

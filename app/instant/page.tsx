@@ -17,6 +17,7 @@ import {
   QrCode,
   Mail,
   Share2,
+  Zap,
 } from "lucide-react";
 import toast from "react-hot-toast";
 import { formatBytes, cn } from "@/lib/utils";
@@ -426,6 +427,9 @@ export default function InstantUploadPage() {
         session.completedParts.map((p) => [p.part_number, p.etag])
       );
 
+      const immediateUrl = `${window.location.origin}/s/instant/${session.token}`;
+      setShareUrl(immediateUrl);
+
       // Determine missing part numbers
       const missingPartNumbers: number[] = [];
       for (let i = 1; i <= totalParts; i++) {
@@ -668,6 +672,9 @@ export default function InstantUploadPage() {
         }
 
         const { token, upload_url } = json.data;
+        const generatedUrl = `${window.location.origin}/s/instant/${token}`;
+        setShareUrl(generatedUrl);
+        toast.success("Share link ready! You can share it right now.");
         setStatusText("Uploading to storage...");
 
         await uploadChunkWithProgress(
@@ -683,9 +690,7 @@ export default function InstantUploadPage() {
 
         setProgress(100);
         setStatusText("Complete!");
-        const generatedUrl = `${window.location.origin}/s/instant/${token}`;
-        setShareUrl(generatedUrl);
-        toast.success("Link created");
+        toast.success("Upload finished successfully!");
       } else {
         // --- Chunked Multipart Upload ---
         const totalParts = Math.ceil(file.size / dynamicChunkSize);
@@ -710,6 +715,9 @@ export default function InstantUploadPage() {
         }
 
         const { token, upload_id, part_urls } = sessionJson.data;
+        const generatedUrl = `${window.location.origin}/s/instant/${token}`;
+        setShareUrl(generatedUrl);
+        toast.success("Share link ready! You can share it right now.");
 
         // Save active session in localStorage for resumability
         const initialSession: SavedEphemeralSession = {
@@ -843,9 +851,8 @@ export default function InstantUploadPage() {
         setSavedSession(null);
         setProgress(100);
         setStatusText("Upload complete!");
-        const generatedUrl = `${window.location.origin}/s/instant/${token}`;
-        setShareUrl(generatedUrl);
-        toast.success("Link created");
+        setShareUrl(`${window.location.origin}/s/instant/${token}`);
+        toast.success("Upload finished successfully!");
       }
     } catch (err: any) {
       const errorMsg =
@@ -940,17 +947,53 @@ export default function InstantUploadPage() {
             {shareUrl ? (
               <div className="flex flex-col gap-5">
                 <div className="flex items-start gap-3">
-                  <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-success/15 text-success">
-                    <Check className="h-5 w-5" />
+                  <span
+                    className={cn(
+                      "flex h-9 w-9 shrink-0 items-center justify-center rounded-full",
+                      uploading
+                        ? "bg-accent/15 text-accent animate-pulse"
+                        : "bg-success/15 text-success"
+                    )}
+                  >
+                    {uploading ? <Zap className="h-5 w-5" /> : <Check className="h-5 w-5" />}
                   </span>
                   <div>
-                    <h2 className="text-[16px] font-medium text-ink">Your link is ready</h2>
+                    <h2 className="text-[16px] font-medium text-ink">
+                      {uploading
+                        ? "Instant Link Ready! (Uploading in background)"
+                        : "Your link is ready"}
+                    </h2>
                     <p className="mt-1 text-[13px] leading-relaxed text-ink-muted">
-                      It works {usesLabel} and expires in {expiryLabel}. The file is deleted as soon
-                      as it is downloaded.
+                      {uploading
+                        ? "You can share this link right away. The receiver can view the page and will be able to download the moment upload completes."
+                        : `It works ${usesLabel} and expires in ${expiryLabel}. The file is deleted as soon as it is downloaded.`}
                     </p>
                   </div>
                 </div>
+
+                {uploading && (
+                  <div className="flex flex-col gap-2 rounded-lg border border-accent/30 bg-accent/5 p-3.5">
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="flex items-center gap-2 font-medium text-accent-bright">
+                        <span className="relative flex h-2 w-2">
+                          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-accent opacity-75"></span>
+                          <span className="relative inline-flex rounded-full h-2 w-2 bg-accent"></span>
+                        </span>
+                        Streaming upload to storage...
+                      </span>
+                      <span className="font-mono text-ink-muted font-semibold">{progress}%</span>
+                    </div>
+                    <div className="h-1.5 w-full overflow-hidden rounded-full bg-bg-raised">
+                      <div
+                        className="h-full bg-accent transition-all duration-200"
+                        style={{ width: `${progress}%` }}
+                      />
+                    </div>
+                    <p className="text-[11px] text-ink-muted font-mono">
+                      {statusText || "Link active at 0%"}
+                    </p>
+                  </div>
+                )}
 
                 <div className="flex items-center gap-2 rounded-md border border-border bg-bg-raised p-2">
                   <span className="flex-1 truncate px-2 font-mono text-[13px] text-ink">
@@ -1055,13 +1098,16 @@ export default function InstantUploadPage() {
 
                 <Button
                   variant="secondary"
+                  disabled={uploading}
                   onClick={() => {
                     setShareUrl(null);
                     setFile(null);
+                    setUploading(false);
+                    setProgress(0);
                     setShowQr(false);
                   }}
                 >
-                  Send another file
+                  {uploading ? "Upload in progress..." : "Send another file"}
                 </Button>
               </div>
             ) : (

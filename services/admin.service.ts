@@ -65,16 +65,10 @@ export interface ContactQuery {
 export function useSubmitContactQueryMutation() {
   return useMutation({
     mutationFn: async (req: { name: string; email: string; subject: string; message: string }) => {
-      const response = await fetch("/api/v1/contact", {
+      return apiClient("/api/v1/contact", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(req),
       });
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.detail || "Failed to submit contact query.");
-      }
-      return response.json();
     },
   });
 }
@@ -147,6 +141,8 @@ export function useSendAdminNotificationMutation() {
       body: string;
       channels: string[];
       priority: string;
+      category?: string;
+      path?: string;
     }) => {
       const qs = new URLSearchParams();
       qs.set("target_type", params.target_type);
@@ -156,9 +152,12 @@ export function useSendAdminNotificationMutation() {
       qs.set("body", params.body);
       params.channels.forEach((ch) => qs.append("channels", ch));
       qs.set("priority", params.priority);
+      if (params.category) qs.set("category", params.category);
+      if (params.path) qs.set("path", params.path);
 
       return apiClient(`/api/v1/notifications/admin/send?${qs.toString()}`, {
         method: "POST",
+        body: JSON.stringify(params),
       });
     },
   });
@@ -354,27 +353,16 @@ export function useAdminFiles(params: {
   return useQuery<{ files: AdminFile[]; next_cursor?: string }>({
     queryKey: ["admin", "files", params],
     queryFn: async () => {
-      const token = getAccessToken();
-      const headers: Record<string, string> = {
-        "Content-Type": "application/json",
-      };
-      if (token) {
-        headers["Authorization"] = `Bearer ${token}`;
-      }
       const queryParts = [];
       if (params.search) queryParts.push(`q=${encodeURIComponent(params.search)}`);
       if (params.cursor) queryParts.push(`cursor=${params.cursor}`);
       if (params.limit) queryParts.push(`limit=${params.limit}`);
       const queryString = queryParts.length > 0 ? `?${queryParts.join("&")}` : "";
 
-      const res = await fetch(`/api/v1/admin/files${queryString}`, { headers });
-      if (!res.ok) {
-        throw new Error(`HTTP error! status: ${res.status}`);
-      }
-      const json = await res.json();
+      const res = await apiClient(`/api/v1/admin/files${queryString}`);
       return {
-        files: json.data?.files || [],
-        next_cursor: json.pagination?.next_cursor || undefined,
+        files: res?.files || [],
+        next_cursor: res?.pagination?.next_cursor || undefined,
       };
     },
   });
@@ -388,27 +376,16 @@ export function useAdminSharedFiles(params: {
   return useQuery<{ files: AdminFile[]; next_cursor?: string }>({
     queryKey: ["admin", "files", "shared", params],
     queryFn: async () => {
-      const token = getAccessToken();
-      const headers: Record<string, string> = {
-        "Content-Type": "application/json",
-      };
-      if (token) {
-        headers["Authorization"] = `Bearer ${token}`;
-      }
       const queryParts = [];
       if (params.search) queryParts.push(`q=${encodeURIComponent(params.search)}`);
       if (params.cursor) queryParts.push(`cursor=${params.cursor}`);
       if (params.limit) queryParts.push(`limit=${params.limit}`);
       const queryString = queryParts.length > 0 ? `?${queryParts.join("&")}` : "";
 
-      const res = await fetch(`/api/v1/admin/files/shared${queryString}`, { headers });
-      if (!res.ok) {
-        throw new Error(`HTTP error! status: ${res.status}`);
-      }
-      const json = await res.json();
+      const res = await apiClient(`/api/v1/admin/files/shared${queryString}`);
       return {
-        files: json.data?.files || [],
-        next_cursor: json.pagination?.next_cursor || undefined,
+        files: res?.files || [],
+        next_cursor: res?.pagination?.next_cursor || undefined,
       };
     },
   });
@@ -422,6 +399,8 @@ export interface TelemetryData {
   server_err_5xx: number;
   error_rate_pct: number;
   current_rps: number;
+  window_requests?: number;
+  queue_depths?: Record<string, number>;
   latency: {
     p50_ms: number;
     p95_ms: number;
@@ -465,16 +444,7 @@ export function useAdminTelemetry(options?: { refetchInterval?: number; enabled?
   return useQuery<TelemetryData>({
     queryKey: ["admin", "telemetry"],
     queryFn: async () => {
-      const token = getAccessToken();
-      const res = await fetch("/api/v1/admin/telemetry", {
-        headers: {
-          "Content-Type": "application/json",
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
-      });
-      if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
-      const json = await res.json();
-      return json.data;
+      return apiClient("/api/v1/admin/telemetry");
     },
     refetchInterval: options?.refetchInterval ?? 5000,
     enabled: options?.enabled ?? true,
@@ -485,16 +455,7 @@ export function useAdminBandwidth(timeframe: string = "today", options?: { enabl
   return useQuery<BandwidthData>({
     queryKey: ["admin", "bandwidth", timeframe],
     queryFn: async () => {
-      const token = getAccessToken();
-      const res = await fetch(`/api/v1/admin/bandwidth?timeframe=${timeframe}`, {
-        headers: {
-          "Content-Type": "application/json",
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
-      });
-      if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
-      const json = await res.json();
-      return json.data;
+      return apiClient(`/api/v1/admin/bandwidth?timeframe=${timeframe}`);
     },
     enabled: options?.enabled ?? true,
   });
@@ -517,16 +478,7 @@ export function useAdminModerationStats() {
   return useQuery<ModerationStats>({
     queryKey: ["admin", "moderation", "stats"],
     queryFn: async () => {
-      const token = getAccessToken();
-      const res = await fetch("/api/v1/admin/moderation/stats", {
-        headers: {
-          "Content-Type": "application/json",
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
-      });
-      if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
-      const json = await res.json();
-      return json.data;
+      return apiClient("/api/v1/admin/moderation/stats");
     },
   });
 }
@@ -535,19 +487,11 @@ export function useAdminFlaggedFiles(params?: { cursor?: string }) {
   return useQuery<{ files: FlaggedFile[]; next_cursor?: string }>({
     queryKey: ["admin", "moderation", "flagged", params],
     queryFn: async () => {
-      const token = getAccessToken();
       const query = params?.cursor ? `?cursor=${params.cursor}` : "";
-      const res = await fetch(`/api/v1/admin/moderation/flagged${query}`, {
-        headers: {
-          "Content-Type": "application/json",
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
-      });
-      if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
-      const json = await res.json();
+      const data = await apiClient(`/api/v1/admin/moderation/flagged${query}`);
       return {
-        files: json.data?.files || [],
-        next_cursor: json.data?.next_cursor,
+        files: data?.files || [],
+        next_cursor: data?.next_cursor,
       };
     },
   });
@@ -557,16 +501,9 @@ export function useApproveFlaggedFile() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (fileId: string) => {
-      const token = getAccessToken();
-      const res = await fetch(`/api/v1/admin/moderation/files/${fileId}/approve`, {
+      return apiClient(`/api/v1/admin/moderation/files/${fileId}/approve`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
       });
-      if (!res.ok) throw new Error("Failed to approve file");
-      return res.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin", "moderation"] });
@@ -579,16 +516,9 @@ export function useRejectFlaggedFile() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (fileId: string) => {
-      const token = getAccessToken();
-      const res = await fetch(`/api/v1/admin/moderation/files/${fileId}/reject`, {
+      return apiClient(`/api/v1/admin/moderation/files/${fileId}/reject`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
       });
-      if (!res.ok) throw new Error("Failed to reject file");
-      return res.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin", "moderation"] });
@@ -618,20 +548,10 @@ export function useUpdateAdminSettings() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (settings: AdminSettings) => {
-      const token = getAccessToken();
-      const res = await fetch("/api/v1/admin/settings", {
+      return apiClient("/api/v1/admin/settings", {
         method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
         body: JSON.stringify(settings),
       });
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        throw new Error(err.message || "Failed to update settings");
-      }
-      return res.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin", "settings"] });
@@ -675,16 +595,10 @@ export function useSubmitAbuseReportMutation() {
       description: string;
       evidence_url?: string;
     }) => {
-      const response = await fetch("/api/v1/report/abuse", {
+      return apiClient("/api/v1/report/abuse", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(req),
       });
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error || errorData.detail || "Failed to submit abuse report.");
-      }
-      return response.json();
     },
   });
 }
@@ -698,18 +612,10 @@ export function useAdminAbuseReports(page = 1, limit = 20, status?: string) {
       qs.set("limit", String(limit));
       if (status) qs.set("status", status);
 
-      const token = getAccessToken();
-      const res = await fetch(`/api/v1/admin/moderation/reports?${qs.toString()}`, {
-        headers: {
-          "Content-Type": "application/json",
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
-      });
-      if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
-      const json = await res.json();
+      const data = await apiClient(`/api/v1/admin/moderation/reports?${qs.toString()}`);
       return {
-        reports: json.data?.reports || [],
-        total: json.data?.pagination?.total || 0,
+        reports: data?.reports || [],
+        total: data?.pagination?.total || 0,
       };
     },
   });
@@ -719,20 +625,10 @@ export function useTakedownAbuseReportMutation() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async ({ id, admin_notes }: { id: string; admin_notes?: string }) => {
-      const token = getAccessToken();
-      const res = await fetch(`/api/v1/admin/moderation/reports/${id}/takedown`, {
+      return apiClient(`/api/v1/admin/moderation/reports/${id}/takedown`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
         body: JSON.stringify({ admin_notes }),
       });
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        throw new Error(err.error || "Failed to take down report target");
-      }
-      return res.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin", "moderation"] });
@@ -745,20 +641,10 @@ export function useStrikeReportUploaderMutation() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async ({ id, admin_notes }: { id: string; admin_notes?: string }) => {
-      const token = getAccessToken();
-      const res = await fetch(`/api/v1/admin/moderation/reports/${id}/strike`, {
+      return apiClient(`/api/v1/admin/moderation/reports/${id}/strike`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
         body: JSON.stringify({ admin_notes }),
       });
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        throw new Error(err.error || "Failed to strike uploader");
-      }
-      return res.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin", "moderation"] });
@@ -771,20 +657,10 @@ export function useDismissAbuseReportMutation() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async ({ id, admin_notes }: { id: string; admin_notes?: string }) => {
-      const token = getAccessToken();
-      const res = await fetch(`/api/v1/admin/moderation/reports/${id}/dismiss`, {
+      return apiClient(`/api/v1/admin/moderation/reports/${id}/dismiss`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
         body: JSON.stringify({ admin_notes }),
       });
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        throw new Error(err.error || "Failed to dismiss abuse report");
-      }
-      return res.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin", "moderation"] });
@@ -810,22 +686,67 @@ export function useAdminFilePreview(fileId: string | null) {
   return useQuery<AdminFilePreviewData>({
     queryKey: ["admin", "moderation", "preview", fileId],
     queryFn: async () => {
-      const token = getAccessToken();
-      const res = await fetch(`/api/v1/admin/moderation/files/${fileId}/preview`, {
-        headers: {
-          "Content-Type": "application/json",
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
-      });
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        throw new Error(err.error || "Failed to load preview");
-      }
-      const json = await res.json();
-      return json.data;
+      return apiClient(`/api/v1/admin/moderation/files/${fileId}/preview`);
     },
     enabled: !!fileId,
   });
+}
+
+// -------------------------------------------------------------
+// Server Log Management
+// -------------------------------------------------------------
+
+export interface LogFileInfo {
+  filename: string;
+  size_bytes: number;
+  updated_at: string;
+}
+
+export interface LogTailResponse {
+  filename: string;
+  lines: string[];
+  total_lines: number;
+}
+
+export function useAdminLogFiles() {
+  return useQuery<LogFileInfo[]>({
+    queryKey: ["admin", "logs", "files"],
+    queryFn: async () => {
+      const data = await apiClient("/api/v1/admin/logs");
+      return data?.files || [];
+    },
+  });
+}
+
+export function useAdminLogTail(filename: string | null, lines = 200, options?: { refetchInterval?: number; enabled?: boolean }) {
+  return useQuery<LogTailResponse>({
+    queryKey: ["admin", "logs", "tail", filename, lines],
+    queryFn: async () => {
+      if (!filename) throw new Error("No filename provided");
+      return apiClient(`/api/v1/admin/logs/tail?file=${encodeURIComponent(filename)}&lines=${lines}`);
+    },
+    enabled: !!filename && (options?.enabled ?? true),
+    refetchInterval: options?.refetchInterval,
+  });
+}
+
+export async function downloadAdminLogFile(filename: string): Promise<void> {
+  const token = getAccessToken();
+  const res = await fetch(`/api/v1/admin/logs/download?file=${encodeURIComponent(filename)}`, {
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+  });
+  if (!res.ok) {
+    throw new Error(`Failed to download log: ${res.statusText}`);
+  }
+  const blob = await res.blob();
+  const url = window.URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  window.URL.revokeObjectURL(url);
+  document.body.removeChild(a);
 }
 
 

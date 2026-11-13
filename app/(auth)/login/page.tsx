@@ -18,7 +18,7 @@ import { Suspense } from "react";
 function LoginPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const redirectTo = searchParams.get("redirect") || "/dashboard";
+  const redirectTo = searchParams.get("redirect") || "/files";
   const login = useAuthStore((s) => s.login);
 
   const [email, setEmail] = useState("");
