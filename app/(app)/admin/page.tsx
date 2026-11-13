@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { useAuthStore } from "@/store";
 import { useAdminStats, useAdminTelemetry, useAdminBandwidth } from "@/services";
 import { formatBytes } from "@/lib/utils";
@@ -8,6 +9,7 @@ import { StatCard } from "@/components/shared/stat-card";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import {
   Users,
   Files,
@@ -24,6 +26,8 @@ import {
   Zap,
   Globe,
   FileDown,
+  Terminal,
+  Layers,
 } from "lucide-react";
 
 export default function AdminPage() {
@@ -111,6 +115,11 @@ export default function AdminPage() {
             </span>
             Live Telemetry (5s poll)
           </Badge>
+          <Button asChild size="sm" variant="secondary" className="h-8 gap-1.5 text-xs">
+            <Link href="/admin/logs">
+              <Terminal className="h-3.5 w-3.5 text-accent-bright" /> Server Logs
+            </Link>
+          </Button>
         </div>
       </div>
 
@@ -201,21 +210,26 @@ export default function AdminPage() {
                   <span className="text-2xl font-bold font-mono text-ink">
                     {telemetryLoading ? "--" : (telemetry?.current_rps || 0).toFixed(1)}
                   </span>
-                  <span className="text-xs text-ink-muted ml-1.5">req / sec</span>
+                  <span className="text-xs text-ink-muted ml-1.5">req / sec (60s live)</span>
                 </div>
                 <div className="text-right font-mono text-xs text-ink-muted">
-                  Total: {telemetry?.total_requests.toLocaleString() || 0}
+                  Window: {(telemetry?.window_requests || 0).toLocaleString()}
                 </div>
               </div>
-              <div className="flex flex-wrap items-center gap-1.5 text-[11px] font-mono">
-                <span className="text-emerald-500 bg-emerald-500/10 px-1.5 py-0.5 rounded">
-                  2xx: {telemetry?.success_2xx || 0}
-                </span>
-                <span className="text-amber-500 bg-amber-500/10 px-1.5 py-0.5 rounded">
-                  4xx: {telemetry?.client_err_4xx || 0}
-                </span>
-                <span className="text-danger bg-danger/10 px-1.5 py-0.5 rounded">
-                  5xx: {telemetry?.server_err_5xx || 0}
+              <div className="flex flex-wrap items-center justify-between gap-1.5 text-[11px] font-mono">
+                <div className="flex items-center gap-1.5">
+                  <span className="text-emerald-500 bg-emerald-500/10 px-1.5 py-0.5 rounded">
+                    2xx: {telemetry?.success_2xx || 0}
+                  </span>
+                  <span className="text-amber-500 bg-amber-500/10 px-1.5 py-0.5 rounded">
+                    4xx: {telemetry?.client_err_4xx || 0}
+                  </span>
+                  <span className="text-danger bg-danger/10 px-1.5 py-0.5 rounded">
+                    5xx: {telemetry?.server_err_5xx || 0}
+                  </span>
+                </div>
+                <span className="text-ink-faint text-[10px]">
+                  Total: {telemetry?.total_requests.toLocaleString() || 0}
                 </span>
               </div>
             </CardContent>
@@ -287,6 +301,52 @@ export default function AdminPage() {
             </CardContent>
           </Card>
         </div>
+
+        {/* Background Processing Queues */}
+        {telemetry?.queue_depths && (
+          <Card className="bg-bg-surface border-border-strong mt-2">
+            <CardHeader className="py-2.5 px-4 border-b border-border">
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-xs font-semibold text-ink flex items-center gap-1.5">
+                  <Layers className="h-3.5 w-3.5 text-accent-bright" /> Background Worker Queues (Redis)
+                </CardTitle>
+                <span className="text-[11px] font-mono text-ink-muted">Active Consumers</span>
+              </div>
+            </CardHeader>
+            <CardContent className="p-3">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 text-center">
+                <div className="rounded-lg bg-bg/50 p-2 border border-border">
+                  <span className="text-[10px] text-ink-muted block uppercase font-mono">Media & AI</span>
+                  <span className="font-mono text-lg font-bold text-ink">
+                    {telemetry.queue_depths.media_processing ?? 0}
+                  </span>
+                  <span className="text-[10px] text-ink-muted block mt-0.5">FFmpeg / Vision</span>
+                </div>
+                <div className="rounded-lg bg-bg/50 p-2 border border-border">
+                  <span className="text-[10px] text-ink-muted block uppercase font-mono">Email Queue</span>
+                  <span className="font-mono text-lg font-bold text-ink">
+                    {telemetry.queue_depths.email ?? 0}
+                  </span>
+                  <span className="text-[10px] text-ink-muted block mt-0.5">Brevo SMTP</span>
+                </div>
+                <div className="rounded-lg bg-bg/50 p-2 border border-border">
+                  <span className="text-[10px] text-ink-muted block uppercase font-mono">Push Notifications</span>
+                  <span className="font-mono text-lg font-bold text-ink">
+                    {telemetry.queue_depths.push ?? 0}
+                  </span>
+                  <span className="text-[10px] text-ink-muted block mt-0.5">Firebase FCM</span>
+                </div>
+                <div className="rounded-lg bg-bg/50 p-2 border border-border">
+                  <span className="text-[10px] text-ink-muted block uppercase font-mono">In-App Events</span>
+                  <span className="font-mono text-lg font-bold text-ink">
+                    {telemetry.queue_depths.in_app ?? 0}
+                  </span>
+                  <span className="text-[10px] text-ink-muted block mt-0.5">DB Notification</span>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Top Active API Routes */}
         {telemetry?.top_routes && telemetry.top_routes.length > 0 && (

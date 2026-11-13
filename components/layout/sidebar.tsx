@@ -23,6 +23,7 @@ import {
   CreditCard,
   Receipt,
   ShieldAlert,
+  Terminal,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuthStore } from "@/store";
@@ -53,6 +54,7 @@ const adminNavItems = [
   { href: "/admin/contact-queries", label: "Contact Queries", icon: MessageSquare },
   { href: "/admin/notifications", label: "Notifications", icon: BellRing },
   { href: "/admin/settings", label: "Settings", icon: Settings },
+  { href: "/admin/logs", label: "Server Logs", icon: Terminal },
   { href: "/admin/audit-logs", label: "Audit Logs", icon: ScrollText },
 ];
 

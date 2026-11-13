@@ -103,7 +103,13 @@ export async function apiClient(path: string, options: RequestInit = {}): Promis
             throw new Error(message);
           }
           const json = await retryResponse.json();
-          return json && json.status === "success" ? json.data : json;
+          if (json && json.status === "success") {
+            if (json.pagination && typeof json.data === "object" && json.data !== null && !Array.isArray(json.data)) {
+              return { ...json.data, pagination: json.pagination };
+            }
+            return json.data;
+          }
+          return json;
         } else {
           throw new Error("Token refresh failed");
         }
@@ -118,17 +124,24 @@ export async function apiClient(path: string, options: RequestInit = {}): Promis
       subscribeTokenRefresh((newToken) => {
         headers.set("Authorization", `Bearer ${newToken}`);
         fetch(path, { ...options, headers })
-          .then((res) => {
+          .then(async (res) => {
             if (!res.ok) {
-              return res.json().then(reject);
+              const errorData = await res.json().catch(() => ({}));
+              const message = errorData.detail || errorData.message || errorData.error || `HTTP error! status: ${res.status}`;
+              return reject(new Error(message));
             }
-            return res.json().then((json) => {
-              if (json && json.status === "success") {
-                resolve(json.data);
-              } else {
-                resolve(json);
+            const cType = res.headers.get("content-type");
+            if (cType && !cType.includes("application/json")) {
+              return resolve(res);
+            }
+            const json = await res.json();
+            if (json && json.status === "success") {
+              if (json.pagination && typeof json.data === "object" && json.data !== null && !Array.isArray(json.data)) {
+                return resolve({ ...json.data, pagination: json.pagination });
               }
-            });
+              return resolve(json.data);
+            }
+            return resolve(json);
           })
           .catch(reject);
       });
@@ -148,6 +161,9 @@ export async function apiClient(path: string, options: RequestInit = {}): Promis
 
   const json = await response.json();
   if (json && json.status === "success") {
+    if (json.pagination && typeof json.data === "object" && json.data !== null && !Array.isArray(json.data)) {
+      return { ...json.data, pagination: json.pagination };
+    }
     return json.data;
   }
   return json;
