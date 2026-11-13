@@ -27,7 +27,7 @@ import {
   Info,
   ArrowDown,
 } from "lucide-react";
-import { toast } from "sonner";
+import toast from "react-hot-toast";
 
 type LogLevel = "ALL" | "ERROR" | "WARN" | "INFO";
 
@@ -202,15 +202,15 @@ export default function AdminLogsPage() {
               <select
                 value={selectedFile || ""}
                 onChange={(e) => setSelectedFile(e.target.value)}
-                className="bg-bg-elevated border border-border text-ink text-xs rounded-md px-2.5 py-1.5 focus:outline-none focus:ring-1 focus:ring-accent"
+                className="bg-bg-raised border border-border-strong text-ink text-xs rounded-md px-2.5 py-1.5 focus:outline-none focus:ring-1 focus:ring-accent"
               >
                 {filesLoading ? (
-                  <option>Loading log files...</option>
+                  <option className="bg-[#131110] text-[#FAFAFA]">Loading log files...</option>
                 ) : logFiles.length === 0 ? (
-                  <option>No log files generated</option>
+                  <option className="bg-[#131110] text-[#FAFAFA]">No log files generated</option>
                 ) : (
                   logFiles.map((file) => (
-                    <option key={file.filename} value={file.filename}>
+                    <option key={file.filename} value={file.filename} className="bg-[#131110] text-[#FAFAFA]">
                       {file.filename} ({formatBytes(file.size_bytes)})
                     </option>
                   ))
@@ -223,12 +223,12 @@ export default function AdminLogsPage() {
               <select
                 value={linesCount}
                 onChange={(e) => setLinesCount(Number(e.target.value))}
-                className="bg-bg-elevated border border-border text-ink text-xs rounded-md px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-accent font-mono"
+                className="bg-bg-raised border border-border-strong text-ink text-xs rounded-md px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-accent font-mono"
               >
-                <option value={100}>100</option>
-                <option value={200}>200</option>
-                <option value={500}>500</option>
-                <option value={1000}>1000</option>
+                <option value={100} className="bg-[#131110] text-[#FAFAFA]">100</option>
+                <option value={200} className="bg-[#131110] text-[#FAFAFA]">200</option>
+                <option value={500} className="bg-[#131110] text-[#FAFAFA]">500</option>
+                <option value={1000} className="bg-[#131110] text-[#FAFAFA]">1000</option>
               </select>
             </div>
 
@@ -241,7 +241,7 @@ export default function AdminLogsPage() {
 
           {/* Level Filter Tabs & Search */}
           <div className="flex flex-wrap items-center gap-2.5">
-            <div className="flex items-center rounded-md bg-bg-elevated p-0.5 border border-border text-xs">
+            <div className="flex items-center rounded-md bg-bg-raised p-0.5 border border-border-strong text-xs">
               {(["ALL", "INFO", "WARN", "ERROR"] as LogLevel[]).map((level) => (
                 <button
                   key={level}
@@ -267,7 +267,7 @@ export default function AdminLogsPage() {
                 placeholder="Filter logs in stream..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-8 h-8 text-xs bg-bg-elevated border-border"
+                className="pl-8 h-8 text-xs bg-bg-raised border-border-strong text-ink placeholder:text-ink-faint focus-visible:ring-accent"
               />
             </div>
 
@@ -276,8 +276,8 @@ export default function AdminLogsPage() {
               onClick={() => setAutoRefresh(!autoRefresh)}
               className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] border font-mono transition-colors ${
                 autoRefresh
-                  ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-500"
-                  : "bg-bg-elevated border-border text-ink-muted"
+                  ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-400"
+                  : "bg-bg-raised border-border-strong text-ink-muted"
               }`}
             >
               <span className={`h-1.5 w-1.5 rounded-full ${autoRefresh ? "bg-emerald-500 animate-pulse" : "bg-ink-muted"}`} />
@@ -288,9 +288,9 @@ export default function AdminLogsPage() {
       </Card>
 
       {/* Terminal Log Console */}
-      <Card className="bg-[#0D1117] border-border-strong overflow-hidden shadow-2xl flex flex-col">
+      <Card className="bg-bg-surface border-border-strong overflow-hidden shadow-2xl flex flex-col">
         {/* Terminal Titlebar */}
-        <div className="flex items-center justify-between px-4 py-2.5 bg-[#161B22] border-b border-border/40 text-xs">
+        <div className="flex items-center justify-between px-4 py-2.5 bg-bg-raised border-b border-border-strong text-xs">
           <div className="flex items-center gap-2">
             <span className="h-3 w-3 rounded-full bg-[#FF5F56] inline-block opacity-80" />
             <span className="h-3 w-3 rounded-full bg-[#FFBD2E] inline-block opacity-80" />

@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { Menu, X, ArrowRight, Zap, Radio } from "lucide-react";
+import { Menu, X, ArrowRight, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuthStore } from "@/store";
 
@@ -37,13 +37,6 @@ export function LandingNav() {
 
         {/* Desktop links */}
         <nav className="hidden items-center gap-4 text-[13px] text-ink-muted md:flex">
-          <Link
-            href="/live"
-            className="flex items-center gap-1.5 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-3 py-1 font-medium text-emerald-400 transition-colors hover:bg-emerald-500/20"
-          >
-            <Radio className="h-3.5 w-3.5 animate-pulse" />
-            Live Share
-          </Link>
           <Link
             href="/instant"
             className="flex items-center gap-1.5 rounded-full border border-accent/30 bg-accent/10 px-3 py-1 font-medium text-accent-bright transition-colors hover:bg-accent/20"
@@ -79,18 +72,11 @@ export function LandingNav() {
         {/* Mobile controls */}
         <div className="flex items-center gap-2 md:hidden">
           <Link
-            href="/live"
-            className="flex items-center gap-1 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2 py-1 text-[11px] font-medium text-emerald-400"
-          >
-            <Radio className="h-3 w-3 animate-pulse" />
-            Live
-          </Link>
-          <Link
             href="/instant"
             className="flex items-center gap-1 rounded-full border border-accent/30 bg-accent/10 px-2.5 py-1 text-[11px] font-medium text-accent-bright"
           >
             <Zap className="h-3 w-3" />
-            Instant
+            Instant Share
           </Link>
 
           <button
@@ -108,26 +94,6 @@ export function LandingNav() {
       {mobileMenuOpen && (
         <div className="animate-in slide-in-from-top-2 border-b border-border bg-bg-surface px-4 py-5 shadow-2xl duration-200 md:hidden">
           <div className="flex flex-col gap-3">
-            <Link
-              href="/live"
-              onClick={closeMenu}
-              className="flex items-center justify-between rounded-lg border border-emerald-500/30 bg-emerald-500/10 p-3 text-[13px]"
-            >
-              <div className="flex items-center gap-2.5">
-                <div className="flex h-8 w-8 items-center justify-center rounded-md bg-emerald-500/20">
-                  <Radio className="h-4 w-4 text-emerald-400 animate-pulse" />
-                </div>
-                <div>
-                  <div className="font-semibold text-ink flex items-center gap-1.5">
-                    Live Share
-                    <span className="text-[9px] uppercase font-bold tracking-wider px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-400">New</span>
-                  </div>
-                  <div className="text-[11px] text-ink-muted">Stream links instantly without upload wait.</div>
-                </div>
-              </div>
-              <ArrowRight className="h-4 w-4 text-emerald-400" />
-            </Link>
-
             <Link
               href="/instant"
               onClick={closeMenu}

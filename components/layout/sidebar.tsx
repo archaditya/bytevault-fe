@@ -24,9 +24,12 @@ import {
   Receipt,
   ShieldAlert,
   Terminal,
+  Cloud,
 } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn, formatBytes } from "@/lib/utils";
 import { useAuthStore } from "@/store";
+import { useQuota } from "@/services";
+import { Button } from "@/components/ui/button";
 
 interface SidebarProps {
   mobileOpen?: boolean;
@@ -37,8 +40,6 @@ const userNavItems = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/files", label: "Files", icon: FolderClosed },
   { href: "/transfers", label: "Transfers", icon: ArrowUpDown },
-  { href: "/live", label: "Live Share", icon: Radio, highlight: true },
-  { href: "/instant", label: "Instant Share", icon: Zap, highlight: true },
   { href: "/collect", label: "Collect", icon: Inbox },
   { href: "/shared", label: "Shared links", icon: Share2 },
 ];
@@ -57,6 +58,56 @@ const adminNavItems = [
   { href: "/admin/logs", label: "Server Logs", icon: Terminal },
   { href: "/admin/audit-logs", label: "Audit Logs", icon: ScrollText },
 ];
+
+function SidebarStorageQuota() {
+  const { data: quota, isLoading } = useQuota();
+
+  if (isLoading || !quota) {
+    return (
+      <div className="mx-2 mb-3 rounded-lg border border-border bg-bg-surface p-3 animate-pulse">
+        <div className="h-3.5 w-20 bg-border rounded" />
+        <div className="mt-2.5 h-1.5 w-full bg-border rounded-full" />
+        <div className="mt-2 h-3 w-28 bg-border rounded" />
+      </div>
+    );
+  }
+
+  const used = quota.used_bytes || 0;
+  const total = quota.total_bytes || 0;
+  const pct = total > 0 ? Math.min(100, Math.round((used / total) * 100)) : 0;
+  const isNearLimit = pct >= 85;
+
+  return (
+    <div className="mx-2 mb-3 rounded-lg border border-border-strong bg-bg-surface p-3 text-xs">
+      <div className="flex items-center justify-between text-ink">
+        <span className="flex items-center gap-1.5 font-medium">
+          <Cloud className="h-3.5 w-3.5 text-accent-bright" /> Storage
+        </span>
+        <span className="font-mono text-[11px] text-ink-muted">{pct}%</span>
+      </div>
+      <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-bg-raised">
+        <div
+          className={cn(
+            "h-full transition-all duration-300",
+            isNearLimit ? "bg-danger" : "bg-brand-gradient"
+          )}
+          style={{ width: `${Math.max(4, pct)}%` }}
+        />
+      </div>
+      <p className="mt-2 text-[11px] text-ink-muted">
+        {formatBytes(used)} of {formatBytes(total)} used
+      </p>
+      <Button
+        size="sm"
+        variant="outline"
+        className="mt-2.5 h-7 w-full text-[11px] border-border-strong hover:bg-bg-raised text-ink hover:text-white"
+        asChild
+      >
+        <Link href="/storage/usage">Get more storage</Link>
+      </Button>
+    </div>
+  );
+}
 
 export function Sidebar({ mobileOpen, setMobileOpen }: SidebarProps) {
   const pathname = usePathname();
@@ -194,6 +245,8 @@ export function Sidebar({ mobileOpen, setMobileOpen }: SidebarProps) {
             </li>
           </ul>
         </nav>
+
+        {!isAdmin && <SidebarStorageQuota />}
 
         <div className="border-t border-border p-3">
           <div className="flex items-center gap-2 rounded-sm px-2 py-1.5">

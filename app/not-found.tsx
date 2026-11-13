@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { Box, ArrowLeft, Home, Zap, Radio } from "lucide-react";
+import { Box, ArrowLeft, Home, Zap } from "lucide-react";
 import { useAuthStore } from "@/store";
 
 export default function NotFound() {
@@ -39,22 +39,15 @@ export default function NotFound() {
           </Button>
 
           <Button asChild className="flex-1 gap-2 text-xs h-10 bg-accent hover:bg-accent/90 text-white">
-            <Link href={isAuthenticated ? "/dashboard" : "/"}>
+            <Link href={isAuthenticated ? "/files" : "/"}>
               <Home className="h-3.5 w-3.5" />
-              {isAuthenticated ? "Dashboard" : "Home Page"}
+              {isAuthenticated ? "My Files" : "Home Page"}
             </Link>
           </Button>
         </div>
 
         {/* Helpful Alternatives */}
         <div className="w-full pt-4 border-t border-border flex items-center justify-center gap-4 text-xs text-ink-muted">
-          <Link
-            href="/live"
-            className="inline-flex items-center gap-1.5 hover:text-emerald-400 transition-colors"
-          >
-            <Radio className="h-3 w-3 text-emerald-400" /> Live Share
-          </Link>
-          <span>•</span>
           <Link
             href="/instant"
             className="inline-flex items-center gap-1.5 hover:text-accent transition-colors"
