@@ -14,7 +14,7 @@ function VerifyEmailForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const email = searchParams.get("email") || "";
-  const redirectTo = searchParams.get("redirect") || "/dashboard";
+  const redirectTo = searchParams.get("redirect") || "/files";
   const { checkSession } = useAuthStore();
 
   const [otp, setOtp] = useState(["", "", "", "", "", ""]);

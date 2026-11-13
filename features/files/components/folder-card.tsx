@@ -386,10 +386,19 @@ export function FolderCard({ folder }: { folder: FolderRecord }) {
             )}
           </div>
 
-          <div className="flex items-center gap-1 text-[10px] font-medium text-accent opacity-0 group-hover:opacity-100 transition-opacity">
+          <button
+            type="button"
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              handleOpenFolder();
+            }}
+            className="flex items-center gap-1 text-[11px] font-semibold text-accent hover:text-accent-bright bg-accent/10 hover:bg-accent/20 px-2 py-0.5 rounded-md transition-all cursor-pointer opacity-90 group-hover:opacity-100"
+            title="Open folder"
+          >
             <span>Open</span>
-            <ArrowRight className="h-2.5 w-2.5 transition-transform group-hover:translate-x-0.5" />
-          </div>
+            <ArrowRight className="h-3 w-3 transition-transform group-hover:translate-x-0.5" />
+          </button>
         </div>
 
         {/* Dropdown Menu actions trigger */}

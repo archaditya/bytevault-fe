@@ -30,6 +30,12 @@ interface TransferState {
   setActiveTab: (tab: TransferTab) => void;
   setDirectionFilter: (direction: "all" | "upload" | "download") => void;
   
+  // Staged files for seamless drag-and-drop redirection
+  stagedFiles: File[];
+  setStagedFiles: (files: File[]) => void;
+  addStagedFiles: (files: File[]) => void;
+  consumeStagedFiles: () => File[];
+
   // Persisted transfers state
   transfers: TransferSession[];
   initUserTransfers: (userId: string | null) => void;
@@ -75,6 +81,16 @@ export const useTransferStore = create<TransferState>((set, get) => {
     setDirectionFilter: (direction) => set({ directionFilter: direction }),
 
     transfers: [],
+    stagedFiles: [],
+    setStagedFiles: (files) => set({ stagedFiles: files }),
+    addStagedFiles: (files) => set((s) => ({ stagedFiles: [...s.stagedFiles, ...files] })),
+    consumeStagedFiles: () => {
+      const files = get().stagedFiles;
+      if (files.length > 0) {
+        set({ stagedFiles: [] });
+      }
+      return files;
+    },
 
     initUserTransfers: (userId: string | null) => {
       cleanLegacyTransfers();

@@ -68,7 +68,7 @@ export function FilesToolbar() {
 
   useEffect(() => {
     if (searchParams.get("triggerUpload") === "true") {
-      setIsUploadModalOpen(true);
+      router.push(currentFolderId ? `/transfers?folderId=${currentFolderId}` : "/transfers");
       // Clean parameters from address bar silently
       const url = new URL(window.location.href);
       url.searchParams.delete("triggerUpload");
@@ -110,10 +110,6 @@ export function FilesToolbar() {
 
   return (
     <div className="flex flex-wrap items-center gap-2.5">
-      <UploadModal
-        open={isUploadModalOpen}
-        onOpenChange={setIsUploadModalOpen}
-      />
 
       <div className="relative min-w-[220px] flex-1 sm:max-w-xs">
         <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-ink-faint" />

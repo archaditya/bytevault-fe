@@ -265,6 +265,15 @@ export function UploadStation() {
     [maxFileSizeBytes, maxFileSizeMb]
   );
 
+  // Automatically consume any files staged from other pages via global drag-and-drop
+  useEffect(() => {
+    const staged = useTransferStore.getState().consumeStagedFiles();
+    if (staged && staged.length > 0) {
+      addFilesToQueue(staged);
+      toast.success(`${staged.length} file${staged.length > 1 ? "s" : ""} staged for upload`);
+    }
+  }, [addFilesToQueue]);
+
   const [isWindowDragging, setIsWindowDragging] = useState(false);
   const dragCounter = useRef(0);
 
@@ -536,7 +545,7 @@ export function UploadStation() {
   };
 
   return (
-    <div className="w-full rounded-xl border border-border-strong bg-bg-surface p-5 shadow-sm space-y-4">
+    <div className="w-full rounded-2xl border border-border/70 bg-gradient-to-b from-bg-surface via-bg-surface to-bg-raised/20 p-4 md:p-6 shadow-sm space-y-5">
       {/* Full-Screen Drag and Drop Overlay for /transfers */}
       {isWindowDragging && (
         <div
@@ -586,7 +595,7 @@ export function UploadStation() {
       />
 
       {/* Header with Title and Target Folder Selector */}
-      <div className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-border/60">
+      <div className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-border/50">
         <div>
           <h2 className="text-base font-bold text-ink flex items-center gap-2">
             <Upload className="h-4 w-4 text-accent" />
@@ -599,7 +608,7 @@ export function UploadStation() {
 
         {/* Destination Target Folder Pill */}
         <div className="flex items-center gap-2">
-          <div className="flex items-center gap-1.5 rounded-lg border border-border bg-bg-raised px-3 py-1.5 text-xs">
+          <div className="flex items-center gap-1.5 rounded-full border border-border/80 bg-bg-surface/90 px-3.5 py-1.5 text-xs shadow-xs">
             <span className="text-ink-muted">Target:</span>
             <button
               type="button"
@@ -625,7 +634,7 @@ export function UploadStation() {
             <Button
               size="sm"
               variant="ghost"
-              className="h-8 text-xs text-ink-muted hover:text-ink px-2"
+              className="h-8 text-xs text-ink-muted hover:text-ink px-2 rounded-full"
               onClick={() => setSelectedFolderId(null)}
             >
               Reset to Home
@@ -738,20 +747,20 @@ export function UploadStation() {
         onDrop={handleDrop}
         onClick={() => fileInputRef.current?.click()}
         className={cn(
-          "flex flex-col items-center justify-center rounded-xl border-2 border-dashed p-8 cursor-pointer transition-all duration-200 text-center",
+          "group flex flex-col items-center justify-center rounded-2xl border-2 border-dashed p-8 md:p-10 cursor-pointer transition-all duration-200 text-center",
           isDragging
             ? "border-accent bg-accent/10 shadow-inner scale-[0.99]"
-            : "border-border-strong bg-bg-raised/50 hover:border-accent/50 hover:bg-bg-raised"
+            : "border-border/70 bg-bg-surface/50 hover:border-accent/60 hover:bg-accent/[0.02] hover:shadow-md"
         )}
       >
-        <div className="flex h-12 w-12 items-center justify-center rounded-full bg-accent/10 text-accent mb-3">
+        <div className="flex h-13 w-13 items-center justify-center rounded-2xl bg-accent/10 text-accent mb-3 group-hover:scale-110 group-hover:bg-accent/20 transition-all duration-300">
           <Upload className={cn("h-6 w-6 transition-transform", isDragging && "scale-110 animate-bounce")} />
         </div>
-        <h3 className="text-sm font-semibold text-ink">
-          Drag & drop files here, or <span className="text-accent underline">browse</span>
+        <h3 className="text-sm md:text-base font-semibold text-ink">
+          Drag & drop files here, or <span className="text-accent underline font-bold">browse from device</span>
         </h3>
-        <p className="text-xs text-ink-muted mt-1">
-          Supports video, APK, documents, archives, and media up to {maxFileSizeMb}MB per file
+        <p className="text-xs text-ink-muted mt-1 max-w-md">
+          High-speed chunked upload pipeline supporting video, documents, archives, and media up to {maxFileSizeMb}MB
         </p>
       </div>
 
@@ -947,14 +956,18 @@ export function UploadStation() {
                   queue.length === 0 ||
                   queue.every((item) => item.status === "success")
                 }
-                className="gap-2 px-5 h-9 text-xs bg-accent hover:bg-accent-bright text-bg font-bold shadow-md"
+                className="gap-2 px-6 h-10 text-xs bg-accent hover:bg-accent-bright text-bg font-bold shadow-md transition-all active:scale-95"
               >
                 {isUploading ? (
                   <Loader2 className="h-4 w-4 animate-spin" />
                 ) : (
                   <Upload className="h-4 w-4" />
                 )}
-                {isUploading ? "Uploading Queue…" : `Start Upload (${queue.length} files)`}
+                {isUploading
+                  ? "Uploading Queue…"
+                  : `Start Upload (${queue.length} ${queue.length === 1 ? "file" : "files"} • ${formatBytes(
+                      queue.reduce((acc, q) => acc + q.file.size, 0)
+                    )})`}
               </Button>
             </div>
           </div>

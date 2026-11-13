@@ -27,6 +27,8 @@ export function FilesExplorer() {
     sortDirection,
     currentFolderId,
     folderHistory,
+    pushFolder,
+    popFolder,
     goToFolderIndex,
     resetFolder,
     selectedItems,
@@ -78,6 +80,40 @@ export function FilesExplorer() {
       }
     }
   }, [filesData, cursor]);
+
+  // Google Drive / Windows Explorer-style keyboard navigation
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement;
+      if (
+        target?.tagName === "INPUT" ||
+        target?.tagName === "TEXTAREA" ||
+        target?.isContentEditable
+      ) {
+        return;
+      }
+
+      if (e.key === "Enter") {
+        if (selectedItems.length === 1 && selectedItems[0].type === "folder") {
+          const selectedFolder = folders?.find((f) => f.id === selectedItems[0].id);
+          if (selectedFolder) {
+            e.preventDefault();
+            pushFolder(selectedFolder.id, selectedFolder.name);
+          }
+        }
+      } else if (e.key === "Backspace" || (e.altKey && e.key === "ArrowUp")) {
+        if (folderHistory.length > 0) {
+          e.preventDefault();
+          popFolder();
+        }
+      } else if (e.key === "Escape") {
+        clearSelection();
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [selectedItems, folders, folderHistory, pushFolder, popFolder, clearSelection]);
 
   const handleLoadMore = () => {
     if (filesData?.next_cursor) {
