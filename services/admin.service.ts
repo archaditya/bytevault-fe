@@ -147,6 +147,8 @@ export function useSendAdminNotificationMutation() {
       body: string;
       channels: string[];
       priority: string;
+      category?: string;
+      path?: string;
     }) => {
       const qs = new URLSearchParams();
       qs.set("target_type", params.target_type);
@@ -156,9 +158,12 @@ export function useSendAdminNotificationMutation() {
       qs.set("body", params.body);
       params.channels.forEach((ch) => qs.append("channels", ch));
       qs.set("priority", params.priority);
+      if (params.category) qs.set("category", params.category);
+      if (params.path) qs.set("path", params.path);
 
       return apiClient(`/api/v1/notifications/admin/send?${qs.toString()}`, {
         method: "POST",
+        body: JSON.stringify(params),
       });
     },
   });

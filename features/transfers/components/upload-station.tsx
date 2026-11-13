@@ -270,7 +270,6 @@ export function UploadStation() {
     const staged = useTransferStore.getState().consumeStagedFiles();
     if (staged && staged.length > 0) {
       addFilesToQueue(staged);
-      toast.success(`${staged.length} file${staged.length > 1 ? "s" : ""} staged for upload`);
     }
   }, [addFilesToQueue]);
 

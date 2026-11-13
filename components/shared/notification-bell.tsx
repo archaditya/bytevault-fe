@@ -20,10 +20,30 @@ interface Notification {
   metadata?: {
     path?: string;
     type?: string;
+    category?: string;
     [key: string]: any;
   } | null;
   is_read: boolean;
   created_at: string;
+}
+
+export function resolveNotificationPath(n: Notification): string {
+  if (n.metadata?.path && typeof n.metadata.path === "string" && n.metadata.path.trim() !== "") {
+    return n.metadata.path.trim();
+  }
+
+  const t = (n.type || n.metadata?.type || n.metadata?.category || "").toLowerCase();
+  if (t.includes("file") || t.includes("upload")) return "/files";
+  if (t.includes("transfer")) return "/transfers";
+  if (t.includes("storage") || t.includes("quota")) return "/storage/usage";
+  if (t.includes("sub") || t.includes("bill") || t.includes("plan") || t.includes("pricing")) return "/pricing";
+  if (t.includes("security") || t.includes("settings")) return "/settings";
+  if (t.includes("moderation") || t.includes("abuse") || t.includes("nsfw")) return "/admin/moderation";
+  if (t.includes("contact")) return "/contact";
+  if (t.includes("profile")) return "/profile";
+  if (t.includes("shared") || t.includes("link")) return "/shared";
+
+  return "/files";
 }
 
 export function NotificationBell() {
@@ -69,7 +89,7 @@ export function NotificationBell() {
     if (!n.is_read) {
       await handleMarkAsRead(n.id);
     }
-    const targetPath = n.metadata?.path;
+    const targetPath = resolveNotificationPath(n);
     if (targetPath) {
       router.push(targetPath);
     }
