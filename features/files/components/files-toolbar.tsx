@@ -55,6 +55,8 @@ export function FilesToolbar() {
     setSearchQuery,
     kindFilter,
     setKindFilter,
+    activeFilterTab,
+    setActiveFilterTab,
   } = useFilesStore();
   const createFolderMutation = useCreateFolderMutation(currentFolderId);
   const router = useRouter();
@@ -109,7 +111,33 @@ export function FilesToolbar() {
   };
 
   return (
-    <div className="flex flex-wrap items-center gap-2.5">
+    <div className="flex flex-col gap-2.5">
+      {/* Quick Filter Tabs */}
+      <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-0.5">
+        {[
+          { id: "all", label: "All Files" },
+          { id: "starred", label: "Starred ★" },
+          { id: "shared", label: "Shared by Me" },
+          { id: "api", label: "API Uploads" },
+          { id: "guest", label: "Guest Drops" },
+        ].map((tab) => (
+          <button
+            key={tab.id}
+            type="button"
+            onClick={() => setActiveFilterTab(tab.id as any)}
+            className={cn(
+              "px-3 py-1 rounded-full text-xs font-semibold transition-all shrink-0 cursor-pointer",
+              activeFilterTab === tab.id
+                ? "bg-accent text-white shadow-sm ring-1 ring-accent-bright"
+                : "bg-bg-raised/80 text-ink-muted hover:text-ink hover:bg-bg-overlay border border-border"
+            )}
+          >
+            {tab.label}
+          </button>
+        ))}
+      </div>
+
+      <div className="flex flex-wrap items-center gap-2.5">
 
       <div className="relative min-w-[220px] flex-1 sm:max-w-xs">
         <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-ink-faint" />
@@ -195,6 +223,7 @@ export function FilesToolbar() {
           Upload
         </Button>
       </div>
+    </div>
 
       {isCreateOpen && (
         <Dialog open onOpenChange={setIsCreateOpen}>

@@ -2,6 +2,7 @@ import { create } from "zustand";
 import { FileKind, FileRecord } from "@/types";
 
 export type ViewMode = "grid" | "list";
+export type FilterTab = "all" | "starred" | "shared" | "api" | "guest";
 
 export interface FolderHistoryItem {
   id: string;
@@ -32,6 +33,12 @@ interface FilesState {
   quickLookFile: FileRecord | null;
   setQuickLookFile: (file: FileRecord | null) => void;
 
+  // Starred & Filter tab state
+  activeFilterTab: FilterTab;
+  setActiveFilterTab: (tab: FilterTab) => void;
+  starredIds: string[];
+  toggleStar: (id: string) => void;
+
   setViewMode: (mode: ViewMode) => void;
   setSearchQuery: (query: string) => void;
   setKindFilter: (kind: "all" | FileKind) => void;
@@ -52,8 +59,24 @@ export const useFilesStore = create<FilesState>((set) => ({
   folderHistory: [],
   selectedItems: [],
   quickLookFile: null,
+  activeFilterTab: "all",
+  starredIds: [],
 
   setQuickLookFile: (file) => set({ quickLookFile: file }),
+  setActiveFilterTab: (activeFilterTab) => set({ activeFilterTab }),
+  toggleStar: (id) =>
+    set((state) => {
+      const exists = state.starredIds.includes(id);
+      const next = exists
+        ? state.starredIds.filter((x) => x !== id)
+        : [...state.starredIds, id];
+      if (typeof window !== "undefined") {
+        try {
+          localStorage.setItem("pushpostvault_starred", JSON.stringify(next));
+        } catch {}
+      }
+      return { starredIds: next };
+    }),
 
   toggleSelectItem: (id, type) =>
     set((state) => {

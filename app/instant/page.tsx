@@ -877,22 +877,22 @@ export default function InstantUploadPage() {
 
   const handleWhatsAppShare = () => {
     if (!shareUrl) return;
-    const text = encodeURIComponent(`Download file via ByteVault:\n${shareUrl}`);
+    const text = encodeURIComponent(`Download file via PushPostVault:\n${shareUrl}`);
     window.open(`https://api.whatsapp.com/send?text=${text}`, "_blank", "noopener,noreferrer");
   };
 
   const handleTelegramShare = () => {
     if (!shareUrl) return;
     const url = encodeURIComponent(shareUrl);
-    const text = encodeURIComponent("Download file via ByteVault");
+    const text = encodeURIComponent("Download file via PushPostVault");
     window.open(`https://t.me/share/url?url=${url}&text=${text}`, "_blank", "noopener,noreferrer");
   };
 
   const handleEmailShare = () => {
     if (!shareUrl) return;
-    const subject = encodeURIComponent(`File shared via ByteVault: ${file?.name || "Download Link"}`);
+    const subject = encodeURIComponent(`File shared via PushPostVault: ${file?.name || "Download Link"}`);
     const body = encodeURIComponent(
-      `Hi,\n\nI've shared a file with you using ByteVault.\n\nYou can view and download it here:\n${shareUrl}\n\nPlease note: This link is temporary and will expire soon.\n\nBest,`
+      `Hi,\n\nI've shared a file with you using PushPostVault.\n\nYou can view and download it here:\n${shareUrl}\n\nPlease note: This link is temporary and will expire soon.\n\nBest,`
     );
     window.location.href = `mailto:?subject=${subject}&body=${body}`;
   };
@@ -902,12 +902,12 @@ export default function InstantUploadPage() {
     try {
       await navigator.share({
         title: file?.name || "Shared File",
-        text: "Download file via ByteVault:",
+        text: "Download file via PushPostVault:",
         url: shareUrl,
       });
     } catch (err: any) {
       if (err?.name !== "AbortError") {
-        console.warn("[ByteVault] Native share dispatch failed:", err);
+        console.warn("[PushPostVault] Native share dispatch failed:", err);
         toast.error("Sharing failed or was blocked by device.");
       }
     }

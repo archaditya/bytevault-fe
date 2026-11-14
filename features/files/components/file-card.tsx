@@ -10,6 +10,7 @@ import {
   Check,
   ExternalLink,
   Move,
+  Star,
 } from "lucide-react";
 import { FileRecord } from "@/types";
 import { Card } from "@/components/ui/card";
@@ -57,6 +58,9 @@ export function FileCard({
   const renameMutation = useRenameFileMutation();
   const selectedItems = useFilesStore((s) => s.selectedItems);
   const toggleSelectItem = useFilesStore((s) => s.toggleSelectItem);
+  const starredIds = useFilesStore((s) => s.starredIds);
+  const toggleStar = useFilesStore((s) => s.toggleStar);
+  const isStarred = file.starred || starredIds.includes(file.id);
 
   const [isRenameOpen, setIsRenameOpen] = useState(false);
   const [isMoveOpen, setIsMoveOpen] = useState(false);
@@ -161,11 +165,23 @@ export function FileCard({
   return (
     <>
       <Card
+        draggable
+        onDragStart={(e) => {
+          e.dataTransfer.setData(
+            "application/x-bytevault-item",
+            JSON.stringify({ id: file.id, name: file.name, type: "file" })
+          );
+          e.dataTransfer.effectAllowed = "move";
+        }}
         onClick={handleCardClick}
         onDoubleClick={handleOpenFile}
-        onContextMenu={onContextMenu}
+        onContextMenu={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          onContextMenu?.(e);
+        }}
         className={cn(
-          "group relative flex flex-col rounded-2xl border bg-bg-surface p-2.5 transition-all duration-200 cursor-pointer select-none",
+          "group relative flex flex-col rounded-2xl border bg-bg-surface p-2.5 transition-all duration-200 cursor-pointer select-none active:opacity-70",
           isSelected
             ? "ring-2 ring-accent border-accent bg-accent/[0.04] shadow-lg shadow-accent/10"
             : "border-border/80 hover:border-border-strong hover:shadow-md hover:bg-bg-overlay/20"
@@ -212,6 +228,26 @@ export function FileCard({
               {file.name}
             </p>
           </div>
+
+          {/* Star Button */}
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              toggleStar(file.id);
+            }}
+            className="p-1 rounded text-ink-muted hover:text-amber-400 transition-colors"
+            title={isStarred ? "Unstar file" : "Star file"}
+          >
+            <Star
+              className={cn(
+                "h-3.5 w-3.5",
+                isStarred
+                  ? "fill-amber-400 text-amber-400"
+                  : "text-ink-muted opacity-0 group-hover:opacity-100"
+              )}
+            />
+          </button>
 
           {/* Actions Dropdown Menu */}
           <div onClick={(e) => e.stopPropagation()}>
