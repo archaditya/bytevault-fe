@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { useFiles, useFolders, useDeleteFileMutation, useDeleteFolderMutation } from "@/services";
 import { useFilesStore, type SelectedItem } from "@/store/files.store";
 import { useDebouncedValue } from "@/hooks/use-debounced-value";
@@ -9,6 +10,10 @@ import { FolderCard } from "./folder-card";
 import { FolderListRow } from "./folder-list-row";
 import { FileCard } from "./file-card";
 import { FileListRow } from "./file-list-row";
+import { QuickLookModal } from "./quick-look-modal";
+import { BatchActionBar } from "./batch-action-bar";
+import { FileContextMenu, type ContextMenuState } from "@/components/shared/file-context-menu";
+import { FileRecord, FolderRecord } from "@/types";
 import { EmptyState } from "@/components/shared/empty-state";
 import { Skeleton } from "@/components/ui/skeleton";
 import { FolderSearch, Home, ChevronRight, ChevronLeft, Folder } from "lucide-react";
@@ -19,6 +24,7 @@ import toast from "react-hot-toast";
 import { useConfirm } from "@/components/ui/confirm-dialog";
 
 export function FilesExplorer() {
+  const router = useRouter();
   const {
     viewMode,
     searchQuery,
@@ -39,6 +45,7 @@ export function FilesExplorer() {
   const [cursor, setCursor] = useState<string | undefined>(undefined);
   const [loadedFiles, setLoadedFiles] = useState<any[]>([]);
   const [isBatchMoveOpen, setIsBatchMoveOpen] = useState(false);
+  const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null);
   const confirm = useConfirm();
 
   const deleteFileMutation = useDeleteFileMutation();
@@ -81,6 +88,13 @@ export function FilesExplorer() {
     }
   }, [filesData, cursor]);
 
+  // Perform client-side filter logic for kind selection
+  const filteredFiles = useMemo(() => {
+    return loadedFiles.filter((f) => {
+      return kindFilter === "all" || f.kind === kindFilter;
+    });
+  }, [loadedFiles, kindFilter]);
+
   // Google Drive / Windows Explorer-style keyboard navigation
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -101,6 +115,14 @@ export function FilesExplorer() {
             pushFolder(selectedFolder.id, selectedFolder.name);
           }
         }
+      } else if (e.code === "Space") {
+        if (selectedItems.length === 1 && selectedItems[0].type === "file") {
+          const selectedFile = filteredFiles.find((f) => f.id === selectedItems[0].id);
+          if (selectedFile) {
+            e.preventDefault();
+            useFilesStore.getState().setQuickLookFile(selectedFile);
+          }
+        }
       } else if (e.key === "Backspace" || (e.altKey && e.key === "ArrowUp")) {
         if (folderHistory.length > 0) {
           e.preventDefault();
@@ -113,7 +135,34 @@ export function FilesExplorer() {
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [selectedItems, folders, folderHistory, pushFolder, popFolder, clearSelection]);
+  }, [selectedItems, folders, folderHistory, filteredFiles, pushFolder, popFolder, clearSelection]);
+
+  const handleContextMenuShare = (item: FileRecord | FolderRecord, type: "file" | "folder") => {
+    const shareUrl = `${window.location.origin}/s/${type}/${item.id}`;
+    if (navigator?.clipboard?.writeText) {
+      navigator.clipboard.writeText(shareUrl);
+      toast.success(`${type === "file" ? "File" : "Folder"} share link copied`);
+    }
+  };
+
+  const handleContextMenuDelete = async (item: FileRecord | FolderRecord, type: "file" | "folder") => {
+    const isFile = type === "file";
+    const ok = await confirm({
+      title: `Delete ${isFile ? "File" : "Folder"}`,
+      description: `Are you sure you want to delete "${item.name}"? This action cannot be undone.`,
+      confirmLabel: "Delete",
+      cancelLabel: "Cancel",
+      variant: "danger",
+    });
+    if (ok) {
+      if (isFile) {
+        deleteFileMutation.mutate(item.id);
+        setLoadedFiles((prev) => prev.filter((f) => f.id !== item.id));
+      } else {
+        deleteFolderMutation.mutate(item.id);
+      }
+    }
+  };
 
   const handleLoadMore = () => {
     if (filesData?.next_cursor) {
@@ -180,13 +229,6 @@ export function FilesExplorer() {
       toast.error(err.message || "Failed to delete selected items");
     }
   };
-
-  // Perform client-side filter logic for kind selection
-  const filteredFiles = useMemo(() => {
-    return loadedFiles.filter((f) => {
-      return kindFilter === "all" || f.kind === kindFilter;
-    });
-  }, [loadedFiles, kindFilter]);
 
   const showFoldersTree = searchQuery === "";
   const hasNoItems = filteredFiles.length === 0 && (!folders || folders.length === 0);
@@ -287,7 +329,14 @@ export function FilesExplorer() {
               </h3>
               <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
                 {folders.map((folder) => (
-                  <FolderCard key={folder.id} folder={folder} />
+                  <FolderCard
+                    key={folder.id}
+                    folder={folder}
+                    onContextMenu={(e) => {
+                      e.preventDefault();
+                      setContextMenu({ x: e.clientX, y: e.clientY, item: folder, type: "folder" });
+                    }}
+                  />
                 ))}
               </div>
             </div>
@@ -303,7 +352,14 @@ export function FilesExplorer() {
               )}
               <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
                 {filteredFiles.map((file) => (
-                  <FileCard key={file.id} file={file} />
+                  <FileCard
+                    key={file.id}
+                    file={file}
+                    onContextMenu={(e) => {
+                      e.preventDefault();
+                      setContextMenu({ x: e.clientX, y: e.clientY, item: file, type: "file" });
+                    }}
+                  />
                 ))}
               </div>
             </div>
@@ -338,12 +394,26 @@ export function FilesExplorer() {
           
           {/* Folders Rows */}
           {showFoldersTree && folders && folders.map((folder) => (
-            <FolderListRow key={folder.id} folder={folder} />
+            <FolderListRow
+              key={folder.id}
+              folder={folder}
+              onContextMenu={(e) => {
+                e.preventDefault();
+                setContextMenu({ x: e.clientX, y: e.clientY, item: folder, type: "folder" });
+              }}
+            />
           ))}
 
           {/* Files Rows */}
           {filteredFiles.map((file) => (
-            <FileListRow key={file.id} file={file} />
+            <FileListRow
+              key={file.id}
+              file={file}
+              onContextMenu={(e) => {
+                e.preventDefault();
+                setContextMenu({ x: e.clientX, y: e.clientY, item: file, type: "file" });
+              }}
+            />
           ))}
         </div>
       )}
@@ -357,39 +427,28 @@ export function FilesExplorer() {
         </div>
       )}
 
-      {/* Floating Selection Bar */}
-      {selectedItems.length > 0 && (
-        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-4 bg-bg-surface border border-border-strong rounded-full shadow-lg px-5 py-3 animate-in fade-in slide-in-from-bottom-4 duration-200 text-sm text-ink select-none">
-          <span className="font-semibold text-ink-muted">
-            {selectedItems.length} items selected
-          </span>
-          <div className="h-4 w-px bg-border" />
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() => setIsBatchMoveOpen(true)}
-            className="flex items-center gap-1.5 h-8 px-3 rounded-full text-xs font-semibold hover:bg-bg-overlay"
-          >
-            Move
-          </Button>
-          <Button
-            size="sm"
-            variant="danger"
-            onClick={handleBatchDelete}
-            className="flex items-center gap-1.5 h-8 px-3 rounded-full text-xs font-semibold"
-          >
-            Delete
-          </Button>
-          <Button
-            size="sm"
-            variant="ghost"
-            onClick={clearSelection}
-            className="h-8 px-3 rounded-full text-xs"
-          >
-            Cancel
-          </Button>
-        </div>
-      )}
+      {/* Floating Selection Batch Action Bar */}
+      <BatchActionBar
+        selectedCount={selectedItems.length}
+        onMove={() => setIsBatchMoveOpen(true)}
+        onDelete={handleBatchDelete}
+        onDeselect={clearSelection}
+      />
+
+      {/* Spacebar Quick Look Modal */}
+      <QuickLookModal files={filteredFiles} />
+
+      {/* Right-click Context Menu */}
+      <FileContextMenu
+        state={contextMenu}
+        onClose={() => setContextMenu(null)}
+        onQuickLook={(file) => useFilesStore.getState().setQuickLookFile(file)}
+        onOpenFolder={(folder) => pushFolder(folder.id, folder.name)}
+        onDownload={(file) => window.open(`/api/v1/files/${file.id}/download`, "_blank")}
+        onShare={handleContextMenuShare}
+        onDetails={(file) => router.push(`/files/${file.id}`)}
+        onDelete={handleContextMenuDelete}
+      />
 
       {isBatchMoveOpen && (
         <MoveItemModal

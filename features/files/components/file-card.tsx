@@ -43,7 +43,13 @@ import { Button } from "@/components/ui/button";
 import toast from "react-hot-toast";
 import { useConfirm } from "@/components/ui/confirm-dialog";
 
-export function FileCard({ file }: { file: FileRecord }) {
+export function FileCard({
+  file,
+  onContextMenu,
+}: {
+  file: FileRecord;
+  onContextMenu?: (e: React.MouseEvent) => void;
+}) {
   const router = useRouter();
   const confirm = useConfirm();
   const deleteMutation = useDeleteFileMutation();
@@ -157,6 +163,7 @@ export function FileCard({ file }: { file: FileRecord }) {
       <Card
         onClick={handleCardClick}
         onDoubleClick={handleOpenFile}
+        onContextMenu={onContextMenu}
         className={cn(
           "group relative flex flex-col rounded-2xl border bg-bg-surface p-2.5 transition-all duration-200 cursor-pointer select-none",
           isSelected

@@ -6,6 +6,7 @@ import { Upload } from "lucide-react";
 import { Sidebar } from "./sidebar";
 import { Navbar } from "./navbar";
 import { useTransferStore } from "@/store/transfer.store";
+import { FloatingTransferDock } from "@/components/shared/floating-transfer-dock";
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -103,6 +104,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         <Navbar onMenuClick={() => setMobileMenuOpen(true)} />
         <main className="px-4 py-6 md:px-6">{children}</main>
       </div>
+
+      {/* Persistent Background Transfer Dock */}
+      <FloatingTransferDock />
     </div>
   );
 }

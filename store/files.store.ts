@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import { FileKind } from "@/types";
+import { FileKind, FileRecord } from "@/types";
 
 export type ViewMode = "grid" | "list";
 
@@ -28,6 +28,10 @@ interface FilesState {
   clearSelection: () => void;
   selectAllItems: (items: SelectedItem[]) => void;
 
+  // Quick Look modal state
+  quickLookFile: FileRecord | null;
+  setQuickLookFile: (file: FileRecord | null) => void;
+
   setViewMode: (mode: ViewMode) => void;
   setSearchQuery: (query: string) => void;
   setKindFilter: (kind: "all" | FileKind) => void;
@@ -47,6 +51,9 @@ export const useFilesStore = create<FilesState>((set) => ({
   currentFolderId: null,
   folderHistory: [],
   selectedItems: [],
+  quickLookFile: null,
+
+  setQuickLookFile: (file) => set({ quickLookFile: file }),
 
   toggleSelectItem: (id, type) =>
     set((state) => {

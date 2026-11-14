@@ -36,7 +36,13 @@ import { FolderDetailsModal } from "./folder-details-modal";
 import { RenameFolderModal } from "./rename-folder-modal";
 import { useConfirm } from "@/components/ui/confirm-dialog";
 
-export function FolderListRow({ folder }: { folder: FolderRecord }) {
+export function FolderListRow({
+  folder,
+  onContextMenu,
+}: {
+  folder: FolderRecord;
+  onContextMenu?: (e: React.MouseEvent) => void;
+}) {
   const { pushFolder, selectedItems, toggleSelectItem } = useFilesStore();
   const deleteMutation = useDeleteFolderMutation(folder.parent_id);
   const renameMutation = useRenameFolderMutation(folder.parent_id);
@@ -128,6 +134,7 @@ export function FolderListRow({ folder }: { folder: FolderRecord }) {
         )}
         onDoubleClick={handleDoubleClick}
         onClick={handleRowClick}
+        onContextMenu={onContextMenu}
       >
         <span className="flex items-center gap-2.5 font-medium text-ink truncate min-w-0">
           <input
