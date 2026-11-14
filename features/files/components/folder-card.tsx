@@ -166,7 +166,13 @@ export function getFolderCategory(name: string) {
   };
 }
 
-export function FolderCard({ folder }: { folder: FolderRecord }) {
+export function FolderCard({
+  folder,
+  onContextMenu,
+}: {
+  folder: FolderRecord;
+  onContextMenu?: (e: React.MouseEvent) => void;
+}) {
   const { pushFolder, selectedItems, toggleSelectItem } = useFilesStore();
   const deleteMutation = useDeleteFolderMutation(folder.parent_id);
   const renameMutation = useRenameFolderMutation(folder.parent_id);
@@ -285,6 +291,7 @@ export function FolderCard({ folder }: { folder: FolderRecord }) {
         )}
         onClick={handleCardClick}
         onDoubleClick={handleOpenFolder}
+        onContextMenu={onContextMenu}
       >
         {/* Layered physical folder tab header on top-left */}
         <div

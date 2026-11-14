@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -21,6 +21,7 @@ import {
   Copy,
   Clock,
   Sparkles,
+  Eye,
 } from "lucide-react";
 import { useAuthStore } from "@/store";
 import { useFilesStore } from "@/store/files.store";
@@ -29,12 +30,15 @@ import {
   useFiles,
   useDeleteFileMutation,
   useToggleShareMutation,
+  useDeleteFolderMutation,
 } from "@/services";
 import { FileRecord, FolderRecord } from "@/types";
 import { formatBytes, formatRelativeTime, cn } from "@/lib/utils";
 import { FileKindIcon } from "@/components/shared/file-kind-icon";
 import { RichFilePreview } from "@/features/files/components/rich-file-preview";
 import { getFolderCategory } from "@/features/files/components/folder-card";
+import { QuickLookModal } from "@/features/files/components/quick-look-modal";
+import { FileContextMenu, type ContextMenuState } from "@/components/shared/file-context-menu";
 import { DashboardStats } from "./dashboard-stats";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -53,10 +57,16 @@ export function DashboardHome() {
   const { user } = useAuthStore();
   const router = useRouter();
   const pushFolder = useFilesStore((s) => s.pushFolder);
+  const setQuickLookFile = useFilesStore((s) => s.setQuickLookFile);
 
   const [foldersOpen, setFoldersOpen] = useState(true);
   const [filesOpen, setFilesOpen] = useState(true);
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
+  const [selectedFileId, setSelectedFileId] = useState<string | null>(null);
+  const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null);
+
+  const deleteFileMutation = useDeleteFileMutation();
+  const deleteFolderMutation = useDeleteFolderMutation(null);
 
   // Fetch root folders
   const { data: folders = [], isLoading: foldersLoading } = useFolders(null);
@@ -74,6 +84,51 @@ export function DashboardHome() {
   const handleOpenFolder = (folder: FolderRecord) => {
     pushFolder(folder.id, folder.name);
     router.push("/files");
+  };
+
+  // Spacebar Quick Look listener
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement;
+      if (
+        target?.tagName === "INPUT" ||
+        target?.tagName === "TEXTAREA" ||
+        target?.isContentEditable
+      ) {
+        return;
+      }
+
+      if (e.code === "Space") {
+        if (selectedFileId) {
+          const selectedFile = files.find((f) => f.id === selectedFileId);
+          if (selectedFile) {
+            e.preventDefault();
+            setQuickLookFile(selectedFile);
+          }
+        }
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [selectedFileId, files, setQuickLookFile]);
+
+  const handleContextMenuShare = (item: FileRecord | FolderRecord, type: "file" | "folder") => {
+    const shareUrl = `${window.location.origin}/s/${type}/${item.id}`;
+    if (navigator?.clipboard?.writeText) {
+      navigator.clipboard.writeText(shareUrl);
+      toast.success(`${type === "file" ? "File" : "Folder"} share link copied`);
+    }
+  };
+
+  const handleContextMenuDelete = (item: FileRecord | FolderRecord, type: "file" | "folder") => {
+    if (confirm(`Are you sure you want to delete ${item.name}?`)) {
+      if (type === "file") {
+        deleteFileMutation.mutate(item.id);
+      } else {
+        deleteFolderMutation.mutate(item.id);
+      }
+    }
   };
 
   return (
@@ -166,6 +221,10 @@ export function DashboardHome() {
                     <div
                       key={folder.id}
                       onClick={() => handleOpenFolder(folder)}
+                      onContextMenu={(e) => {
+                        e.preventDefault();
+                        setContextMenu({ x: e.clientX, y: e.clientY, item: folder, type: "folder" });
+                      }}
                       className={cn(
                         "group flex items-center justify-between gap-2.5 p-3 rounded-xl border border-border-strong bg-bg-surface transition-all duration-150 cursor-pointer select-none",
                         "hover:bg-bg-raised hover:border-accent/40 hover:shadow-md hover:-translate-y-0.5"
@@ -289,7 +348,16 @@ export function DashboardHome() {
               /* --- Google Drive Style Rich Grid Cards --- */
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                 {files.map((file) => (
-                  <RecentFileGridCard key={file.id} file={file} />
+                  <RecentFileGridCard
+                    key={file.id}
+                    file={file}
+                    isSelected={selectedFileId === file.id}
+                    onSelect={() => setSelectedFileId(file.id)}
+                    onContextMenu={(e) => {
+                      setSelectedFileId(file.id);
+                      setContextMenu({ x: e.clientX, y: e.clientY, item: file, type: "file" });
+                    }}
+                  />
                 ))}
               </div>
             ) : (
@@ -307,7 +375,16 @@ export function DashboardHome() {
                   </thead>
                   <tbody className="divide-y divide-border">
                     {files.map((file) => (
-                      <RecentFileListRow key={file.id} file={file} />
+                      <RecentFileListRow
+                        key={file.id}
+                        file={file}
+                        isSelected={selectedFileId === file.id}
+                        onSelect={() => setSelectedFileId(file.id)}
+                        onContextMenu={(e) => {
+                          setSelectedFileId(file.id);
+                          setContextMenu({ x: e.clientX, y: e.clientY, item: file, type: "file" });
+                        }}
+                      />
                     ))}
                   </tbody>
                 </table>
@@ -321,6 +398,21 @@ export function DashboardHome() {
       <div className="pt-2">
         <DashboardStats />
       </div>
+
+      {/* Spacebar Quick Look Modal */}
+      <QuickLookModal files={files} />
+
+      {/* Right-click Context Menu */}
+      <FileContextMenu
+        state={contextMenu}
+        onClose={() => setContextMenu(null)}
+        onQuickLook={(file) => setQuickLookFile(file)}
+        onOpenFolder={(folder) => handleOpenFolder(folder)}
+        onDownload={(file) => window.open(`/api/v1/files/${file.id}/download`, "_blank")}
+        onShare={handleContextMenuShare}
+        onDetails={(file) => router.push(`/files/${file.id}`)}
+        onDelete={handleContextMenuDelete}
+      />
     </div>
   );
 }
@@ -328,7 +420,17 @@ export function DashboardHome() {
 // ==========================================
 // Rich Google Drive Style Recent File Card
 // ==========================================
-function RecentFileGridCard({ file }: { file: FileRecord }) {
+function RecentFileGridCard({
+  file,
+  isSelected,
+  onSelect,
+  onContextMenu,
+}: {
+  file: FileRecord;
+  isSelected?: boolean;
+  onSelect?: () => void;
+  onContextMenu?: (e: React.MouseEvent) => void;
+}) {
   const router = useRouter();
   const deleteMutation = useDeleteFileMutation();
   const toggleShareMutation = useToggleShareMutation();
@@ -361,10 +463,13 @@ function RecentFileGridCard({ file }: { file: FileRecord }) {
 
   return (
     <Card
-      onClick={() => router.push(`/files/${file.id}`)}
+      onClick={onSelect}
+      onDoubleClick={() => router.push(`/files/${file.id}`)}
+      onContextMenu={onContextMenu}
       className={cn(
         "group relative flex flex-col justify-between overflow-hidden rounded-2xl border border-border-strong bg-bg-surface p-3 transition-all duration-200 cursor-pointer select-none",
-        "hover:border-accent/40 hover:bg-bg-raised/70 hover:shadow-lg hover:-translate-y-0.5"
+        "hover:border-accent/40 hover:bg-bg-raised/70 hover:shadow-lg hover:-translate-y-0.5",
+        isSelected && "ring-2 ring-accent border-accent bg-accent/[0.04]"
       )}
     >
       {/* 1. Header: File Icon + Title + Dropdown */}
@@ -391,6 +496,14 @@ function RecentFileGridCard({ file }: { file: FileRecord }) {
             </button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-36 text-xs">
+            <DropdownMenuItem
+              onClick={(e) => {
+                e.stopPropagation();
+                useFilesStore.getState().setQuickLookFile(file);
+              }}
+            >
+              <Eye className="mr-2 h-3.5 w-3.5 text-accent" /> Quick Look
+            </DropdownMenuItem>
             <DropdownMenuItem onClick={handleDownload}>
               <Download className="mr-2 h-3.5 w-3.5 text-accent" /> Download
             </DropdownMenuItem>
@@ -437,7 +550,17 @@ function RecentFileGridCard({ file }: { file: FileRecord }) {
 // ==========================================
 // Dense Table List Row Alternative
 // ==========================================
-function RecentFileListRow({ file }: { file: FileRecord }) {
+function RecentFileListRow({
+  file,
+  isSelected,
+  onSelect,
+  onContextMenu,
+}: {
+  file: FileRecord;
+  isSelected?: boolean;
+  onSelect?: () => void;
+  onContextMenu?: (e: React.MouseEvent) => void;
+}) {
   const router = useRouter();
 
   const handleDownload = (e: React.MouseEvent) => {
@@ -453,8 +576,13 @@ function RecentFileListRow({ file }: { file: FileRecord }) {
 
   return (
     <tr
-      onClick={() => router.push(`/files/${file.id}`)}
-      className="group hover:bg-bg-raised/60 transition-colors cursor-pointer select-none"
+      onClick={onSelect}
+      onDoubleClick={() => router.push(`/files/${file.id}`)}
+      onContextMenu={onContextMenu}
+      className={cn(
+        "group hover:bg-bg-raised/60 transition-colors cursor-pointer select-none",
+        isSelected && "bg-bg-overlay border-l-2 border-l-accent"
+      )}
     >
       <td className="py-2.5 px-4 font-medium text-ink flex items-center gap-2.5">
         <div

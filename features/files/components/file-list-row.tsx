@@ -16,7 +16,13 @@ import { Button } from "@/components/ui/button";
 import toast from "react-hot-toast";
 import { useConfirm } from "@/components/ui/confirm-dialog";
 
-export function FileListRow({ file }: { file: FileRecord }) {
+export function FileListRow({
+  file,
+  onContextMenu,
+}: {
+  file: FileRecord;
+  onContextMenu?: (e: React.MouseEvent) => void;
+}) {
   const confirm = useConfirm();
   const selectedItems = useFilesStore((s) => s.selectedItems);
   const toggleSelectItem = useFilesStore((s) => s.toggleSelectItem);
@@ -69,6 +75,7 @@ export function FileListRow({ file }: { file: FileRecord }) {
       <Link
         href={`/files/${file.id}`}
         onClick={handleRowClick}
+        onContextMenu={onContextMenu}
         className={cn(
           "grid grid-cols-[1fr_110px_110px_70px] items-center gap-4 border-b border-border px-4 py-3 text-[13px] transition-colors hover:bg-bg-overlay/60 last:border-b-0 group",
           isSelected && "bg-bg-overlay border-l-2 border-l-accent"
