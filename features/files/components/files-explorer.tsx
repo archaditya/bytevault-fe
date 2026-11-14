@@ -40,6 +40,8 @@ export function FilesExplorer() {
     selectedItems,
     clearSelection,
     selectAllItems,
+    activeFilterTab,
+    starredIds,
   } = useFilesStore();
 
   const [cursor, setCursor] = useState<string | undefined>(undefined);
@@ -88,12 +90,46 @@ export function FilesExplorer() {
     }
   }, [filesData, cursor]);
 
-  // Perform client-side filter logic for kind selection
+  // Perform client-side filter logic for kind and active quick tabs
   const filteredFiles = useMemo(() => {
     return loadedFiles.filter((f) => {
-      return kindFilter === "all" || f.kind === kindFilter;
+      const matchesKind = kindFilter === "all" || f.kind === kindFilter;
+      if (!matchesKind) return false;
+
+      if (activeFilterTab === "starred") {
+        return Boolean(f.starred || starredIds.includes(f.id));
+      }
+      if (activeFilterTab === "shared") {
+        return Boolean(f.shared);
+      }
+      if (activeFilterTab === "api") {
+        return Boolean(f.path?.includes("API_Keys") || f.name?.toLowerCase().includes("api"));
+      }
+      if (activeFilterTab === "guest") {
+        return Boolean(f.path?.includes("Guest Drops") || f.name?.toLowerCase().includes("guest"));
+      }
+      return true;
     });
-  }, [loadedFiles, kindFilter]);
+  }, [loadedFiles, kindFilter, activeFilterTab, starredIds]);
+
+  const filteredFolders = useMemo(() => {
+    if (!folders) return [];
+    return folders.filter((folder) => {
+      if (activeFilterTab === "starred") {
+        return starredIds.includes(folder.id);
+      }
+      if (activeFilterTab === "shared") {
+        return Boolean(folder.is_public);
+      }
+      if (activeFilterTab === "api") {
+        return folder.name.toLowerCase().includes("api");
+      }
+      if (activeFilterTab === "guest") {
+        return folder.name.toLowerCase().includes("guest");
+      }
+      return true;
+    });
+  }, [folders, activeFilterTab, starredIds]);
 
   // Google Drive / Windows Explorer-style keyboard navigation
   useEffect(() => {
@@ -116,12 +152,13 @@ export function FilesExplorer() {
           }
         }
       } else if (e.code === "Space") {
-        if (selectedItems.length === 1 && selectedItems[0].type === "file") {
-          const selectedFile = filteredFiles.find((f) => f.id === selectedItems[0].id);
-          if (selectedFile) {
-            e.preventDefault();
-            useFilesStore.getState().setQuickLookFile(selectedFile);
-          }
+        const targetFile =
+          selectedItems.length === 1 && selectedItems[0].type === "file"
+            ? filteredFiles.find((f) => f.id === selectedItems[0].id)
+            : filteredFiles[0];
+        if (targetFile) {
+          e.preventDefault();
+          useFilesStore.getState().setQuickLookFile(targetFile);
         }
       } else if (e.key === "Backspace" || (e.altKey && e.key === "ArrowUp")) {
         if (folderHistory.length > 0) {
@@ -230,8 +267,36 @@ export function FilesExplorer() {
     }
   };
 
+  const handleBatchDownload = () => {
+    const fileItems = selectedItems.filter((i) => i.type === "file");
+    if (fileItems.length === 0) {
+      toast("Select at least one file to download");
+      return;
+    }
+    toast.success(`Starting download for ${fileItems.length} file(s)`);
+    fileItems.forEach((item, idx) => {
+      setTimeout(() => {
+        const link = document.createElement("a");
+        link.href = `/api/v1/files/${item.id}/download`;
+        link.download = "";
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      }, idx * 250);
+    });
+  };
+
+  const handleBatchShare = () => {
+    const fileIds = selectedItems.map((i) => i.id).join(",");
+    const shareUrl = `${window.location.origin}/instant`;
+    if (navigator?.clipboard?.writeText) {
+      navigator.clipboard.writeText(shareUrl);
+      toast.success("Instant share ready - link copied");
+    }
+  };
+
   const showFoldersTree = searchQuery === "";
-  const hasNoItems = filteredFiles.length === 0 && (!folders || folders.length === 0);
+  const hasNoItems = filteredFiles.length === 0 && filteredFolders.length === 0;
   const isLoading = filesLoading || foldersLoading;
 
   return (
@@ -322,13 +387,13 @@ export function FilesExplorer() {
       ) : viewMode === "grid" ? (
         <div className="flex flex-col gap-6">
           {/* Folders Section */}
-          {showFoldersTree && folders && folders.length > 0 && (
+          {showFoldersTree && filteredFolders.length > 0 && (
             <div>
               <h3 className="text-xs font-semibold text-ink-faint uppercase tracking-wider mb-2.5">
-                Folders ({folders.length})
+                Folders ({filteredFolders.length})
               </h3>
               <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
-                {folders.map((folder) => (
+                {filteredFolders.map((folder) => (
                   <FolderCard
                     key={folder.id}
                     folder={folder}
@@ -345,7 +410,7 @@ export function FilesExplorer() {
           {/* Files Section */}
           {filteredFiles.length > 0 && (
             <div>
-              {showFoldersTree && folders && folders.length > 0 && (
+              {showFoldersTree && filteredFolders.length > 0 && (
                 <h3 className="text-xs font-semibold text-ink-faint uppercase tracking-wider mb-2.5">
                   Files ({filteredFiles.length})
                 </h3>
@@ -371,11 +436,11 @@ export function FilesExplorer() {
             <span className="flex items-center gap-3">
               <input
                 type="checkbox"
-                checked={selectedItems.length > 0 && selectedItems.length === (filteredFiles.length + (folders?.length || 0))}
+                checked={selectedItems.length > 0 && selectedItems.length === (filteredFiles.length + filteredFolders.length)}
                 onChange={(e) => {
                   if (e.target.checked) {
                     const all: { id: string; type: "file" | "folder" }[] = [
-                      ...(folders || []).map((f) => ({ id: f.id, type: "folder" as const })),
+                      ...filteredFolders.map((f) => ({ id: f.id, type: "folder" as const })),
                       ...filteredFiles.map((f) => ({ id: f.id, type: "file" as const })),
                     ];
                     useFilesStore.getState().selectAllItems(all);
@@ -393,7 +458,7 @@ export function FilesExplorer() {
           </div>
           
           {/* Folders Rows */}
-          {showFoldersTree && folders && folders.map((folder) => (
+          {showFoldersTree && filteredFolders.map((folder) => (
             <FolderListRow
               key={folder.id}
               folder={folder}
@@ -430,6 +495,8 @@ export function FilesExplorer() {
       {/* Floating Selection Batch Action Bar */}
       <BatchActionBar
         selectedCount={selectedItems.length}
+        onDownloadZip={handleBatchDownload}
+        onShare={handleBatchShare}
         onMove={() => setIsBatchMoveOpen(true)}
         onDelete={handleBatchDelete}
         onDeselect={clearSelection}

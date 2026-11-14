@@ -12,6 +12,7 @@ import {
   ExternalLink,
   Info,
   Lock,
+  Star,
 } from "lucide-react";
 import { FolderRecord } from "@/types";
 import { useFilesStore } from "@/store/files.store";
@@ -19,6 +20,7 @@ import {
   useDeleteFolderMutation,
   useRenameFolderMutation,
   useToggleFolderShareMutation,
+  useMoveFileMutation,
 } from "@/services";
 import { cn, formatRelativeTime } from "@/lib/utils";
 import { getFolderCategory } from "./folder-card";
@@ -43,15 +45,50 @@ export function FolderListRow({
   folder: FolderRecord;
   onContextMenu?: (e: React.MouseEvent) => void;
 }) {
-  const { pushFolder, selectedItems, toggleSelectItem } = useFilesStore();
+  const { pushFolder, selectedItems, toggleSelectItem, starredIds, toggleStar } = useFilesStore();
+  const isStarred = starredIds.includes(folder.id);
   const deleteMutation = useDeleteFolderMutation(folder.parent_id);
   const renameMutation = useRenameFolderMutation(folder.parent_id);
   const toggleShareMutation = useToggleFolderShareMutation(folder.parent_id);
+  const moveFileMutation = useMoveFileMutation();
 
   const confirm = useConfirm();
   const [isMoveModalOpen, setIsMoveModalOpen] = useState(false);
   const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
   const [isRenameModalOpen, setIsRenameModalOpen] = useState(false);
+  const [isDragOver, setIsDragOver] = useState(false);
+
+  const handleDragOver = (e: React.DragEvent) => {
+    if (e.dataTransfer.types.includes("application/x-bytevault-item")) {
+      e.preventDefault();
+      e.stopPropagation();
+      e.dataTransfer.dropEffect = "move";
+      setIsDragOver(true);
+    }
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragOver(false);
+  };
+
+  const handleDrop = async (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragOver(false);
+    const rawData = e.dataTransfer.getData("application/x-bytevault-item");
+    if (!rawData) return;
+    try {
+      const item = JSON.parse(rawData);
+      if (item.id && item.type === "file") {
+        await moveFileMutation.mutateAsync({ id: item.id, folderId: folder.id });
+        toast.success(`Moved "${item.name}" into "${folder.name}"`);
+      }
+    } catch (err: any) {
+      toast.error(err.message || "Failed to move file into folder");
+    }
+  };
 
   const isSelected = selectedItems.some((item) => item.id === folder.id);
   const category = getFolderCategory(folder.name);
@@ -130,11 +167,19 @@ export function FolderListRow({
       <div
         className={cn(
           "grid grid-cols-[1fr_110px_110px_40px] gap-4 items-center border-b border-border/60 px-4 py-3 text-[13px] transition-colors hover:bg-bg-overlay/40 select-none cursor-pointer",
-          isSelected && "bg-bg-overlay border-l-2 border-l-accent"
+          isSelected && "bg-bg-overlay border-l-2 border-l-accent",
+          isDragOver && "bg-accent/20 border-l-4 border-l-accent ring-1 ring-accent"
         )}
         onDoubleClick={handleDoubleClick}
         onClick={handleRowClick}
-        onContextMenu={onContextMenu}
+        onDragOver={handleDragOver}
+        onDragLeave={handleDragLeave}
+        onDrop={handleDrop}
+        onContextMenu={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          onContextMenu?.(e);
+        }}
       >
         <span className="flex items-center gap-2.5 font-medium text-ink truncate min-w-0">
           <input
@@ -197,7 +242,26 @@ export function FolderListRow({
           {folder.is_public ? `${folder.views || 0} views` : "—"}
         </span>
         <span className="text-ink-muted">{formatRelativeTime(folder.created_at)}</span>
-        <span className="flex justify-end" onClick={(e) => e.stopPropagation()}>
+        <span className="flex items-center justify-end gap-1" onClick={(e) => e.stopPropagation()}>
+          <button
+            type="button"
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              toggleStar(folder.id);
+            }}
+            className="p-1 rounded text-ink-muted hover:text-amber-400 transition-colors"
+            title={isStarred ? "Unstar folder" : "Star folder"}
+          >
+            <Star
+              className={cn(
+                "h-3.5 w-3.5 transition-colors",
+                isStarred
+                  ? "fill-amber-400 text-amber-400"
+                  : "text-ink-muted opacity-0 group-hover:opacity-100"
+              )}
+            />
+          </button>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <button

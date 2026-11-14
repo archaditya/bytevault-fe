@@ -20,6 +20,7 @@ import {
   Archive,
   ArrowRight,
   KeyRound,
+  Star,
 } from "lucide-react";
 import { FolderRecord } from "@/types";
 import { Card } from "@/components/ui/card";
@@ -28,6 +29,7 @@ import {
   useDeleteFolderMutation,
   useRenameFolderMutation,
   useToggleFolderShareMutation,
+  useMoveFileMutation,
 } from "@/services";
 import { cn, formatBytes } from "@/lib/utils";
 import toast from "react-hot-toast";
@@ -173,15 +175,50 @@ export function FolderCard({
   folder: FolderRecord;
   onContextMenu?: (e: React.MouseEvent) => void;
 }) {
-  const { pushFolder, selectedItems, toggleSelectItem } = useFilesStore();
+  const { pushFolder, selectedItems, toggleSelectItem, starredIds, toggleStar } = useFilesStore();
+  const isStarred = starredIds.includes(folder.id);
   const deleteMutation = useDeleteFolderMutation(folder.parent_id);
   const renameMutation = useRenameFolderMutation(folder.parent_id);
   const toggleShareMutation = useToggleFolderShareMutation(folder.parent_id);
+  const moveFileMutation = useMoveFileMutation();
 
   const confirm = useConfirm();
   const [isMoveModalOpen, setIsMoveModalOpen] = useState(false);
   const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
   const [isRenameModalOpen, setIsRenameModalOpen] = useState(false);
+  const [isDragOver, setIsDragOver] = useState(false);
+
+  const handleDragOver = (e: React.DragEvent) => {
+    if (e.dataTransfer.types.includes("application/x-bytevault-item")) {
+      e.preventDefault();
+      e.stopPropagation();
+      e.dataTransfer.dropEffect = "move";
+      setIsDragOver(true);
+    }
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragOver(false);
+  };
+
+  const handleDrop = async (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragOver(false);
+    const rawData = e.dataTransfer.getData("application/x-bytevault-item");
+    if (!rawData) return;
+    try {
+      const item = JSON.parse(rawData);
+      if (item.id && item.type === "file") {
+        await moveFileMutation.mutateAsync({ id: item.id, folderId: folder.id });
+        toast.success(`Moved "${item.name}" into "${folder.name}"`);
+      }
+    } catch (err: any) {
+      toast.error(err.message || "Failed to move file into folder");
+    }
+  };
 
   const isSelected = selectedItems.some((item) => item.id === folder.id);
   const category = getFolderCategory(folder.name);
@@ -287,12 +324,27 @@ export function FolderCard({
         className={cn(
           "group relative flex flex-col justify-between overflow-hidden rounded-xl border bg-bg-surface p-3.5 transition-all duration-200 select-none cursor-pointer hover:shadow-md",
           category.borderHover,
-          isSelected && "ring-2 ring-accent border-accent bg-accent/[0.04]"
+          isSelected && "ring-2 ring-accent border-accent bg-accent/[0.04]",
+          isDragOver && "ring-2 ring-accent border-accent bg-accent/20 scale-102 shadow-xl shadow-accent/20"
         )}
         onClick={handleCardClick}
         onDoubleClick={handleOpenFolder}
-        onContextMenu={onContextMenu}
+        onDragOver={handleDragOver}
+        onDragLeave={handleDragLeave}
+        onDrop={handleDrop}
+        onContextMenu={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          onContextMenu?.(e);
+        }}
       >
+        {isDragOver && (
+          <div className="absolute inset-0 z-20 flex items-center justify-center bg-bg-surface/90 backdrop-blur-xs border-2 border-dashed border-accent rounded-xl animate-in fade-in-50 duration-100 pointer-events-none">
+            <span className="text-xs font-bold text-accent-bright flex items-center gap-1.5">
+              Drop to move into folder
+            </span>
+          </div>
+        )}
         {/* Layered physical folder tab header on top-left */}
         <div
           className={cn(
@@ -408,11 +460,30 @@ export function FolderCard({
           </button>
         </div>
 
-        {/* Dropdown Menu actions trigger */}
+        {/* Dropdown Menu & Star actions trigger */}
         <div
-          className="absolute right-2 top-2 z-10 opacity-0 group-hover:opacity-100 transition-opacity"
+          className={cn(
+            "absolute right-2 top-2 z-10 flex items-center gap-1 transition-opacity",
+            isStarred ? "opacity-100" : "opacity-0 group-hover:opacity-100"
+          )}
           onClick={(e) => e.stopPropagation()}
         >
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              toggleStar(folder.id);
+            }}
+            className="flex h-6 w-6 items-center justify-center rounded-md text-ink-muted hover:text-amber-400 hover:bg-bg-overlay transition-colors"
+            title={isStarred ? "Unstar folder" : "Star folder"}
+          >
+            <Star
+              className={cn(
+                "h-3.5 w-3.5",
+                isStarred ? "fill-amber-400 text-amber-400" : "text-ink-muted"
+              )}
+            />
+          </button>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <button

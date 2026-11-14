@@ -31,6 +31,7 @@ import {
   useDeleteFileMutation,
   useToggleShareMutation,
   useDeleteFolderMutation,
+  useMoveFileMutation,
 } from "@/services";
 import { FileRecord, FolderRecord } from "@/types";
 import { formatBytes, formatRelativeTime, cn } from "@/lib/utils";
@@ -99,12 +100,12 @@ export function DashboardHome() {
       }
 
       if (e.code === "Space") {
-        if (selectedFileId) {
-          const selectedFile = files.find((f) => f.id === selectedFileId);
-          if (selectedFile) {
-            e.preventDefault();
-            setQuickLookFile(selectedFile);
-          }
+        const targetFile = selectedFileId
+          ? files.find((f) => f.id === selectedFileId)
+          : files[0];
+        if (targetFile) {
+          e.preventDefault();
+          setQuickLookFile(targetFile);
         }
       }
     };
@@ -137,7 +138,7 @@ export function DashboardHome() {
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-ink flex items-center gap-2">
-            Welcome to ByteVault, {firstName}
+            Welcome to PushPostVault, {firstName}
           </h1>
           <p className="text-xs md:text-sm text-ink-muted mt-1">
             Your secure private vault is active. Quick access to your recent folders and files.
@@ -213,67 +214,18 @@ export function DashboardHome() {
               </div>
             ) : (
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
-                {folders.slice(0, 12).map((folder) => {
-                  const cat = getFolderCategory(folder.name);
-                  const Icon = cat.Icon || Folder;
-
-                  return (
-                    <div
-                      key={folder.id}
-                      onClick={() => handleOpenFolder(folder)}
-                      onContextMenu={(e) => {
-                        e.preventDefault();
-                        setContextMenu({ x: e.clientX, y: e.clientY, item: folder, type: "folder" });
-                      }}
-                      className={cn(
-                        "group flex items-center justify-between gap-2.5 p-3 rounded-xl border border-border-strong bg-bg-surface transition-all duration-150 cursor-pointer select-none",
-                        "hover:bg-bg-raised hover:border-accent/40 hover:shadow-md hover:-translate-y-0.5"
-                      )}
-                      title={`Open ${folder.name}`}
-                    >
-                      <div className="flex items-center gap-2.5 min-w-0">
-                        <div
-                          className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-bg-raised/80 border border-border/50 transition-transform group-hover:scale-105"
-                          style={{ color: cat.accentColor }}
-                        >
-                          <Icon className="h-4 w-4" />
-                        </div>
-                        <span className="truncate text-xs font-medium text-ink group-hover:text-accent-bright transition-colors">
-                          {folder.name}
-                        </span>
-                      </div>
-
-                      <DropdownMenu>
-                        <DropdownMenuTrigger
-                          asChild
-                          onClick={(e) => e.stopPropagation()}
-                        >
-                          <button
-                            className="h-6 w-6 rounded flex items-center justify-center text-ink-muted opacity-0 group-hover:opacity-100 transition-opacity hover:bg-bg-overlay hover:text-ink"
-                            aria-label="Folder actions"
-                          >
-                            <MoreVertical className="h-3.5 w-3.5" />
-                          </button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" className="w-40 text-xs">
-                          <DropdownMenuItem onClick={() => handleOpenFolder(folder)}>
-                            <FolderClosed className="mr-2 h-3.5 w-3.5 text-accent" /> Open in Files
-                          </DropdownMenuItem>
-                          <DropdownMenuItem
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              const shareUrl = `${window.location.origin}/s/folder/${folder.id}`;
-                              navigator.clipboard.writeText(shareUrl);
-                              toast.success("Folder share link copied");
-                            }}
-                          >
-                            <Copy className="mr-2 h-3.5 w-3.5 text-ink-muted" /> Copy link
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </div>
-                  );
-                })}
+                {folders.slice(0, 12).map((folder) => (
+                  <SuggestedFolderCard
+                    key={folder.id}
+                    folder={folder}
+                    onOpen={() => handleOpenFolder(folder)}
+                    onContextMenu={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      setContextMenu({ x: e.clientX, y: e.clientY, item: folder, type: "folder" });
+                    }}
+                  />
+                ))}
               </div>
             )}
           </div>
@@ -354,6 +306,8 @@ export function DashboardHome() {
                     isSelected={selectedFileId === file.id}
                     onSelect={() => setSelectedFileId(file.id)}
                     onContextMenu={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
                       setSelectedFileId(file.id);
                       setContextMenu({ x: e.clientX, y: e.clientY, item: file, type: "file" });
                     }}
@@ -381,6 +335,8 @@ export function DashboardHome() {
                         isSelected={selectedFileId === file.id}
                         onSelect={() => setSelectedFileId(file.id)}
                         onContextMenu={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
                           setSelectedFileId(file.id);
                           setContextMenu({ x: e.clientX, y: e.clientY, item: file, type: "file" });
                         }}
@@ -413,6 +369,110 @@ export function DashboardHome() {
         onDetails={(file) => router.push(`/files/${file.id}`)}
         onDelete={handleContextMenuDelete}
       />
+    </div>
+  );
+}
+
+// ==========================================
+// Suggested Folder Card with Drop-Target Move
+// ==========================================
+function SuggestedFolderCard({
+  folder,
+  onOpen,
+  onContextMenu,
+}: {
+  folder: FolderRecord;
+  onOpen: () => void;
+  onContextMenu: (e: React.MouseEvent) => void;
+}) {
+  const [isDragOver, setIsDragOver] = useState(false);
+  const moveFileMutation = useMoveFileMutation();
+  const cat = getFolderCategory(folder.name);
+  const Icon = cat.Icon || Folder;
+
+  const handleDragOver = (e: React.DragEvent) => {
+    if (e.dataTransfer.types.includes("application/x-bytevault-item")) {
+      e.preventDefault();
+      e.stopPropagation();
+      e.dataTransfer.dropEffect = "move";
+      setIsDragOver(true);
+    }
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragOver(false);
+  };
+
+  const handleDrop = async (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragOver(false);
+    const raw = e.dataTransfer.getData("application/x-bytevault-item");
+    if (!raw) return;
+    try {
+      const item = JSON.parse(raw);
+      if (item.id && item.type === "file") {
+        await moveFileMutation.mutateAsync({ id: item.id, folderId: folder.id });
+        toast.success(`Moved "${item.name}" into "${folder.name}"`);
+      }
+    } catch (err: any) {
+      toast.error(err.message || "Failed to move file into folder");
+    }
+  };
+
+  return (
+    <div
+      onClick={onOpen}
+      onContextMenu={onContextMenu}
+      onDragOver={handleDragOver}
+      onDragLeave={handleDragLeave}
+      onDrop={handleDrop}
+      className={cn(
+        "group relative flex items-center justify-between gap-2.5 p-3 rounded-xl border border-border-strong bg-bg-surface transition-all duration-150 cursor-pointer select-none",
+        "hover:bg-bg-raised hover:border-accent/40 hover:shadow-md hover:-translate-y-0.5",
+        isDragOver && "ring-2 ring-accent border-accent bg-accent/20 scale-102 shadow-lg shadow-accent/20"
+      )}
+      title={`Open ${folder.name}`}
+    >
+      <div className="flex items-center gap-2.5 min-w-0">
+        <div
+          className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-bg-raised/80 border border-border/50 transition-transform group-hover:scale-105"
+          style={{ color: cat.accentColor }}
+        >
+          <Icon className="h-4 w-4" />
+        </div>
+        <span className="truncate text-xs font-medium text-ink group-hover:text-accent-bright transition-colors">
+          {folder.name}
+        </span>
+      </div>
+
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
+          <button
+            className="h-6 w-6 rounded flex items-center justify-center text-ink-muted opacity-0 group-hover:opacity-100 transition-opacity hover:bg-bg-overlay hover:text-ink"
+            aria-label="Folder actions"
+          >
+            <MoreVertical className="h-3.5 w-3.5" />
+          </button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end" className="w-40 text-xs">
+          <DropdownMenuItem onClick={onOpen}>
+            <FolderClosed className="mr-2 h-3.5 w-3.5 text-accent" /> Open in Files
+          </DropdownMenuItem>
+          <DropdownMenuItem
+            onClick={(e) => {
+              e.stopPropagation();
+              const shareUrl = `${window.location.origin}/s/folder/${folder.id}`;
+              navigator.clipboard.writeText(shareUrl);
+              toast.success("Folder share link copied");
+            }}
+          >
+            <Copy className="mr-2 h-3.5 w-3.5 text-ink-muted" /> Copy link
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
     </div>
   );
 }
@@ -463,11 +523,23 @@ function RecentFileGridCard({
 
   return (
     <Card
+      draggable
+      onDragStart={(e) => {
+        e.dataTransfer.setData(
+          "application/x-bytevault-item",
+          JSON.stringify({ id: file.id, name: file.name, type: "file" })
+        );
+        e.dataTransfer.effectAllowed = "move";
+      }}
       onClick={onSelect}
       onDoubleClick={() => router.push(`/files/${file.id}`)}
-      onContextMenu={onContextMenu}
+      onContextMenu={(e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        onContextMenu?.(e);
+      }}
       className={cn(
-        "group relative flex flex-col justify-between overflow-hidden rounded-2xl border border-border-strong bg-bg-surface p-3 transition-all duration-200 cursor-pointer select-none",
+        "group relative flex flex-col justify-between overflow-hidden rounded-2xl border border-border-strong bg-bg-surface p-3 transition-all duration-200 cursor-pointer select-none active:opacity-70",
         "hover:border-accent/40 hover:bg-bg-raised/70 hover:shadow-lg hover:-translate-y-0.5",
         isSelected && "ring-2 ring-accent border-accent bg-accent/[0.04]"
       )}
@@ -576,11 +648,23 @@ function RecentFileListRow({
 
   return (
     <tr
+      draggable
+      onDragStart={(e) => {
+        e.dataTransfer.setData(
+          "application/x-bytevault-item",
+          JSON.stringify({ id: file.id, name: file.name, type: "file" })
+        );
+        e.dataTransfer.effectAllowed = "move";
+      }}
       onClick={onSelect}
       onDoubleClick={() => router.push(`/files/${file.id}`)}
-      onContextMenu={onContextMenu}
+      onContextMenu={(e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        onContextMenu?.(e);
+      }}
       className={cn(
-        "group hover:bg-bg-raised/60 transition-colors cursor-pointer select-none",
+        "group hover:bg-bg-raised/60 transition-colors cursor-pointer select-none active:opacity-70",
         isSelected && "bg-bg-overlay border-l-2 border-l-accent"
       )}
     >

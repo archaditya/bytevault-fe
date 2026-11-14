@@ -26,6 +26,9 @@ export function FileListRow({
   const confirm = useConfirm();
   const selectedItems = useFilesStore((s) => s.selectedItems);
   const toggleSelectItem = useFilesStore((s) => s.toggleSelectItem);
+  const starredIds = useFilesStore((s) => s.starredIds);
+  const toggleStar = useFilesStore((s) => s.toggleStar);
+  const isStarred = file.starred || starredIds.includes(file.id);
   const deleteMutation = useDeleteFileMutation();
   const renameMutation = useRenameFileMutation();
 
@@ -74,10 +77,22 @@ export function FileListRow({
     <>
       <Link
         href={`/files/${file.id}`}
+        draggable
+        onDragStart={(e) => {
+          e.dataTransfer.setData(
+            "application/x-bytevault-item",
+            JSON.stringify({ id: file.id, name: file.name, type: "file" })
+          );
+          e.dataTransfer.effectAllowed = "move";
+        }}
         onClick={handleRowClick}
-        onContextMenu={onContextMenu}
+        onContextMenu={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          onContextMenu?.(e);
+        }}
         className={cn(
-          "grid grid-cols-[1fr_110px_110px_70px] items-center gap-4 border-b border-border px-4 py-3 text-[13px] transition-colors hover:bg-bg-overlay/60 last:border-b-0 group",
+          "grid grid-cols-[1fr_110px_110px_70px] items-center gap-4 border-b border-border px-4 py-3 text-[13px] transition-colors hover:bg-bg-overlay/60 last:border-b-0 group active:opacity-70",
           isSelected && "bg-bg-overlay border-l-2 border-l-accent"
         )}
       >
@@ -106,7 +121,25 @@ export function FileListRow({
               ))}
             </div>
           )}
-          {file.starred && <Star className="h-3 w-3 shrink-0 fill-live text-live" />}
+          <button
+            type="button"
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              toggleStar(file.id);
+            }}
+            className="p-1 rounded text-ink-muted hover:text-amber-400 transition-colors shrink-0"
+            title={isStarred ? "Unstar file" : "Star file"}
+          >
+            <Star
+              className={cn(
+                "h-3.5 w-3.5 transition-colors",
+                isStarred
+                  ? "fill-amber-400 text-amber-400"
+                  : "text-ink-muted opacity-0 group-hover:opacity-100"
+              )}
+            />
+          </button>
         </div>
         <span className="font-mono text-ink-muted">{formatBytes(file.sizeBytes)}</span>
         <span className="text-ink-muted">{formatRelativeTime(file.uploadedAt)}</span>

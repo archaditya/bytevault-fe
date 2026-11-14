@@ -102,6 +102,8 @@ export function QuickLookModal({ files = [] }: QuickLookModalProps) {
   const isImage = file.kind === "image" || file.mimeType.startsWith("image/");
   const isVideo = file.kind === "video" || file.mimeType.startsWith("video/");
   const isAudio = file.kind === "audio" || file.mimeType.startsWith("audio/");
+  const isPdf =
+    file.mimeType === "application/pdf" || file.name.toLowerCase().endsWith(".pdf");
 
   return (
     <div
@@ -191,7 +193,6 @@ export function QuickLookModal({ files = [] }: QuickLookModalProps) {
               alt={file.name}
               className="max-h-[58vh] max-w-full object-contain rounded-lg shadow-md select-none"
               onError={(e) => {
-                // If direct preview fails, fallback to rich preview
                 (e.target as HTMLElement).style.display = "none";
               }}
             />
@@ -213,6 +214,12 @@ export function QuickLookModal({ files = [] }: QuickLookModalProps) {
               </div>
               <audio src={downloadUrl} controls className="w-full mt-2" autoPlay />
             </div>
+          ) : isPdf ? (
+            <iframe
+              src={`${downloadUrl}#toolbar=0`}
+              title={file.name}
+              className="w-full h-[58vh] rounded-xl border border-border bg-white"
+            />
           ) : (
             <div className="w-full h-full max-h-[52vh] max-w-xl flex items-center justify-center">
               <RichFilePreview file={file} className="rounded-xl border border-border shadow-inner" />
