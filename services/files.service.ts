@@ -586,7 +586,11 @@ export function useFileImageBlob(fileId: string, enabled: boolean = true) {
       if (token) {
         headers["Authorization"] = `Bearer ${token}`;
       }
-      const res = await fetch(`/api/v1/files/${fileId}/thumbnail`, { headers });
+      let res = await fetch(`/api/v1/files/${fileId}/thumbnail`, { headers });
+      if (!res.ok) {
+        // Fallback for visual files: attempt inline download stream
+        res = await fetch(`/api/v1/files/${fileId}/download?inline=true`, { headers });
+      }
       if (!res.ok) {
         return null;
       }

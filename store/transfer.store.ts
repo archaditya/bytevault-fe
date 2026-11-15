@@ -155,3 +155,16 @@ export const useTransferStore = create<TransferState>((set, get) => {
   };
 });
 
+/**
+ * Dispatches a global event caught by AppShell to trigger the hidden file picker
+ * and upload files directly in the background (Google Drive style).
+ */
+export function triggerGlobalUpload(folderId?: string | null) {
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(
+      new CustomEvent("pushpostvault:trigger-upload", { detail: { folderId } })
+    );
+  }
+}
+
+

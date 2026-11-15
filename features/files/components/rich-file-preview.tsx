@@ -430,7 +430,7 @@ export function RichFilePreview({ file, className }: RichFilePreviewProps) {
     );
   }
 
-  // RENDER: IMAGE FALLBACK (when thumbnail is still generating or failed)
+  // RENDER: IMAGE FALLBACK (when thumbnail is not available or still generating)
   if (isImage) {
     return (
       <div

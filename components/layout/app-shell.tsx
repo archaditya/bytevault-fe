@@ -1,12 +1,14 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { Upload } from "lucide-react";
 import { Sidebar } from "./sidebar";
 import { Navbar } from "./navbar";
 import { useTransferStore } from "@/store/transfer.store";
+import { useUploadFileMutation } from "@/services";
 import { FloatingTransferDock } from "@/components/shared/floating-transfer-dock";
+import toast from "react-hot-toast";
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -14,6 +16,41 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const dragCounter = useRef(0);
   const pathname = usePathname();
   const router = useRouter();
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const targetFolderIdRef = useRef<string | null>(null);
+
+  const uploadMutation = useUploadFileMutation();
+
+  const handleFilesUpload = useCallback(
+    (files: File[], folderId?: string | null) => {
+      if (!files || files.length === 0) return;
+      toast.success(
+        `Uploading ${files.length} file${files.length > 1 ? "s" : ""} in the background...`,
+        { icon: "🚀" }
+      );
+      files.forEach((file) => {
+        uploadMutation.mutate({
+          file,
+          folderId: folderId || undefined,
+        });
+      });
+    },
+    [uploadMutation]
+  );
+
+  // Global listener for upload trigger from Navbar, Dashboard, or FilesToolbar
+  useEffect(() => {
+    const handleTrigger = (e: Event) => {
+      const customEvent = e as CustomEvent<{ folderId?: string | null }>;
+      targetFolderIdRef.current = customEvent.detail?.folderId || null;
+      fileInputRef.current?.click();
+    };
+
+    window.addEventListener("pushpostvault:trigger-upload", handleTrigger);
+    return () => {
+      window.removeEventListener("pushpostvault:trigger-upload", handleTrigger);
+    };
+  }, []);
 
   useEffect(() => {
     // If user is already on /transfers, UploadStation handles the drops natively
@@ -66,8 +103,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
       if (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files.length > 0) {
         const files = Array.from(e.dataTransfer.files);
-        useTransferStore.getState().addStagedFiles(files);
-        router.push("/transfers");
+        // Direct background upload without navigating to /transfers
+        handleFilesUpload(files, null);
       }
     };
 
@@ -82,10 +119,24 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       window.removeEventListener("dragover", handleDragOver);
       window.removeEventListener("drop", handleDrop);
     };
-  }, [pathname, router]);
+  }, [pathname, handleFilesUpload]);
 
   return (
     <div className="min-h-screen bg-bg">
+      {/* Hidden file input for global upload buttons */}
+      <input
+        type="file"
+        ref={fileInputRef}
+        multiple
+        className="hidden"
+        onChange={(e) => {
+          if (e.target.files && e.target.files.length > 0) {
+            handleFilesUpload(Array.from(e.target.files), targetFolderIdRef.current);
+            e.target.value = "";
+          }
+        }}
+      />
+
       {/* Global Drag-and-Drop Overlay */}
       {isWindowDragging && (
         <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-black/70 backdrop-blur-sm border-2 border-dashed border-accent animate-in fade-in-50 duration-150 pointer-events-none">
@@ -93,8 +144,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             <div className="p-3.5 rounded-full bg-accent/15 border border-accent/30 text-accent-bright animate-bounce">
               <Upload className="h-8 w-8" />
             </div>
-            <p className="text-base font-bold text-ink">Drop files to send to Transfer Studio</p>
-            <p className="text-xs text-ink-muted">Files will be queued in Transfer Studio</p>
+            <p className="text-base font-bold text-ink">Drop files to upload instantly</p>
+            <p className="text-xs text-ink-muted">Files will upload in the background with live progress dock</p>
           </div>
         </div>
       )}

@@ -27,6 +27,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useFilesStore } from "@/store";
+import { triggerGlobalUpload } from "@/store/transfer.store";
 import { cn } from "@/lib/utils";
 import { useUploadFileMutation, useCreateFolderMutation } from "@/services";
 import { UploadModal } from "@/components/shared/upload-modal";
@@ -213,11 +214,7 @@ export function FilesToolbar() {
 
         <Button
           size="sm"
-          onClick={() =>
-            router.push(
-              currentFolderId ? `/transfers?folderId=${currentFolderId}` : "/transfers"
-            )
-          }
+          onClick={() => triggerGlobalUpload(currentFolderId)}
         >
           <Upload className="h-3.5 w-3.5 mr-1" />
           Upload
