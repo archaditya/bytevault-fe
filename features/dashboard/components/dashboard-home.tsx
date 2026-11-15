@@ -24,6 +24,7 @@ import {
   Eye,
 } from "lucide-react";
 import { useAuthStore } from "@/store";
+import { triggerGlobalUpload } from "@/store/transfer.store";
 import { useFilesStore } from "@/store/files.store";
 import {
   useFolders,
@@ -32,6 +33,7 @@ import {
   useToggleShareMutation,
   useDeleteFolderMutation,
   useMoveFileMutation,
+  useFileImageBlob,
 } from "@/services";
 import { FileRecord, FolderRecord } from "@/types";
 import { formatBytes, formatRelativeTime, cn } from "@/lib/utils";
@@ -163,7 +165,7 @@ export function DashboardHome() {
             size="sm"
             variant="primary"
             className="gap-1.5 text-xs h-8 bg-accent text-white hover:bg-accent-bright"
-            onClick={() => router.push("/transfers")}
+            onClick={() => triggerGlobalUpload()}
           >
             <Upload className="h-3.5 w-3.5" />
             Upload File
@@ -495,6 +497,20 @@ function RecentFileGridCard({
   const deleteMutation = useDeleteFileMutation();
   const toggleShareMutation = useToggleShareMutation();
   const { user } = useAuthStore();
+  const [imgError, setImgError] = useState(false);
+
+  const isVisualMedia =
+    file.kind === "image" ||
+    file.kind === "video" ||
+    (file.kind === "document" &&
+      (file.mimeType === "application/pdf" ||
+        file.name.toLowerCase().endsWith(".pdf")));
+
+  const { data: previewUrl } = useFileImageBlob(
+    file.id,
+    isVisualMedia && !file.thumbnailUrl && file.status === "READY"
+  );
+  const displayUrl = isVisualMedia ? file.thumbnailUrl || previewUrl : undefined;
 
   const handleDownload = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -595,7 +611,17 @@ function RecentFileGridCard({
 
       {/* 2. Body: Visual Preview Canvas */}
       <div className="relative h-36 w-full overflow-hidden rounded-xl bg-bg-raised/60 border border-border/40 flex items-center justify-center group-hover:border-accent/20 transition-colors">
-        <RichFilePreview file={file} className="w-full h-full object-cover" />
+        {displayUrl && !imgError ? (
+          <img
+            src={displayUrl}
+            alt={file.name}
+            className="h-full w-full object-cover object-center group-hover:scale-105 transition-transform duration-300 ease-out"
+            loading="lazy"
+            onError={() => setImgError(true)}
+          />
+        ) : (
+          <RichFilePreview file={file} className="w-full h-full object-cover" />
+        )}
       </div>
 
       {/* 3. Footer: Avatar + Activity Caption */}

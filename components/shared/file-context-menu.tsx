@@ -58,6 +58,12 @@ export function FileContextMenu({
       }
     };
 
+    const handleContextMenuOutside = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        onClose();
+      }
+    };
+
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
         onClose();
@@ -69,11 +75,15 @@ export function FileContextMenu({
     };
 
     window.addEventListener("pointerdown", handlePointerDown);
+    window.addEventListener("mousedown", handlePointerDown);
+    window.addEventListener("contextmenu", handleContextMenuOutside);
     window.addEventListener("keydown", handleKeyDown);
     window.addEventListener("scroll", handleScroll, true);
 
     return () => {
       window.removeEventListener("pointerdown", handlePointerDown);
+      window.removeEventListener("mousedown", handlePointerDown);
+      window.removeEventListener("contextmenu", handleContextMenuOutside);
       window.removeEventListener("keydown", handleKeyDown);
       window.removeEventListener("scroll", handleScroll, true);
     };
@@ -101,6 +111,10 @@ export function FileContextMenu({
         "fixed z-50 min-w-[200px] rounded-xl bg-bg-surface/95 border border-border-strong backdrop-blur-md shadow-2xl p-1.5 animate-in fade-in-50 zoom-in-95 duration-100 select-none text-xs"
       )}
       onClick={(e) => e.stopPropagation()}
+      onContextMenu={(e) => {
+        e.preventDefault();
+        e.stopPropagation();
+      }}
     >
       <div className="px-2.5 py-1.5 border-b border-border text-[11px] font-semibold text-ink-muted truncate max-w-[200px]">
         {item.name}

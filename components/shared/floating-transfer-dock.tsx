@@ -1,31 +1,31 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   ChevronUp,
   ChevronDown,
+  Minus,
   ArrowUpRight,
   Upload,
   CheckCircle2,
   AlertCircle,
   Pause,
   Play,
+  RotateCw,
   X,
   ExternalLink,
 } from "lucide-react";
 import { useTransferStore, normalizeTransferState } from "@/store/transfer.store";
+import { cancelUpload, resumeUpload } from "@/services";
 import { formatBytes, cn } from "@/lib/utils";
 
 export function FloatingTransferDock() {
   const pathname = usePathname();
   const transfers = useTransferStore((s) => s.transfers);
-  const [isExpanded, setIsExpanded] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(true);
   const [isDismissed, setIsDismissed] = useState(false);
-
-  // If on /transfers page, full Transfer Studio is already visible
-  if (pathname === "/transfers") return null;
 
   // Filter transfers that are active, recently queued, or completed in this session
   const activeTransfers = transfers.filter((t) => {
@@ -33,7 +33,18 @@ export function FloatingTransferDock() {
     return state === "UPLOADING" || state === "QUEUED" || state === "PREPARING" || state === "ASSEMBLING";
   });
 
-  const recentTransfers = transfers.slice(0, 5);
+  const recentTransfers = transfers.slice(0, 8);
+
+  // Auto-expand and un-dismiss whenever a new active transfer begins (Google Drive UX)
+  useEffect(() => {
+    if (activeTransfers.length > 0) {
+      setIsDismissed(false);
+      setIsExpanded(true);
+    }
+  }, [activeTransfers.length]);
+
+  // If on /transfers page, full Transfer Studio is already visible
+  if (pathname === "/transfers") return null;
 
   // If there are no transfers or user dismissed completed ones when none are active
   if (transfers.length === 0 || (activeTransfers.length === 0 && isDismissed)) {
@@ -54,14 +65,14 @@ export function FloatingTransferDock() {
   return (
     <aside
       aria-label="Transfer status dock"
-      className="fixed bottom-5 right-5 z-40 flex flex-col items-end select-none font-sans"
+      className="fixed bottom-3 right-3 sm:bottom-5 sm:right-5 z-40 flex flex-col items-end select-none font-sans max-w-[calc(100vw-1.5rem)]"
     >
       {/* Expanded Card */}
       {isExpanded ? (
-        <div className="w-80 sm:w-96 rounded-2xl bg-bg-surface/95 border border-border-strong shadow-2xl backdrop-blur-md overflow-hidden animate-in fade-in slide-in-from-bottom-3 duration-150">
+        <div className="w-[calc(100vw-1.5rem)] sm:w-96 max-w-[384px] rounded-2xl bg-bg-surface/95 border border-border-strong shadow-2xl backdrop-blur-md overflow-hidden animate-in fade-in slide-in-from-bottom-3 duration-150">
           {/* Header */}
           <div className="flex items-center justify-between px-4 py-3 border-b border-border bg-bg-raised/70">
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2.5">
               <div
                 className={cn(
                   "p-1.5 rounded-lg text-accent-bright",
@@ -73,8 +84,8 @@ export function FloatingTransferDock() {
               <div>
                 <h4 className="text-xs font-semibold text-ink">
                   {isActivelyTransferring
-                    ? `Uploading (${activeTransfers.length})`
-                    : "Transfers Complete"}
+                    ? `Uploading ${activeTransfers.length} file${activeTransfers.length > 1 ? "s" : ""}`
+                    : "Uploads complete"}
                 </h4>
                 {isActivelyTransferring && (
                   <p className="text-[10px] text-ink-muted">
@@ -88,22 +99,29 @@ export function FloatingTransferDock() {
               <Link
                 href="/transfers"
                 className="p-1 rounded-md text-ink-muted hover:text-ink hover:bg-bg-overlay transition-colors"
-                title="Open Transfer Studio"
+                title="Open full Transfer Studio"
               >
                 <ExternalLink className="h-3.5 w-3.5" />
               </Link>
               <button
                 onClick={() => setIsExpanded(false)}
                 className="p-1 rounded-md text-ink-muted hover:text-ink hover:bg-bg-overlay transition-colors"
-                title="Collapse dock"
+                title="Minimize dock"
               >
-                <ChevronDown className="h-4 w-4" />
+                <Minus className="h-3.5 w-3.5" />
+              </button>
+              <button
+                onClick={() => setIsDismissed(true)}
+                className="p-1 rounded-md text-ink-muted hover:text-danger hover:bg-bg-overlay transition-colors"
+                title="Close dock"
+              >
+                <X className="h-3.5 w-3.5" />
               </button>
             </div>
           </div>
 
           {/* Transfers List */}
-          <div className="max-h-60 overflow-y-auto divide-y divide-border/60">
+          <div className="max-h-64 overflow-y-auto divide-y divide-border/60">
             {recentTransfers.map((item) => {
               const state = normalizeTransferState(item.status);
               const percent =
@@ -117,19 +135,39 @@ export function FloatingTransferDock() {
                     <span className="text-xs font-medium text-ink truncate max-w-[200px]" title={item.fileName}>
                       {item.fileName}
                     </span>
-                    <span className="text-[10px] font-mono text-ink-muted shrink-0">
+                    <div className="flex items-center gap-1.5 shrink-0">
                       {state === "COMPLETED" ? (
-                        <span className="text-emerald-400 font-semibold flex items-center gap-1">
-                          <CheckCircle2 className="h-3 w-3" /> Done
+                        <span className="text-emerald-400 font-semibold text-[11px] flex items-center gap-1">
+                          <CheckCircle2 className="h-3.5 w-3.5" /> Done
                         </span>
                       ) : state === "FAILED" ? (
-                        <span className="text-danger font-semibold flex items-center gap-1">
-                          <AlertCircle className="h-3 w-3" /> Failed
-                        </span>
+                        <button
+                          onClick={() => resumeUpload(item.id)}
+                          className="px-2 py-0.5 rounded text-[10px] font-semibold bg-danger/10 text-danger hover:bg-danger/20 transition-colors flex items-center gap-1"
+                          title="Retry this file upload"
+                        >
+                          <RotateCw className="h-2.5 w-2.5" /> Retry
+                        </button>
+                      ) : state === "PAUSED" ? (
+                        <button
+                          onClick={() => resumeUpload(item.id)}
+                          className="px-2 py-0.5 rounded text-[10px] font-semibold bg-accent/10 text-accent hover:bg-accent/20 transition-colors flex items-center gap-1"
+                        >
+                          <Play className="h-2.5 w-2.5" /> Resume
+                        </button>
                       ) : (
-                        `${percent}%`
+                        <div className="flex items-center gap-2">
+                          <span className="text-[10px] font-mono text-ink-muted">{percent}%</span>
+                          <button
+                            onClick={() => cancelUpload(item.id)}
+                            className="p-0.5 rounded text-ink-muted hover:text-danger transition-colors"
+                            title="Cancel upload"
+                          >
+                            <X className="h-3 w-3" />
+                          </button>
+                        </div>
                       )}
-                    </span>
+                    </div>
                   </div>
 
                   {/* Progress bar */}

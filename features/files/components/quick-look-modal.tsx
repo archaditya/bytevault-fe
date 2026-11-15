@@ -87,6 +87,7 @@ export function QuickLookModal({ files = [] }: QuickLookModalProps) {
 
   const file = quickLookFile;
   const downloadUrl = `/api/v1/files/${file.id}/download`;
+  const previewUrl = `/api/v1/files/${file.id}/download?inline=true`;
 
   const handleCopyLink = () => {
     const shareUrl = `${window.location.origin}/s/file/${file.id}`;
@@ -189,7 +190,7 @@ export function QuickLookModal({ files = [] }: QuickLookModalProps) {
         <div className="relative flex-1 min-h-[320px] max-h-[64vh] bg-bg overflow-auto flex items-center justify-center p-4">
           {isImage ? (
             <img
-              src={downloadUrl}
+              src={previewUrl}
               alt={file.name}
               className="max-h-[58vh] max-w-full object-contain rounded-lg shadow-md select-none"
               onError={(e) => {
@@ -198,7 +199,7 @@ export function QuickLookModal({ files = [] }: QuickLookModalProps) {
             />
           ) : isVideo ? (
             <video
-              src={downloadUrl}
+              src={previewUrl}
               controls
               autoPlay
               className="max-h-[58vh] max-w-full rounded-lg shadow-md bg-black"
@@ -212,11 +213,11 @@ export function QuickLookModal({ files = [] }: QuickLookModalProps) {
                 <h3 className="text-sm font-semibold text-ink">{file.name}</h3>
                 <p className="text-xs text-ink-muted mt-0.5">{formatBytes(file.sizeBytes)}</p>
               </div>
-              <audio src={downloadUrl} controls className="w-full mt-2" autoPlay />
+              <audio src={previewUrl} controls className="w-full mt-2" autoPlay />
             </div>
           ) : isPdf ? (
             <iframe
-              src={`${downloadUrl}#toolbar=0`}
+              src={`${previewUrl}#toolbar=0`}
               title={file.name}
               className="w-full h-[58vh] rounded-xl border border-border bg-white"
             />
