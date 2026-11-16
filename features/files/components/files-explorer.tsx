@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useFiles, useFolders, useDeleteFileMutation, useDeleteFolderMutation } from "@/services";
 import { useFilesStore, type SelectedItem } from "@/store/files.store";
 import { useDebouncedValue } from "@/hooks/use-debounced-value";
@@ -25,6 +25,9 @@ import { useConfirm } from "@/components/ui/confirm-dialog";
 
 export function FilesExplorer() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const folderQuery = searchParams.get("folder");
+
   const {
     viewMode,
     searchQuery,
@@ -43,6 +46,16 @@ export function FilesExplorer() {
     activeFilterTab,
     starredIds,
   } = useFilesStore();
+
+  // Restore active folder from URL query parameter on initial mount/direct link
+  useEffect(() => {
+    if (folderQuery && folderQuery !== currentFolderId) {
+      useFilesStore.setState({
+        currentFolderId: folderQuery,
+        folderHistory: folderHistory.length > 0 ? folderHistory : [{ id: folderQuery, name: "Folder" }],
+      });
+    }
+  }, [folderQuery]);
 
   const [cursor, setCursor] = useState<string | undefined>(undefined);
   const [loadedFiles, setLoadedFiles] = useState<any[]>([]);
@@ -106,11 +119,21 @@ export function FilesExplorer() {
         return Boolean(f.path?.includes("API_Keys") || f.name?.toLowerCase().includes("api"));
       }
       if (activeFilterTab === "guest") {
-        return Boolean(f.path?.includes("Guest Drops") || f.name?.toLowerCase().includes("guest"));
+        if (currentFolderId !== null) {
+          return true;
+        }
+        const lower = (f.name || "").toLowerCase();
+        const pathLower = (f.path || "").toLowerCase();
+        return (
+          lower.includes("guest") ||
+          lower.includes("received") ||
+          pathLower.includes("guest") ||
+          pathLower.includes("received")
+        );
       }
       return true;
     });
-  }, [loadedFiles, kindFilter, activeFilterTab, starredIds]);
+  }, [loadedFiles, kindFilter, activeFilterTab, starredIds, currentFolderId]);
 
   const filteredFolders = useMemo(() => {
     if (!folders) return [];
@@ -125,11 +148,15 @@ export function FilesExplorer() {
         return folder.name.toLowerCase().includes("api");
       }
       if (activeFilterTab === "guest") {
-        return folder.name.toLowerCase().includes("guest");
+        if (currentFolderId !== null) {
+          return true;
+        }
+        const lower = (folder.name || "").toLowerCase();
+        return lower.includes("guest") || lower.includes("received");
       }
       return true;
     });
-  }, [folders, activeFilterTab, starredIds]);
+  }, [folders, activeFilterTab, starredIds, currentFolderId]);
 
   // Google Drive / Windows Explorer-style keyboard navigation
   useEffect(() => {

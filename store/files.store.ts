@@ -95,20 +95,43 @@ export const useFilesStore = create<FilesState>((set) => ({
   setSearchQuery: (searchQuery) => set({ searchQuery }),
   setKindFilter: (kindFilter) => set({ kindFilter }),
   setSort: (sortKey, sortDirection) => set({ sortKey, sortDirection }),
-  pushFolder: (id, name) =>
+  pushFolder: (id, name) => {
+    if (typeof window !== "undefined") {
+      try {
+        const url = new URL(window.location.href);
+        url.searchParams.set("folder", id);
+        window.history.pushState({}, "", url.toString());
+      } catch {}
+    }
     set((state) => ({
       currentFolderId: id,
       folderHistory: [...state.folderHistory, { id, name }],
       selectedItems: [], // clear selection on navigate
-    })),
+    }));
+  },
   popFolder: () =>
     set((state) => {
       if (state.folderHistory.length <= 1) {
+        if (typeof window !== "undefined") {
+          try {
+            const url = new URL(window.location.href);
+            url.searchParams.delete("folder");
+            window.history.pushState({}, "", url.toString());
+          } catch {}
+        }
         return { currentFolderId: null, folderHistory: [], selectedItems: [] };
       }
       const newHistory = state.folderHistory.slice(0, -1);
+      const nextId = newHistory[newHistory.length - 1].id;
+      if (typeof window !== "undefined") {
+        try {
+          const url = new URL(window.location.href);
+          url.searchParams.set("folder", nextId);
+          window.history.pushState({}, "", url.toString());
+        } catch {}
+      }
       return {
-        currentFolderId: newHistory[newHistory.length - 1].id,
+        currentFolderId: nextId,
         folderHistory: newHistory,
         selectedItems: [],
       };
@@ -116,11 +139,28 @@ export const useFilesStore = create<FilesState>((set) => ({
   goToFolderIndex: (index) =>
     set((state) => {
       const newHistory = state.folderHistory.slice(0, index + 1);
+      const nextId = newHistory[newHistory.length - 1].id;
+      if (typeof window !== "undefined") {
+        try {
+          const url = new URL(window.location.href);
+          url.searchParams.set("folder", nextId);
+          window.history.pushState({}, "", url.toString());
+        } catch {}
+      }
       return {
-        currentFolderId: newHistory[newHistory.length - 1].id,
+        currentFolderId: nextId,
         folderHistory: newHistory,
         selectedItems: [],
       };
     }),
-  resetFolder: () => set({ currentFolderId: null, folderHistory: [], selectedItems: [] }),
+  resetFolder: () => {
+    if (typeof window !== "undefined") {
+      try {
+        const url = new URL(window.location.href);
+        url.searchParams.delete("folder");
+        window.history.pushState({}, "", url.toString());
+      } catch {}
+    }
+    set({ currentFolderId: null, folderHistory: [], selectedItems: [] });
+  },
 }));

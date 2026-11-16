@@ -31,6 +31,9 @@ export function resolveNotificationPath(n: Notification): string {
   if (n.metadata?.path && typeof n.metadata.path === "string" && n.metadata.path.trim() !== "") {
     return n.metadata.path.trim();
   }
+  if (n.metadata?.folder_id && typeof n.metadata.folder_id === "string" && n.metadata.folder_id.trim() !== "") {
+    return `/files?folder=${encodeURIComponent(n.metadata.folder_id.trim())}`;
+  }
 
   const t = (n.type || n.metadata?.type || n.metadata?.category || "").toLowerCase();
   if (t.includes("file") || t.includes("upload")) return "/files";
