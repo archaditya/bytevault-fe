@@ -80,6 +80,17 @@ export default function FileDetailsPage({
   const { data: history = [] } = useFileHistory(id);
   const { data: allFolders } = useFoldersFlat();
 
+  const folderTrail = useMemo(() => {
+    if (!file?.folderId || !allFolders) return [];
+    const trail: { id: string; name: string }[] = [];
+    let curr: any = allFolders.find((f) => f.id === file.folderId);
+    while (curr) {
+      trail.unshift({ id: curr.id, name: curr.name });
+      curr = curr.parent_id ? allFolders.find((f) => f.id === curr.parent_id) : null;
+    }
+    return trail;
+  }, [file?.folderId, allFolders]);
+
   const parentFolder = useMemo(() => {
     if (!file?.folderId || !allFolders) return null;
     return allFolders.find((f) => f.id === file.folderId) || null;
@@ -227,18 +238,18 @@ export default function FileDetailsPage({
           <Home className="h-3.5 w-3.5" />
           <span>Home</span>
         </Link>
-        {parentFolder && (
-          <>
+        {folderTrail.map((f) => (
+          <div key={f.id} className="flex items-center gap-1.5 shrink-0">
             <ChevronRight className="h-3.5 w-3.5 text-ink-faint shrink-0" />
             <Link
-              href="/files"
+              href={`/files?folder=${f.id}`}
               className="flex items-center gap-1.5 px-2 py-1 rounded-lg text-accent-bright bg-accent/10 border border-accent/20 hover:bg-accent/20 font-medium transition-colors shrink-0"
             >
               <Folder className="h-3.5 w-3.5 text-accent" />
-              <span>{parentFolder.name}</span>
+              <span>{f.name}</span>
             </Link>
-          </>
-        )}
+          </div>
+        ))}
         <ChevronRight className="h-3.5 w-3.5 text-ink-faint shrink-0" />
         <span className="flex items-center gap-1.5 px-2 py-1 rounded-lg bg-accent/15 text-accent-bright font-semibold border border-accent/30 truncate max-w-[200px] sm:max-w-[300px]">
           {file.name}

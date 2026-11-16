@@ -19,6 +19,7 @@ import { FileKindIcon } from "@/components/shared/file-kind-icon";
 import { RichFilePreview } from "./rich-file-preview";
 import { Button } from "@/components/ui/button";
 import toast from "react-hot-toast";
+import { getAccessToken } from "@/lib/api-client";
 
 interface QuickLookModalProps {
   files?: FileRecord[];
@@ -86,8 +87,10 @@ export function QuickLookModal({ files = [] }: QuickLookModalProps) {
   if (!quickLookFile) return null;
 
   const file = quickLookFile;
-  const downloadUrl = `/api/v1/files/${file.id}/download`;
-  const previewUrl = `/api/v1/files/${file.id}/download?inline=true`;
+  const token = typeof window !== "undefined" ? getAccessToken() || "" : "";
+  const tokenQuery = token ? `&token=${encodeURIComponent(token)}` : "";
+  const downloadUrl = `/api/v1/files/${file.id}/download${token ? `?token=${encodeURIComponent(token)}` : ""}`;
+  const previewUrl = `/api/v1/files/${file.id}/download?inline=true${tokenQuery}`;
 
   const handleCopyLink = () => {
     const shareUrl = `${window.location.origin}/s/file/${file.id}`;

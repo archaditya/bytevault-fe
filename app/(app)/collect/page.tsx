@@ -32,7 +32,7 @@ export default function CollectPage() {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <p className="max-w-xl text-[13px] text-ink-muted">
           Create a link, send it to a client, and get their files without asking them to sign up.
-          Everything they upload lands in <span className="text-ink">Received</span> in your Files.
+          Everything they upload lands in <span className="text-ink">Guest Drops</span> in your Files.
         </p>
         <Button size="sm" onClick={() => setOpen(true)} disabled={!!blockedReason}>
           <Plus className="h-3.5 w-3.5" /> Request files
