@@ -376,6 +376,7 @@ export default function PublicSharePage({
                       <DocxPreview
                         url={`${fileUrl}?inline=true`}
                         filename={metadata.filename}
+                        fileSize={metadata.file_size}
                       />
                     </div>
                   ) : mimeType.startsWith("image/") ? (

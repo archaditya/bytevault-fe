@@ -299,7 +299,11 @@ export function QuickLookModal({ files = [] }: QuickLookModalProps) {
             </div>
           ) : isWord ? (
             <div className="w-full h-[58vh] rounded-xl border border-border overflow-hidden bg-bg-surface">
-              <DocxPreview url={previewUrl} filename={file.name} />
+              <DocxPreview
+                url={previewUrl}
+                filename={file.name}
+                fileSize={file.sizeBytes}
+              />
             </div>
           ) : isCodeOrText && textContent !== null ? (
             <div className="w-full h-[58vh] rounded-xl border border-border overflow-hidden bg-bg-surface">

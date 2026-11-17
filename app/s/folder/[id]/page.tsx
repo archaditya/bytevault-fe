@@ -1139,6 +1139,7 @@ export default function PublicSharedFolderPage({
                           <DocxPreview
                             url={`${fileUrl}?inline=true`}
                             filename={activePreviewFile.filename}
+                            fileSize={activePreviewFile.file_size}
                           />
                         </div>
                       );

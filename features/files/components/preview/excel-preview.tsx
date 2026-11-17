@@ -28,13 +28,16 @@ export function ExcelPreview({ url, filename, fileSize }: ExcelPreviewProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [forceLoadLarge, setForceLoadLarge] = useState(false);
 
-  const isLargeFile = fileSize && fileSize > 15 * 1024 * 1024; // > 15MB
+  const [detectedSize, setDetectedSize] = useState<number | null>(null);
+  const effectiveSize = fileSize || detectedSize || 0;
+  const isLargeFile = effectiveSize > 15 * 1024 * 1024; // > 15MB
 
   useEffect(() => {
     let isCancelled = false;
 
     async function loadSpreadsheet() {
-      if (isLargeFile && !forceLoadLarge) {
+      // If declared size exceeds 15MB and user hasn't confirmed, show gate
+      if (fileSize && fileSize > 15 * 1024 * 1024 && !forceLoadLarge) {
         setLoading(false);
         return;
       }
@@ -49,8 +52,30 @@ export function ExcelPreview({ url, filename, fileSize }: ExcelPreviewProps) {
           throw new Error(`Failed to load file (${response.status} ${response.statusText})`);
         }
 
+        // Dynamically inspect response Content-Length header if available
+        const cl = response.headers.get("content-length");
+        if (cl) {
+          const parsedCl = parseInt(cl, 10);
+          if (!isNaN(parsedCl) && parsedCl > 15 * 1024 * 1024 && !forceLoadLarge) {
+            if (!isCancelled) {
+              setDetectedSize(parsedCl);
+              setLoading(false);
+            }
+            return;
+          }
+        }
+
         const arrayBuffer = await response.arrayBuffer();
         if (isCancelled) return;
+
+        // Fallback size gate on downloaded payload before parsing with SheetJS
+        if (arrayBuffer.byteLength > 15 * 1024 * 1024 && !forceLoadLarge) {
+          if (!isCancelled) {
+            setDetectedSize(arrayBuffer.byteLength);
+            setLoading(false);
+          }
+          return;
+        }
 
         // SheetJS parse with safety limit of 1000 rows per sheet
         const wb = XLSX.read(arrayBuffer, {
@@ -69,11 +94,19 @@ export function ExcelPreview({ url, filename, fileSize }: ExcelPreviewProps) {
         }
       } catch (err: any) {
         if (isCancelled) return;
-        const msg = err?.message || "";
-        if (msg.includes("password") || msg.includes("encrypted") || msg.includes("CDF")) {
+        const msg = (err?.message || "").toLowerCase();
+        if (
+          msg.includes("password") ||
+          msg.includes("encrypted") ||
+          msg.includes("cdf") ||
+          msg.includes("crypto") ||
+          msg.includes("protect") ||
+          msg.includes("ole") ||
+          msg.includes("security")
+        ) {
           setIsEncrypted(true);
         } else {
-          setError(msg || "Failed to parse spreadsheet");
+          setError(err?.message || "Failed to parse spreadsheet");
         }
       } finally {
         if (!isCancelled) {
@@ -87,7 +120,7 @@ export function ExcelPreview({ url, filename, fileSize }: ExcelPreviewProps) {
     return () => {
       isCancelled = true;
     };
-  }, [url, isLargeFile, forceLoadLarge]);
+  }, [url, fileSize, forceLoadLarge]);
 
   const rawData: (string | number)[][] = useMemo(() => {
     if (!workbook || !activeSheet || !workbook.Sheets[activeSheet]) {
@@ -118,7 +151,7 @@ export function ExcelPreview({ url, filename, fileSize }: ExcelPreviewProps) {
     return (
       <div className="flex flex-col items-center justify-center p-8 text-center bg-bg-surface border border-border rounded-xl">
         <FileSpreadsheet className="h-12 w-12 text-accent mb-3" />
-        <h3 className="text-base font-semibold text-ink">Large Spreadsheet ({formatBytes(fileSize || 0)})</h3>
+        <h3 className="text-base font-semibold text-ink">Large Spreadsheet ({formatBytes(effectiveSize || 0)})</h3>
         <p className="text-xs text-ink-muted mt-1 max-w-md">
           Parsing this file in the browser may cause lag. You can preview the first 1,000 rows or download the original file directly.
         </p>

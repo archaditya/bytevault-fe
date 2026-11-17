@@ -391,6 +391,7 @@ export default function FileDetailsPage({
                   <DocxPreview
                     url={previewUrl}
                     filename={file.name}
+                    fileSize={file.sizeBytes}
                   />
                 </div>
               ) : file.mimeType.startsWith("image/") ? (

@@ -459,6 +459,7 @@ export default function InstantSharePage() {
                       <DocxPreview
                         url={previewUrl}
                         filename={share.filename}
+                        fileSize={share.file_size}
                       />
                     </div>
                   ) : isImage && previewUrl ? (
