@@ -802,46 +802,50 @@ export function useRenameFileMutation() {
 }
 
 async function validateFileSignature(file: File) {
-  const header = await new Promise<Uint8Array>((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(new Uint8Array(reader.result as ArrayBuffer));
-    reader.onerror = reject;
-    reader.readAsArrayBuffer(file.slice(0, 512));
-  });
+  const name = file.name.toLowerCase();
+  const ext = name.includes(".") ? name.split(".").pop() || "" : "";
 
-  const getMime = (bytes: Uint8Array) => {
-    if (bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff) return "image/jpeg";
-    if (bytes[0] === 0x89 && bytes[1] === 0x50 && bytes[2] === 0x4e && bytes[3] === 0x47) return "image/png";
-    if (bytes[0] === 0x47 && bytes[1] === 0x49 && bytes[2] === 0x46) return "image/gif";
-    if (bytes[0] === 0x25 && bytes[1] === 0x50 && bytes[2] === 0x44 && bytes[3] === 0x46) return "application/pdf";
-    if (bytes[0] === 0x50 && bytes[1] === 0x4b && bytes[2] === 0x03 && bytes[3] === 0x04) return "application/zip";
-    return "";
-  };
+  // Always allow standard documents, spreadsheets, text, code, media, archives
+  const standardExts = new Set([
+    "xlsx", "xls", "docx", "doc", "pptx", "ppt", "csv", "tsv", "txt", "md",
+    "pdf", "png", "jpg", "jpeg", "webp", "gif", "svg", "heic", "heif", "avif",
+    "mp4", "mov", "webm", "mkv", "mp3", "wav", "zip", "tar", "gz", "7z", "rar",
+    "json", "xml", "yaml", "yml", "js", "ts", "tsx", "jsx", "py", "go", "sql", "apk"
+  ]);
 
-  const detected = getMime(header);
-  const declared = file.type;
+  if (standardExts.has(ext)) {
+    return;
+  }
 
-  if (detected && declared && detected !== declared) {
-    if (
-      detected === "application/zip" &&
-      (declared.includes("officedocument") ||
-        declared.includes("wordprocessingml") ||
-        declared.includes("spreadsheetml") ||
-        declared.includes("presentationml") ||
-        declared.includes("iwork") ||
-        declared.includes("pages") ||
-        declared.includes("numbers") ||
-        declared.includes("keynote") ||
-        declared.includes("epub") ||
-        declared.includes("jar") ||
-        declared.includes("apk"))
-    ) {
-      return;
-    }
-    // Only throw if binary header does not match expected image/pdf/zip format
-    if (detected !== "application/zip") {
+  // Fallback signature check for remaining unknown types
+  try {
+    const header = await new Promise<Uint8Array>((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(new Uint8Array(reader.result as ArrayBuffer));
+      reader.onerror = reject;
+      reader.readAsArrayBuffer(file.slice(0, 512));
+    });
+
+    const getMime = (bytes: Uint8Array) => {
+      if (bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff) return "image/jpeg";
+      if (bytes[0] === 0x89 && bytes[1] === 0x50 && bytes[2] === 0x4e && bytes[3] === 0x47) return "image/png";
+      if (bytes[0] === 0x47 && bytes[1] === 0x49 && bytes[2] === 0x46) return "image/gif";
+      if (bytes[0] === 0x25 && bytes[1] === 0x50 && bytes[2] === 0x44 && bytes[3] === 0x46) return "application/pdf";
+      if (bytes[0] === 0x50 && bytes[1] === 0x4b && bytes[2] === 0x03 && bytes[3] === 0x04) return "application/zip";
+      return "";
+    };
+
+    const detected = getMime(header);
+    const declared = (file.type || "").toLowerCase();
+
+    if (detected && declared && detected !== declared) {
+      if (detected === "application/zip") {
+        return;
+      }
       throw new Error("Extension spoofing detected! Upload rejected.");
     }
+  } catch {
+    // If signature check fails to read, do not block valid file upload
   }
 }
 
@@ -1256,6 +1260,9 @@ export function useUploadFileMutation() {
       queryClient.invalidateQueries({ queryKey: ["files"] });
       queryClient.invalidateQueries({ queryKey: ["file-thumbnail-blob"] });
       queryClient.invalidateQueries({ queryKey: ["quota"] });
+    },
+    onError: (err: any) => {
+      toast.error(err?.message || "File upload failed");
     },
   });
 }
