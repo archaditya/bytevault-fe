@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useCallback } from "react";
+import { useEffect, useCallback, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   X,
@@ -11,12 +11,16 @@ import {
   ChevronRight,
   Eye,
   FileQuestion,
+  Loader2,
 } from "lucide-react";
 import { FileRecord } from "@/types";
 import { useFilesStore } from "@/store/files.store";
 import { formatBytes, formatRelativeTime, cn } from "@/lib/utils";
 import { FileKindIcon } from "@/components/shared/file-kind-icon";
 import { RichFilePreview } from "./rich-file-preview";
+import { ExcelPreview } from "./preview/excel-preview";
+import { DocxPreview } from "./preview/docx-preview";
+import { CodePreview } from "./preview/code-preview";
 import { Button } from "@/components/ui/button";
 import toast from "react-hot-toast";
 import { getAccessToken } from "@/lib/api-client";
@@ -103,11 +107,72 @@ export function QuickLookModal({ files = [] }: QuickLookModalProps) {
     router.push(`/files/${file.id}`);
   };
 
+  const ext = file.name.includes(".")
+    ? file.name.split(".").pop()?.toLowerCase() || ""
+    : "";
+
   const isImage = file.kind === "image" || file.mimeType.startsWith("image/");
   const isVideo = file.kind === "video" || file.mimeType.startsWith("video/");
   const isAudio = file.kind === "audio" || file.mimeType.startsWith("audio/");
   const isPdf =
     file.mimeType === "application/pdf" || file.name.toLowerCase().endsWith(".pdf");
+
+  const isExcel =
+    ["xlsx", "xls", "csv", "tsv"].includes(ext) ||
+    file.mimeType?.toLowerCase().includes("spreadsheet") ||
+    file.mimeType?.toLowerCase().includes("excel") ||
+    file.mimeType?.toLowerCase().includes("csv");
+
+  const isWord =
+    ["docx", "doc"].includes(ext) ||
+    file.mimeType?.toLowerCase().includes("wordprocessingml") ||
+    file.mimeType?.toLowerCase().includes("msword");
+
+  const isCodeOrText =
+    !isExcel &&
+    !isWord &&
+    (file.kind === "code" ||
+      file.mimeType?.startsWith("text/") ||
+      file.mimeType?.includes("json") ||
+      file.mimeType?.includes("javascript") ||
+      file.mimeType?.includes("typescript") ||
+      [
+        "txt", "md", "json", "js", "ts", "tsx", "jsx", "css", "html",
+        "yaml", "yml", "go", "py", "sql", "sh", "env", "log"
+      ].includes(ext));
+
+  const [textContent, setTextContent] = useState<string | null>(null);
+  const [loadingText, setLoadingText] = useState(false);
+  const [isTruncated, setIsTruncated] = useState(false);
+
+  useEffect(() => {
+    if (isCodeOrText && file?.id) {
+      setLoadingText(true);
+      fetch(previewUrl)
+        .then((res) => {
+          if (!res.ok) throw new Error("Failed to load text preview");
+          return res.text();
+        })
+        .then((text) => {
+          if (text.length > 100 * 1024) {
+            setTextContent(text.slice(0, 100 * 1024));
+            setIsTruncated(true);
+          } else {
+            setTextContent(text);
+            setIsTruncated(false);
+          }
+        })
+        .catch(() => {
+          setTextContent(null);
+        })
+        .finally(() => {
+          setLoadingText(false);
+        });
+    } else {
+      setTextContent(null);
+      setIsTruncated(false);
+    }
+  }, [file?.id, isCodeOrText, previewUrl]);
 
   return (
     <div
@@ -224,6 +289,36 @@ export function QuickLookModal({ files = [] }: QuickLookModalProps) {
               title={file.name}
               className="w-full h-[58vh] rounded-xl border border-border bg-white"
             />
+          ) : isExcel ? (
+            <div className="w-full h-[58vh] rounded-xl border border-border overflow-hidden bg-bg-surface">
+              <ExcelPreview
+                url={previewUrl}
+                filename={file.name}
+                fileSize={file.sizeBytes}
+              />
+            </div>
+          ) : isWord ? (
+            <div className="w-full h-[58vh] rounded-xl border border-border overflow-hidden bg-bg-surface">
+              <DocxPreview
+                url={previewUrl}
+                filename={file.name}
+                fileSize={file.sizeBytes}
+              />
+            </div>
+          ) : isCodeOrText && textContent !== null ? (
+            <div className="w-full h-[58vh] rounded-xl border border-border overflow-hidden bg-bg-surface">
+              <CodePreview
+                content={textContent}
+                language={ext}
+                filename={file.name}
+                isTruncated={isTruncated}
+              />
+            </div>
+          ) : loadingText ? (
+            <div className="flex flex-col items-center justify-center gap-2 py-12 text-ink-muted">
+              <Loader2 className="h-6 w-6 animate-spin text-accent" />
+              <p className="text-xs">Loading code preview...</p>
+            </div>
           ) : (
             <div className="w-full h-full max-h-[52vh] max-w-xl flex items-center justify-center">
               <RichFilePreview file={file} className="rounded-xl border border-border shadow-inner" />

@@ -36,6 +36,9 @@ import { LandingNav } from "@/features/landing/components/landing-nav";
 import { Footer } from "@/features/landing/components/footer";
 import { cn, formatBytes } from "@/lib/utils";
 import toast from "react-hot-toast";
+import { ExcelPreview } from "@/features/files/components/preview/excel-preview";
+import { DocxPreview } from "@/features/files/components/preview/docx-preview";
+import { CodePreview } from "@/features/files/components/preview/code-preview";
 
 interface EphemeralShare {
   filename: string;
@@ -150,23 +153,35 @@ export default function InstantSharePage() {
       ? safeFilename.replace(/\.ipa$/i, "").replace(/[-_]/g, " ")
       : safeFilename;
 
+  const isExcel =
+    ["xlsx", "xls", "csv", "tsv"].includes(ext) ||
+    mimeType.includes("spreadsheet") ||
+    mimeType.includes("excel") ||
+    mimeType.includes("csv");
+
+  const isWord =
+    ["docx", "doc"].includes(ext) ||
+    mimeType.includes("wordprocessingml") ||
+    mimeType.includes("msword");
+
+  const [isTruncated, setIsTruncated] = useState(false);
+
   const isTextType = useMemo(() => {
+    if (isExcel || isWord) return false;
     return (
       mimeType.startsWith("text/") ||
       mimeType.includes("json") ||
       mimeType.includes("javascript") ||
       mimeType.includes("typescript") ||
-      mimeType.includes("xml") ||
-      mimeType.includes("csv") ||
-      ["txt", "md", "json", "js", "ts", "jsx", "tsx", "py", "go", "html", "css", "yaml", "yml", "sql", "sh", "csv"].includes(ext)
+      ["txt", "md", "json", "js", "ts", "jsx", "tsx", "py", "go", "html", "css", "yaml", "yml", "sql", "sh"].includes(ext)
     );
-  }, [mimeType, ext]);
+  }, [mimeType, ext, isExcel, isWord]);
 
   const previewUrl = unlockedPreviewUrl || share?.preview_url;
 
   // Fetch text content if applicable and preview URL is accessible
   useEffect(() => {
-    if (isTextType && previewUrl) {
+    if (isTextType && !isExcel && !isWord && previewUrl) {
       setLoadingText(true);
       fetch(previewUrl)
         .then((res) => {
@@ -175,9 +190,11 @@ export default function InstantSharePage() {
         })
         .then((text) => {
           if (text.length > 100 * 1024) {
-            setTextContent(text.substring(0, 100 * 1024) + "\n\n... [Content truncated for preview] ...");
+            setTextContent(text.substring(0, 100 * 1024));
+            setIsTruncated(true);
           } else {
             setTextContent(text);
+            setIsTruncated(false);
           }
         })
         .catch(() => {
@@ -187,7 +204,7 @@ export default function InstantSharePage() {
           setLoadingText(false);
         });
     }
-  }, [isTextType, previewUrl]);
+  }, [isTextType, isExcel, isWord, previewUrl]);
 
   const handleDownload = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
@@ -429,6 +446,22 @@ export default function InstantSharePage() {
                         This file is encrypted. Enter the required passcode on the right to unlock and download it.
                       </p>
                     </div>
+                  ) : isExcel && previewUrl ? (
+                    <div className="w-full h-full p-2">
+                      <ExcelPreview
+                        url={previewUrl}
+                        filename={share.filename}
+                        fileSize={share.file_size}
+                      />
+                    </div>
+                  ) : isWord && previewUrl ? (
+                    <div className="w-full h-full p-2">
+                      <DocxPreview
+                        url={previewUrl}
+                        filename={share.filename}
+                        fileSize={share.file_size}
+                      />
+                    </div>
                   ) : isImage && previewUrl ? (
                     <div className="relative w-full h-full flex items-center justify-center p-4 bg-black/20">
                       <img
@@ -468,9 +501,14 @@ export default function InstantSharePage() {
                         <Loader2 className="h-5 w-5 animate-spin mr-2 text-accent" /> Loading text preview...
                       </div>
                     ) : (
-                      <pre className="flex-1 p-5 text-xs font-mono overflow-auto w-full text-ink bg-bg-surface text-left whitespace-pre-wrap select-text leading-relaxed">
-                        {textContent}
-                      </pre>
+                      <div className="w-full h-full p-2">
+                        <CodePreview
+                          content={textContent || ""}
+                          language={ext || "text"}
+                          filename={share.filename}
+                          isTruncated={isTruncated}
+                        />
+                      </div>
                     )
                   ) : isAppFile ? (
                     <div className="flex-1 flex flex-col items-center justify-center p-8 text-center bg-bg-surface">

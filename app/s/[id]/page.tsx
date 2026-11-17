@@ -24,12 +24,16 @@ import {
   Music,
   ArrowRight,
   Folder,
+  Loader2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { LandingNav } from "@/features/landing/components/landing-nav";
 import { Footer } from "@/features/landing/components/footer";
 import { cn, formatBytes } from "@/lib/utils";
 import toast from "react-hot-toast";
+import { ExcelPreview } from "@/features/files/components/preview/excel-preview";
+import { DocxPreview } from "@/features/files/components/preview/docx-preview";
+import { CodePreview } from "@/features/files/components/preview/code-preview";
 
 interface FileMetadata {
   filename: string;
@@ -121,20 +125,45 @@ export default function PublicSharePage({
       });
   }, [metadataUrl, id]);
 
-  // Determine if it's a text-based/code preview
+  const [isTruncated, setIsTruncated] = useState(false);
+
+  // Determine if it's a text-based/code preview vs spreadsheet vs word
   const contentType = metadata?.content_type?.toLowerCase() || "";
+  const ext = metadata?.filename?.includes(".")
+    ? metadata.filename.split(".").pop()?.toLowerCase() || ""
+    : "";
+
+  const isExcel =
+    ["xlsx", "xls", "csv", "tsv"].includes(ext) ||
+    contentType.includes("spreadsheet") ||
+    contentType.includes("excel") ||
+    contentType.includes("csv");
+
+  const isWord =
+    ["docx", "doc"].includes(ext) ||
+    contentType.includes("wordprocessingml") ||
+    contentType.includes("msword");
+
+  const isCode =
+    [
+      "js", "ts", "tsx", "jsx", "py", "go", "rs", "java", "c", "cpp", "h",
+      "hpp", "cs", "rb", "php", "json", "yaml", "yml", "sql", "sh", "bash",
+      "html", "css", "scss", "env", "dockerfile", "toml", "proto", "graphql", "md"
+    ].includes(ext) ||
+    contentType.includes("javascript") ||
+    contentType.includes("typescript") ||
+    contentType.includes("json") ||
+    contentType.includes("python");
+
   const isTextType =
     Boolean(metadata) &&
-    (contentType.startsWith("text/") ||
-      contentType.includes("json") ||
-      contentType.includes("javascript") ||
-      contentType.includes("typescript") ||
-      contentType.includes("xml") ||
-      contentType.includes("csv"));
+    (contentType.startsWith("text/") || isCode) &&
+    !isExcel &&
+    !isWord;
 
   // Fetch text content if applicable
   useEffect(() => {
-    if (isTextType) {
+    if (isTextType && !isExcel && !isWord) {
       setLoadingText(true);
       fetch(`${fileUrl}?inline=true`)
         .then((res) => {
@@ -144,9 +173,11 @@ export default function PublicSharePage({
         .then((text) => {
           // Truncate at 100KB to avoid client performance issues
           if (text.length > 100 * 1024) {
-            setTextContent(text.substring(0, 100 * 1024) + "\n\n... [Content truncated for preview] ...");
+            setTextContent(text.substring(0, 100 * 1024));
+            setIsTruncated(true);
           } else {
             setTextContent(text);
+            setIsTruncated(false);
           }
         })
         .catch(() => {
@@ -156,7 +187,7 @@ export default function PublicSharePage({
           setLoadingText(false);
         });
     }
-  }, [isTextType, fileUrl]);
+  }, [isTextType, isExcel, isWord, fileUrl]);
 
   const handleDownload = () => {
     const link = document.createElement("a");
@@ -181,8 +212,6 @@ export default function PublicSharePage({
   const thumbnailSrc = metadata?.thumbnail_url || (metadata?.has_thumbnail ? `/api/v1/files/public/${id}/thumbnail` : undefined);
   const mimeType = (metadata?.content_type || "").toLowerCase();
   const filename = metadata?.filename || "file";
-  const hasExt = filename.includes(".") && !filename.startsWith(".");
-  const ext = hasExt ? filename.split(".").pop()?.toLowerCase() || "" : "";
   const isAPK = ext === "apk" || mimeType === "application/vnd.android.package-archive";
   const isIPA = ext === "ipa" || (mimeType === "application/octet-stream" && ext === "ipa");
   const isAppFile = isAPK || isIPA;
@@ -334,6 +363,22 @@ export default function PublicSharePage({
                         Verified Application Package
                       </div>
                     </div>
+                  ) : isExcel ? (
+                    <div className="w-full h-full p-2">
+                      <ExcelPreview
+                        url={`${fileUrl}?inline=true`}
+                        filename={metadata.filename}
+                        fileSize={metadata.file_size}
+                      />
+                    </div>
+                  ) : isWord ? (
+                    <div className="w-full h-full p-2">
+                      <DocxPreview
+                        url={`${fileUrl}?inline=true`}
+                        filename={metadata.filename}
+                        fileSize={metadata.file_size}
+                      />
+                    </div>
                   ) : mimeType.startsWith("image/") ? (
                     <div className="relative w-full h-full flex items-center justify-center p-4 bg-black/20">
                       <img
@@ -386,12 +431,18 @@ export default function PublicSharePage({
                   ) : isTextType ? (
                     loadingText ? (
                       <div className="flex-1 flex items-center justify-center p-6 text-xs text-ink-muted font-mono">
+                        <Loader2 className="h-5 w-5 animate-spin mr-2 text-accent" />
                         Loading text preview...
                       </div>
                     ) : (
-                      <pre className="flex-1 p-5 text-xs font-mono overflow-auto w-full text-ink bg-bg-surface text-left whitespace-pre-wrap select-text leading-relaxed">
-                        {textContent}
-                      </pre>
+                      <div className="w-full h-full p-2">
+                        <CodePreview
+                          content={textContent || ""}
+                          language={ext || "text"}
+                          filename={metadata.filename}
+                          isTruncated={isTruncated}
+                        />
+                      </div>
                     )
                   ) : thumbnailSrc && !thumbnailError ? (
                     <div className="relative w-full h-full flex flex-col items-center justify-center p-4 bg-black/20 gap-3">
