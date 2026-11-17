@@ -189,10 +189,13 @@ export function FolderCard({
   const [isDragOver, setIsDragOver] = useState(false);
 
   const handleDragOver = (e: React.DragEvent) => {
-    if (e.dataTransfer.types.includes("application/x-bytevault-item")) {
+    if (
+      e.dataTransfer.types.includes("application/x-bytevault-item") ||
+      e.dataTransfer.types.includes("Files")
+    ) {
       e.preventDefault();
       e.stopPropagation();
-      e.dataTransfer.dropEffect = "move";
+      e.dataTransfer.dropEffect = "copy";
       setIsDragOver(true);
     }
   };
@@ -207,6 +210,19 @@ export function FolderCard({
     e.preventDefault();
     e.stopPropagation();
     setIsDragOver(false);
+
+    // 1. External files from computer dropped directly onto folder
+    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+      const files = Array.from(e.dataTransfer.files);
+      window.dispatchEvent(
+        new CustomEvent("pushpostvault:trigger-upload-files", {
+          detail: { files, folderId: folder.id },
+        })
+      );
+      return;
+    }
+
+    // 2. Internal file move
     const rawData = e.dataTransfer.getData("application/x-bytevault-item");
     if (!rawData) return;
     try {

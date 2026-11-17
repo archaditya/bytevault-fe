@@ -6,6 +6,7 @@ import { Upload, AlertTriangle } from "lucide-react";
 import { Sidebar } from "./sidebar";
 import { Navbar } from "./navbar";
 import { useTransferStore } from "@/store/transfer.store";
+import { useFilesStore } from "@/store/files.store";
 import { useUploadFileMutation } from "@/services";
 import { checkFileConflicts } from "@/services/files.service";
 import { FloatingTransferDock } from "@/components/shared/floating-transfer-dock";
@@ -40,11 +41,34 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   const uploadMutation = useUploadFileMutation();
 
+  const getActiveFolderId = useCallback((): string | null => {
+    if (pathname.startsWith("/files")) {
+      const storeFolder = useFilesStore.getState().currentFolderId;
+      if (storeFolder && storeFolder !== "root") return storeFolder;
+      if (typeof window !== "undefined") {
+        const urlParams = new URLSearchParams(window.location.search);
+        const qFolder = urlParams.get("folder");
+        if (qFolder && qFolder !== "root") return qFolder;
+      }
+    }
+    return null;
+  }, [pathname]);
+
   const handleFilesUpload = useCallback(
     async (files: File[], folderId?: string | null) => {
+      // Immediately clear drag overlay states
+      dragCounter.current = 0;
+      setIsWindowDragging(false);
+
       if (!files || files.length === 0) return;
 
-      const targetFolder = !folderId || folderId === "root" ? null : folderId;
+      const resolvedFolder =
+        folderId !== undefined
+          ? !folderId || folderId === "root"
+            ? null
+            : folderId
+          : getActiveFolderId();
+      const targetFolder = resolvedFolder;
 
       try {
         const conflicts = await checkFileConflicts(
@@ -104,7 +128,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         });
       });
     },
-    [uploadMutation]
+    [uploadMutation, getActiveFolderId]
   );
 
   const resolveConflict = (
@@ -164,7 +188,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
     const handleDragEnter = (e: DragEvent) => {
       e.preventDefault();
-      e.stopPropagation();
       if (pathname === "/transfers") return;
 
       if (e.dataTransfer && e.dataTransfer.types.includes("Files")) {
@@ -175,7 +198,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
     const handleDragLeave = (e: DragEvent) => {
       e.preventDefault();
-      e.stopPropagation();
       if (pathname === "/transfers") return;
 
       if (e.dataTransfer && e.dataTransfer.types.includes("Files")) {
@@ -189,7 +211,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
     const handleDragOver = (e: DragEvent) => {
       e.preventDefault();
-      e.stopPropagation();
       if (e.dataTransfer) {
         e.dataTransfer.dropEffect = "copy";
       }
@@ -197,7 +218,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
     const handleDrop = (e: DragEvent) => {
       e.preventDefault();
-      e.stopPropagation();
       setIsWindowDragging(false);
       dragCounter.current = 0;
 
@@ -205,7 +225,28 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
       if (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files.length > 0) {
         const files = Array.from(e.dataTransfer.files);
-        handleFilesUpload(files, null);
+        handleFilesUpload(files, getActiveFolderId());
+      }
+    };
+
+    const handleDragEnd = () => {
+      dragCounter.current = 0;
+      setIsWindowDragging(false);
+    };
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        dragCounter.current = 0;
+        setIsWindowDragging(false);
+      }
+    };
+
+    const handleDirectFolderDrop = (e: Event) => {
+      const ce = e as CustomEvent<{ files: File[]; folderId?: string | null }>;
+      if (ce.detail?.files && ce.detail.files.length > 0) {
+        dragCounter.current = 0;
+        setIsWindowDragging(false);
+        handleFilesUpload(ce.detail.files, ce.detail.folderId || null);
       }
     };
 
@@ -213,14 +254,20 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     window.addEventListener("dragleave", handleDragLeave);
     window.addEventListener("dragover", handleDragOver);
     window.addEventListener("drop", handleDrop);
+    window.addEventListener("dragend", handleDragEnd);
+    window.addEventListener("keydown", handleKeyDown);
+    window.addEventListener("pushpostvault:trigger-upload-files", handleDirectFolderDrop);
 
     return () => {
       window.removeEventListener("dragenter", handleDragEnter);
       window.removeEventListener("dragleave", handleDragLeave);
       window.removeEventListener("dragover", handleDragOver);
       window.removeEventListener("drop", handleDrop);
+      window.removeEventListener("dragend", handleDragEnd);
+      window.removeEventListener("keydown", handleKeyDown);
+      window.removeEventListener("pushpostvault:trigger-upload-files", handleDirectFolderDrop);
     };
-  }, [pathname, handleFilesUpload]);
+  }, [pathname, handleFilesUpload, getActiveFolderId]);
 
   return (
     <div className="min-h-screen bg-bg">
@@ -240,8 +287,39 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
       {/* Global Drag-and-Drop Overlay */}
       {isWindowDragging && (
-        <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-black/70 backdrop-blur-sm border-2 border-dashed border-accent animate-in fade-in-50 duration-150 pointer-events-none">
-          <div className="flex flex-col items-center gap-3 p-6 rounded-2xl bg-bg-surface border border-accent/40 shadow-2xl">
+        <div
+          onDragOver={(e) => {
+            e.preventDefault();
+            if (e.dataTransfer) {
+              e.dataTransfer.dropEffect = "copy";
+            }
+          }}
+          onDragLeave={(e) => {
+            if (e.currentTarget === e.target) {
+              dragCounter.current = 0;
+              setIsWindowDragging(false);
+            }
+          }}
+          onDrop={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            dragCounter.current = 0;
+            setIsWindowDragging(false);
+            if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+              const files = Array.from(e.dataTransfer.files);
+              handleFilesUpload(files, getActiveFolderId());
+            }
+          }}
+          onClick={() => {
+            dragCounter.current = 0;
+            setIsWindowDragging(false);
+          }}
+          className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-black/70 backdrop-blur-sm border-2 border-dashed border-accent animate-in fade-in-50 duration-150 cursor-pointer select-none"
+        >
+          <div
+            className="flex flex-col items-center gap-3 p-6 rounded-2xl bg-bg-surface border border-accent/40 shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="p-3.5 rounded-full bg-accent/15 border border-accent/30 text-accent-bright animate-bounce">
               <Upload className="h-8 w-8" />
             </div>
