@@ -118,7 +118,7 @@ function uploadChunkViaXhr(
 export async function resumeUpload(txId: string, file?: File) {
   const store = useTransferStore.getState();
   const tx = store.transfers.find((t) => t.id === txId);
-  if (!tx || tx.status !== "paused") return;
+  if (!tx || (tx.status !== "paused" && tx.status !== "failed")) return;
 
   let fileObj = activeUploadsRegistry.get(txId)?.file || file;
   if (!fileObj) {
@@ -875,16 +875,18 @@ export async function checkFileConflicts(
   filenames: string[],
   folderId?: string | null
 ): Promise<Array<{ filename: string; existing_file: any }>> {
+  const normalizedFolderId = !folderId || folderId === "root" ? undefined : folderId;
   try {
     const res = (await apiClient("/api/v1/files/check-conflicts", {
       method: "POST",
       body: JSON.stringify({
         filenames,
-        folder_id: folderId || undefined,
+        folder_id: normalizedFolderId,
       }),
     })) as { conflicts?: Array<{ filename: string; existing_file: any }> };
     return res.conflicts || [];
-  } catch {
+  } catch (err) {
+    console.error("Conflict preflight check error:", err);
     return [];
   }
 }
