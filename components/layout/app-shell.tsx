@@ -2,13 +2,28 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import { usePathname, useRouter } from "next/navigation";
-import { Upload } from "lucide-react";
+import { Upload, AlertTriangle } from "lucide-react";
 import { Sidebar } from "./sidebar";
 import { Navbar } from "./navbar";
 import { useTransferStore } from "@/store/transfer.store";
 import { useUploadFileMutation } from "@/services";
+import { checkFileConflicts } from "@/services/files.service";
 import { FloatingTransferDock } from "@/components/shared/floating-transfer-dock";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { formatBytes } from "@/lib/utils";
 import toast from "react-hot-toast";
+
+interface ConflictFileItem {
+  file: File;
+  existingFile: any;
+  folderId?: string | null;
+}
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -19,11 +34,66 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const targetFolderIdRef = useRef<string | null>(null);
 
+  const [conflictList, setConflictList] = useState<ConflictFileItem[]>([]);
+  const [showConflictDialog, setShowConflictDialog] = useState(false);
+  const [applyToAll, setApplyToAll] = useState(false);
+
   const uploadMutation = useUploadFileMutation();
 
   const handleFilesUpload = useCallback(
-    (files: File[], folderId?: string | null) => {
+    async (files: File[], folderId?: string | null) => {
       if (!files || files.length === 0) return;
+
+      const targetFolder = !folderId || folderId === "root" ? null : folderId;
+
+      try {
+        const conflicts = await checkFileConflicts(
+          files.map((f) => f.name),
+          targetFolder
+        );
+
+        if (conflicts && conflicts.length > 0) {
+          const conflictingNames = new Set(conflicts.map((c) => c.filename));
+          const cleanFiles = files.filter((f) => !conflictingNames.has(f.name));
+
+          // Start uploading non-conflicting files right away
+          if (cleanFiles.length > 0) {
+            toast.success(
+              `Uploading ${cleanFiles.length} file${cleanFiles.length > 1 ? "s" : ""} in the background...`,
+              { icon: "🚀" }
+            );
+            cleanFiles.forEach((file) => {
+              uploadMutation.mutate({
+                file,
+                folderId: targetFolder || undefined,
+              });
+            });
+          }
+
+          // Build conflict items for the dialog
+          const conflictItems: ConflictFileItem[] = conflicts
+            .map((c) => {
+              const matched = files.find((f) => f.name === c.filename);
+              if (!matched) return null;
+              return {
+                file: matched,
+                existingFile: c.existing_file,
+                folderId: targetFolder,
+              };
+            })
+            .filter((c): c is ConflictFileItem => Boolean(c));
+
+          if (conflictItems.length > 0) {
+            setConflictList(conflictItems);
+            setShowConflictDialog(true);
+            return;
+          }
+        }
+      } catch (err) {
+        console.error("Conflict preflight check failed:", err);
+      }
+
+      // No conflicts -> upload all directly
       toast.success(
         `Uploading ${files.length} file${files.length > 1 ? "s" : ""} in the background...`,
         { icon: "🚀" }
@@ -31,12 +101,45 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       files.forEach((file) => {
         uploadMutation.mutate({
           file,
-          folderId: folderId || undefined,
+          folderId: targetFolder || undefined,
         });
       });
     },
     [uploadMutation]
   );
+
+  const resolveConflict = (
+    action: "replace" | "keep_both" | "skip",
+    shouldApplyAll: boolean
+  ) => {
+    if (conflictList.length === 0) return;
+
+    const itemsToProcess = shouldApplyAll ? conflictList : [conflictList[0]];
+
+    if (action !== "skip") {
+      itemsToProcess.forEach((item) => {
+        uploadMutation.mutate({
+          file: item.file,
+          folderId: item.folderId || undefined,
+          conflictAction: action,
+        });
+      });
+      toast.success(
+        `Uploading ${itemsToProcess.length} file${itemsToProcess.length > 1 ? "s" : ""} (${
+          action === "replace" ? "replace" : "keep both"
+        })...`,
+        { icon: "🚀" }
+      );
+    }
+
+    if (shouldApplyAll || conflictList.length <= 1) {
+      setConflictList([]);
+      setShowConflictDialog(false);
+      setApplyToAll(false);
+    } else {
+      setConflictList((prev) => prev.slice(1));
+    }
+  };
 
   // Global listener for upload trigger from Navbar, Dashboard, or FilesToolbar
   useEffect(() => {
@@ -103,7 +206,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
       if (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files.length > 0) {
         const files = Array.from(e.dataTransfer.files);
-        // Direct background upload without navigating to /transfers
         handleFilesUpload(files, null);
       }
     };
@@ -158,6 +260,89 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
       {/* Persistent Background Transfer Dock */}
       <FloatingTransferDock />
+
+      {/* Global Duplicate File Conflict Resolution Dialog */}
+      {showConflictDialog && conflictList.length > 0 && (
+        <Dialog open={showConflictDialog} onOpenChange={setShowConflictDialog}>
+          <DialogContent className="max-w-md border-border-strong bg-bg-surface p-6 shadow-2xl text-ink">
+            <DialogHeader>
+              <div className="flex items-center gap-3">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-amber-500/10 text-amber-400 border border-amber-500/20">
+                  <AlertTriangle className="h-5 w-5" />
+                </div>
+                <div>
+                  <DialogTitle className="text-base font-bold text-ink">File Already Exists</DialogTitle>
+                  <p className="text-xs text-ink-muted mt-0.5">
+                    {conflictList.length > 1
+                      ? `${conflictList.length} files already exist in this destination`
+                      : "A file with this name already exists in this destination"}
+                  </p>
+                </div>
+              </div>
+            </DialogHeader>
+
+            <div className="my-4 space-y-3">
+              <div className="rounded-xl border border-border bg-bg-raised/70 p-3.5 space-y-2 text-xs">
+                <div className="flex items-center justify-between font-mono font-medium text-ink">
+                  <span className="truncate max-w-[220px]" title={conflictList[0].file.name}>
+                    {conflictList[0].file.name}
+                  </span>
+                  <span className="text-ink-muted">{formatBytes(conflictList[0].file.size)}</span>
+                </div>
+                {conflictList[0].existingFile && (
+                  <p className="text-[11px] text-ink-faint">
+                    Existing file uploaded on{" "}
+                    {new Date(
+                      conflictList[0].existingFile.updated_at ||
+                        conflictList[0].existingFile.created_at
+                    ).toLocaleDateString()}
+                  </p>
+                )}
+              </div>
+
+              {conflictList.length > 1 && (
+                <label className="flex items-center gap-2 cursor-pointer text-xs text-ink select-none pt-1">
+                  <input
+                    type="checkbox"
+                    checked={applyToAll}
+                    onChange={(e) => setApplyToAll(e.target.checked)}
+                    className="h-3.5 w-3.5 rounded border-border-strong text-accent focus:ring-0"
+                  />
+                  <span>Apply to all remaining conflicts ({conflictList.length})</span>
+                </label>
+              )}
+            </div>
+
+            <div className="flex flex-col gap-2 pt-2 border-t border-border">
+              <div className="grid grid-cols-2 gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="w-full text-xs h-9 border-border hover:bg-bg-raised text-ink"
+                  onClick={() => resolveConflict("replace", applyToAll)}
+                >
+                  Replace File
+                </Button>
+                <Button
+                  type="button"
+                  className="w-full text-xs h-9 bg-accent hover:bg-accent/90 text-bg font-semibold"
+                  onClick={() => resolveConflict("keep_both", applyToAll)}
+                >
+                  Keep Both (Rename)
+                </Button>
+              </div>
+              <Button
+                type="button"
+                variant="ghost"
+                className="w-full text-xs h-8 text-ink-muted hover:text-ink"
+                onClick={() => resolveConflict("skip", applyToAll)}
+              >
+                Skip This File
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
     </div>
   );
 }
