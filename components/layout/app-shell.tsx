@@ -71,17 +71,16 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           }
 
           // Build conflict items for the dialog
-          const conflictItems: ConflictFileItem[] = conflicts
-            .map((c) => {
-              const matched = files.find((f) => f.name === c.filename);
-              if (!matched) return null;
-              return {
-                file: matched,
-                existingFile: c.existing_file,
-                folderId: targetFolder,
-              };
-            })
-            .filter((c): c is ConflictFileItem => Boolean(c));
+          const conflictItems: ConflictFileItem[] = conflicts.flatMap((c) => {
+            const matched = files.find((f) => f.name === c.filename);
+            return matched
+              ? [{
+                  file: matched,
+                  existingFile: c.existing_file,
+                  folderId: targetFolder,
+                }]
+              : [];
+          });
 
           if (conflictItems.length > 0) {
             setConflictList(conflictItems);
