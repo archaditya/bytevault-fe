@@ -22,7 +22,6 @@ import {
   Trash2,
   Share2,
   Copy,
-  Check,
 } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
