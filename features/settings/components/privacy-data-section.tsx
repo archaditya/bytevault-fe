@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { apiClient } from "@/lib/api-client";
+import { apiClient, getAccessToken } from "@/lib/api-client";
 import { useAuthStore } from "@/store";
 import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
@@ -41,7 +41,7 @@ export function PrivacyDataSection() {
   const handleDownloadData = async () => {
     setDownloading(true);
     try {
-      const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
+      const token = getAccessToken();
       const res = await fetch("/api/v1/me/export", {
         headers: {
           ...(token ? { Authorization: `Bearer ${token}` } : {}),
