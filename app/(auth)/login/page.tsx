@@ -259,6 +259,13 @@ function LoginPage() {
                 useAuthStore.getState().setUser(frontendUser);
                 router.push(redirectTo);
               } catch (err: any) {
+                if (
+                  err?.code === "auth/popup-closed-by-user" ||
+                  err?.code === "auth/cancelled-popup-request" ||
+                  err?.message?.includes("popup-closed-by-user")
+                ) {
+                  return;
+                }
                 toast.error(err.message || "Google login failed");
               }
             }}
