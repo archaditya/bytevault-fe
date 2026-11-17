@@ -49,6 +49,8 @@ import { cn, formatBytes } from "@/lib/utils";
 import { useAuthStore } from "@/store";
 import { apiClient } from "@/lib/api-client";
 import toast from "react-hot-toast";
+import { ExcelPreview } from "@/features/files/components/preview/excel-preview";
+import { DocxPreview } from "@/features/files/components/preview/docx-preview";
 
 interface PublicFile {
   id: string;
@@ -95,6 +97,15 @@ function getFileTypeInfo(filename: string, mimeType: string) {
     : "";
   const mime = (mimeType || "").toLowerCase();
 
+  const isExcel =
+    ["xlsx", "xls", "csv", "tsv"].includes(ext) ||
+    mime.includes("spreadsheet") ||
+    mime.includes("excel") ||
+    mime.includes("csv");
+  const isWord =
+    ["docx", "doc"].includes(ext) ||
+    mime.includes("wordprocessingml") ||
+    mime.includes("msword");
   const isAPK =
     ext === "apk" || mime === "application/vnd.android.package-archive";
   const isIPA =
@@ -105,34 +116,39 @@ function getFileTypeInfo(filename: string, mimeType: string) {
   const isArchive = ["zip", "tar", "gz", "7z", "rar", "bz2"].includes(ext);
   const isPDF = mime === "application/pdf" || ext === "pdf";
   const isCode =
-    mime.startsWith("text/") ||
-    mime.includes("json") ||
-    mime.includes("javascript") ||
-    mime.includes("typescript") ||
-    mime.includes("xml") ||
-    [
-      "js",
-      "ts",
-      "tsx",
-      "jsx",
-      "json",
-      "py",
-      "go",
-      "rs",
-      "java",
-      "cpp",
-      "c",
-      "h",
-      "html",
-      "css",
-      "md",
-      "yaml",
-      "yml",
-      "sh",
-    ].includes(ext);
+    !isExcel &&
+    !isWord &&
+    (mime.startsWith("text/") ||
+      mime.includes("json") ||
+      mime.includes("javascript") ||
+      mime.includes("typescript") ||
+      [
+        "js",
+        "ts",
+        "tsx",
+        "jsx",
+        "json",
+        "py",
+        "go",
+        "rs",
+        "java",
+        "cpp",
+        "c",
+        "h",
+        "html",
+        "css",
+        "md",
+        "yaml",
+        "yml",
+        "sh",
+        "sql",
+        "env",
+      ].includes(ext));
 
   return {
     ext,
+    isExcel,
+    isWord,
     isAPK,
     isIPA,
     isImage,
@@ -1097,11 +1113,36 @@ export default function PublicSharedFolderPage({
                       isCode,
                       isAPK,
                       isIPA,
+                      isExcel,
+                      isWord,
                     } = getFileTypeInfo(
                       activePreviewFile.filename,
                       activePreviewFile.content_type
                     );
                     const fileUrl = `/api/v1/files/public/${activePreviewFile.id}`;
+
+                    if (isExcel) {
+                      return (
+                        <div className="w-full h-full min-h-[380px]">
+                          <ExcelPreview
+                            url={`${fileUrl}?inline=true`}
+                            filename={activePreviewFile.filename}
+                            fileSize={activePreviewFile.file_size}
+                          />
+                        </div>
+                      );
+                    }
+
+                    if (isWord) {
+                      return (
+                        <div className="w-full h-full min-h-[380px]">
+                          <DocxPreview
+                            url={`${fileUrl}?inline=true`}
+                            filename={activePreviewFile.filename}
+                          />
+                        </div>
+                      );
+                    }
 
                     if (isImage) {
                       return (

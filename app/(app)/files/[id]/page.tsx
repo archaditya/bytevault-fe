@@ -35,6 +35,9 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { FileKindIcon } from "@/components/shared/file-kind-icon";
 import { RichFilePreview } from "@/features/files/components/rich-file-preview";
+import { ExcelPreview } from "@/features/files/components/preview/excel-preview";
+import { DocxPreview } from "@/features/files/components/preview/docx-preview";
+import { CodePreview } from "@/features/files/components/preview/code-preview";
 import { MoveItemModal } from "@/features/files/components/move-item-modal";
 import {
   cn,
@@ -98,9 +101,26 @@ export default function FileDetailsPage({
 
   const deleteMutation = useDeleteFileMutation();
   const toggleShareMutation = useToggleShareMutation();
+  const [isTruncated, setIsTruncated] = useState(false);
+
+  const ext = useMemo(() => {
+    return file?.name?.includes(".") ? file.name.split(".").pop()?.toLowerCase() || "" : "";
+  }, [file]);
+
+  const isExcel = useMemo(() => {
+    if (!file) return false;
+    const ct = (file.mimeType || "").toLowerCase();
+    return ["xlsx", "xls", "csv", "tsv"].includes(ext) || ct.includes("spreadsheet") || ct.includes("excel") || ct.includes("csv");
+  }, [file, ext]);
+
+  const isWord = useMemo(() => {
+    if (!file) return false;
+    const ct = (file.mimeType || "").toLowerCase();
+    return ["docx", "doc"].includes(ext) || ct.includes("wordprocessingml") || ct.includes("msword");
+  }, [file, ext]);
 
   const isTextType = useMemo(() => {
-    if (!file) return false;
+    if (!file || isExcel || isWord) return false;
     const ct = (file.mimeType || "").toLowerCase();
     const fn = (file.name || "").toLowerCase();
     return (
@@ -108,7 +128,6 @@ export default function FileDetailsPage({
       ct.includes("json") ||
       ct.includes("javascript") ||
       ct.includes("typescript") ||
-      ct.includes("xml") ||
       fn.endsWith(".txt") ||
       fn.endsWith(".md") ||
       fn.endsWith(".json") ||
@@ -127,10 +146,10 @@ export default function FileDetailsPage({
       fn.endsWith(".env") ||
       fn.endsWith(".log")
     );
-  }, [file]);
+  }, [file, isExcel, isWord]);
 
   useEffect(() => {
-    if (isTextType && token && file?.id) {
+    if (isTextType && !isExcel && !isWord && token && file?.id) {
       setLoadingText(true);
       fetch(`/api/v1/files/${file.id}/download?token=${token}&inline=true`)
         .then((res) => {
@@ -139,9 +158,11 @@ export default function FileDetailsPage({
         })
         .then((text) => {
           if (text.length > 100 * 1024) {
-            setTextContent(text.substring(0, 100 * 1024) + "\n\n... [Content truncated for preview] ...");
+            setTextContent(text.substring(0, 100 * 1024));
+            setIsTruncated(true);
           } else {
             setTextContent(text);
+            setIsTruncated(false);
           }
         })
         .catch(() => {
@@ -151,7 +172,7 @@ export default function FileDetailsPage({
           setLoadingText(false);
         });
     }
-  }, [isTextType, token, file?.id]);
+  }, [isTextType, isExcel, isWord, token, file?.id]);
 
   if (isLoading) {
     return (
@@ -357,7 +378,22 @@ export default function FileDetailsPage({
               : "min-h-[550px] lg:min-h-[750px] lg:h-[calc(100vh-220px)]"
           )}>
             {token ? (
-              file.mimeType.startsWith("image/") ? (
+              isExcel ? (
+                <div className="absolute inset-0 p-3">
+                  <ExcelPreview
+                    url={previewUrl}
+                    filename={file.name}
+                    fileSize={file.sizeBytes}
+                  />
+                </div>
+              ) : isWord ? (
+                <div className="absolute inset-0 p-3">
+                  <DocxPreview
+                    url={previewUrl}
+                    filename={file.name}
+                  />
+                </div>
+              ) : file.mimeType.startsWith("image/") ? (
                 <img
                   src={previewUrl}
                   alt="Preview"
@@ -385,9 +421,14 @@ export default function FileDetailsPage({
                     Loading preview...
                   </div>
                 ) : (
-                  <pre className="absolute inset-0 p-4 text-xs font-mono overflow-auto w-full text-ink bg-bg-surface text-left whitespace-pre-wrap select-text">
-                    {textContent}
-                  </pre>
+                  <div className="absolute inset-0 p-3">
+                    <CodePreview
+                      content={textContent || ""}
+                      language={ext || "text"}
+                      filename={file.name}
+                      isTruncated={isTruncated}
+                    />
+                  </div>
                 )
               ) : (
                 <div className="absolute inset-0 flex flex-col items-center justify-center p-6 bg-bg-surface overflow-hidden">
