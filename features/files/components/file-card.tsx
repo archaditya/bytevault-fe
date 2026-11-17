@@ -66,18 +66,25 @@ export function FileCard({
   const [isMoveOpen, setIsMoveOpen] = useState(false);
   const [newFileName, setNewFileName] = useState(file.name);
 
+  const ext = file.name.includes(".")
+    ? file.name.split(".").pop()?.toLowerCase() || ""
+    : "";
+
   const isVisualMedia =
     file.kind === "image" ||
     file.kind === "video" ||
+    [
+      "jpg", "jpeg", "png", "webp", "gif", "svg", "heic", "heif", "avif",
+      "mp4", "mov", "webm", "mkv"
+    ].includes(ext) ||
     (file.kind === "document" &&
-      (file.mimeType === "application/pdf" ||
-        file.name.toLowerCase().endsWith(".pdf")));
+      (file.mimeType === "application/pdf" || ext === "pdf"));
 
   const { data: previewUrl } = useFileImageBlob(
     file.id,
     isVisualMedia && !file.thumbnailUrl && file.status === "READY"
   );
-  const displayUrl = isVisualMedia ? file.thumbnailUrl || previewUrl : undefined;
+  const displayUrl = file.thumbnailUrl || (isVisualMedia ? previewUrl : undefined);
   const isSelected = selectedItems.some((item) => item.id === file.id);
   const [imgError, setImgError] = useState(false);
 
