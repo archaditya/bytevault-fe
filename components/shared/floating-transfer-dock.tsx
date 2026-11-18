@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
@@ -30,10 +30,11 @@ import toast from "react-hot-toast";
 export function FloatingTransferDock() {
   const pathname = usePathname();
   const transfers = useTransferStore((s) => s.transfers);
-  const [isExpanded, setIsExpanded] = useState(true);
+  const [isExpanded, setIsExpanded] = useState(false);
   const [isDismissed, setIsDismissed] = useState(false);
   const [sharingId, setSharingId] = useState<string | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const prevActiveCountRef = useRef(0);
   const toggleShareMutation = useToggleShareMutation();
 
   const handleInstantShare = async (e: React.MouseEvent, item: TransferSession) => {
@@ -108,12 +109,23 @@ export function FloatingTransferDock() {
 
   const recentTransfers = transfers.slice(0, 8);
 
-  // Auto-expand and un-dismiss whenever a new active transfer begins (Google Drive UX)
+  // Auto-expand when a new active transfer begins, and auto-minimize once uploads finish
   useEffect(() => {
-    if (activeTransfers.length > 0) {
+    const currentActive = activeTransfers.length;
+    const prevActive = prevActiveCountRef.current;
+
+    if (currentActive > 0) {
       setIsDismissed(false);
       setIsExpanded(true);
+    } else if (prevActive > 0 && currentActive === 0) {
+      // Transfers just finished! Keep open for 2.5 seconds so user sees completion, then minimize
+      const timer = setTimeout(() => {
+        setIsExpanded(false);
+      }, 2500);
+      return () => clearTimeout(timer);
     }
+
+    prevActiveCountRef.current = currentActive;
   }, [activeTransfers.length]);
 
   // If on /transfers page, full Transfer Studio is already visible
@@ -313,35 +325,51 @@ export function FloatingTransferDock() {
         </div>
       ) : (
         /* Collapsed Floating Pill */
-        <button
-          onClick={() => setIsExpanded(true)}
+        <div
           className={cn(
-            "flex items-center gap-2.5 px-3.5 py-2 rounded-full border border-border-strong shadow-xl backdrop-blur-md transition-transform hover:scale-102 active:scale-98 text-xs font-medium cursor-pointer",
+            "flex items-center gap-2 pl-3 pr-2 py-1.5 rounded-full border border-border-strong shadow-xl backdrop-blur-md transition-all text-xs font-medium animate-in fade-in duration-150",
             isActivelyTransferring
               ? "bg-bg-surface/95 text-ink border-accent/40"
               : "bg-bg-surface/90 text-ink-muted"
           )}
         >
-          <div
-            className={cn(
-              "h-2 w-2 rounded-full",
-              isActivelyTransferring ? "bg-accent animate-ping" : "bg-emerald-400"
-            )}
-          />
-          <div className="flex items-center gap-2">
-            <span>
+          <button
+            type="button"
+            onClick={() => setIsExpanded(true)}
+            className="flex items-center gap-2 cursor-pointer outline-none hover:text-ink transition-colors"
+          >
+            <div
+              className={cn(
+                "h-2 w-2 rounded-full shrink-0",
+                isActivelyTransferring ? "bg-accent animate-ping" : "bg-emerald-400"
+              )}
+            />
+            <span className="text-[12px] font-medium">
               {isActivelyTransferring
                 ? `Uploading ${activeTransfers.length} • ${aggregatePercentage}%`
                 : `${transfers.length} Transfers done`}
             </span>
             {isActivelyTransferring && totalSpeed > 0 && (
-              <span className="font-mono text-[11px] text-ink-muted">
+              <span className="font-mono text-[11px] text-ink-muted hidden sm:inline">
                 ({formatBytes(totalSpeed)}/s)
               </span>
             )}
-          </div>
-          <ChevronUp className="h-3.5 w-3.5 text-ink-muted" />
-        </button>
+            <ChevronUp className="h-3.5 w-3.5 text-ink-muted shrink-0" />
+          </button>
+          {!isActivelyTransferring && (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                setIsDismissed(true);
+              }}
+              className="p-1 rounded-full text-ink-faint hover:text-ink hover:bg-bg-raised transition-colors ml-0.5 cursor-pointer shrink-0"
+              title="Dismiss transfer pill"
+            >
+              <X className="h-3 w-3" />
+            </button>
+          )}
+        </div>
       )}
     </aside>
   );

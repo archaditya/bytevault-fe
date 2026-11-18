@@ -64,3 +64,103 @@ export function truncateMiddle(str: string, maxLength = 28): string {
 export function clamp(value: number, min: number, max: number): number {
   return Math.min(Math.max(value, min), max);
 }
+
+export interface FriendlyFileType {
+  label: string;
+  badge: string;
+  category: "spreadsheet" | "document" | "presentation" | "pdf" | "image" | "video" | "audio" | "code" | "archive" | "data" | "other";
+}
+
+export function getFriendlyFileType(mimeType?: string, filename?: string): FriendlyFileType {
+  const ext = filename?.includes(".")
+    ? filename.split(".").pop()?.toLowerCase() || ""
+    : "";
+  const mime = (mimeType || "").toLowerCase();
+
+  // Excel / Spreadsheet
+  if (["xlsx", "xls", "xlsm", "xlsb"].includes(ext) || mime.includes("spreadsheet") || mime.includes("excel")) {
+    return { label: "Excel Spreadsheet", badge: ext.toUpperCase() || "XLSX", category: "spreadsheet" };
+  }
+  if (["csv", "tsv"].includes(ext) || mime === "text/csv" || mime === "text/tab-separated-values") {
+    return { label: `${ext.toUpperCase()} Delimited Data`, badge: ext.toUpperCase() || "CSV", category: "spreadsheet" };
+  }
+
+  // Word / Document
+  if (["docx", "doc", "dotx", "dot"].includes(ext) || mime.includes("wordprocessingml") || mime.includes("msword")) {
+    return { label: "Word Document", badge: ext.toUpperCase() || "DOCX", category: "document" };
+  }
+
+  // PowerPoint
+  if (["pptx", "ppt", "ppsx"].includes(ext) || mime.includes("presentationml") || mime.includes("powerpoint")) {
+    return { label: "PowerPoint Presentation", badge: ext.toUpperCase() || "PPTX", category: "presentation" };
+  }
+
+  // PDF
+  if (ext === "pdf" || mime === "application/pdf") {
+    return { label: "PDF Document", badge: "PDF", category: "pdf" };
+  }
+
+  // Images
+  if (mime.startsWith("image/") || ["png", "jpg", "jpeg", "webp", "gif", "svg", "bmp", "ico", "heic", "tiff"].includes(ext)) {
+    const sub = ext.toUpperCase() || (mime.includes("/") ? mime.split("/")[1]?.toUpperCase() : "IMG");
+    return { label: `${sub} Image`, badge: sub.slice(0, 5), category: "image" };
+  }
+
+  // Videos
+  if (mime.startsWith("video/") || ["mp4", "webm", "mov", "mkv", "avi", "flv"].includes(ext)) {
+    const sub = ext.toUpperCase() || (mime.includes("/") ? mime.split("/")[1]?.toUpperCase() : "VIDEO");
+    return { label: `${sub} Video`, badge: sub.slice(0, 5), category: "video" };
+  }
+
+  // Audio
+  if (mime.startsWith("audio/") || ["mp3", "wav", "ogg", "aac", "flac", "m4a"].includes(ext)) {
+    const sub = ext.toUpperCase() || (mime.includes("/") ? mime.split("/")[1]?.toUpperCase() : "AUDIO");
+    return { label: `${sub} Audio`, badge: sub.slice(0, 5), category: "audio" };
+  }
+
+  // Archives
+  if (["zip", "tar", "gz", "tgz", "rar", "7z", "bz2"].includes(ext) || mime.includes("zip") || mime.includes("compressed") || mime.includes("archive")) {
+    const sub = ext.toUpperCase() || "ZIP";
+    return { label: `${sub} Archive`, badge: sub.slice(0, 5), category: "archive" };
+  }
+
+  // Structured Data / Code
+  if (["json", "xml", "yaml", "yml", "toml"].includes(ext) || mime.includes("json") || mime.includes("xml")) {
+    return { label: `${ext.toUpperCase()} Data`, badge: ext.toUpperCase(), category: "data" };
+  }
+
+  if (
+    ["js", "ts", "tsx", "jsx", "py", "go", "rs", "java", "c", "cpp", "h", "cs", "rb", "php", "sql", "sh", "env", "md", "txt", "html", "css"].includes(ext) ||
+    mime.startsWith("text/")
+  ) {
+    const codeNameMap: Record<string, string> = {
+      py: "Python Source",
+      js: "JavaScript Source",
+      ts: "TypeScript Source",
+      tsx: "React Component",
+      jsx: "React Component",
+      go: "Go Source",
+      rs: "Rust Source",
+      sql: "SQL Query",
+      sh: "Shell Script",
+      md: "Markdown Document",
+      txt: "Plain Text Document",
+      html: "HTML Document",
+      css: "CSS Stylesheet",
+      json: "JSON Document",
+    };
+    return {
+      label: codeNameMap[ext] || `${ext.toUpperCase() || "Text"} File`,
+      badge: (ext.toUpperCase() || "CODE").slice(0, 5),
+      category: "code",
+    };
+  }
+
+  // General fallback
+  const fallbackExt = ext.toUpperCase() || (mime.includes("/") ? mime.split("/")[1]?.split("+")[0]?.toUpperCase() : "FILE");
+  return {
+    label: `${fallbackExt} File`,
+    badge: fallbackExt.slice(0, 5),
+    category: "other",
+  };
+}

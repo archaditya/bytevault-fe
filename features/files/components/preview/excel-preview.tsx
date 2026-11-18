@@ -12,6 +12,7 @@ import {
   Table as TableIcon,
 } from "lucide-react";
 import { formatBytes } from "@/lib/utils";
+import { fetchWithAuth } from "@/lib/api-client";
 
 interface ExcelPreviewProps {
   url: string;
@@ -47,7 +48,7 @@ export function ExcelPreview({ url, filename, fileSize }: ExcelPreviewProps) {
       setIsEncrypted(false);
 
       try {
-        const response = await fetch(url);
+        const response = await fetchWithAuth(url);
         if (!response.ok) {
           throw new Error(`Failed to load file (${response.status} ${response.statusText})`);
         }
@@ -251,7 +252,7 @@ export function ExcelPreview({ url, filename, fileSize }: ExcelPreviewProps) {
         </div>
 
         {/* Search within sheet */}
-        <div className="relative min-w-[160px] sm:min-w-[200px]">
+        <div className="relative w-full sm:w-auto sm:min-w-[200px]">
           <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-ink-faint pointer-events-none" />
           <input
             type="text"

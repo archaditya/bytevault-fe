@@ -2,7 +2,7 @@
 
 import { use, useEffect, useMemo, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { getAccessToken } from "@/lib/api-client";
+import { getAccessToken, fetchWithAuth } from "@/lib/api-client";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -22,6 +22,10 @@ import {
   Maximize2,
   Minimize2,
   Move,
+  Copy,
+  Lock,
+  HardDrive,
+  Info,
 } from "lucide-react";
 import {
   useFile,
@@ -43,7 +47,10 @@ import {
   cn,
   formatBytes,
   formatRelativeTime,
+  formatDate,
+  formatDateTime,
   truncateMiddle,
+  getFriendlyFileType,
 } from "@/lib/utils";
 import toast from "react-hot-toast";
 import { useConfirm } from "@/components/ui/confirm-dialog";
@@ -107,6 +114,11 @@ export default function FileDetailsPage({
     return file?.name?.includes(".") ? file.name.split(".").pop()?.toLowerCase() || "" : "";
   }, [file]);
 
+  const friendlyType = useMemo(() => {
+    if (!file) return { label: "Unknown File", badge: "FILE", category: "other" as const };
+    return getFriendlyFileType(file.mimeType, file.name);
+  }, [file]);
+
   const isExcel = useMemo(() => {
     if (!file) return false;
     const ct = (file.mimeType || "").toLowerCase();
@@ -149,9 +161,9 @@ export default function FileDetailsPage({
   }, [file, isExcel, isWord]);
 
   useEffect(() => {
-    if (isTextType && !isExcel && !isWord && token && file?.id) {
+    if (isTextType && !isExcel && !isWord && file?.id && previewUrl) {
       setLoadingText(true);
-      fetch(`/api/v1/files/${file.id}/download?token=${token}&inline=true`)
+      fetchWithAuth(previewUrl)
         .then((res) => {
           if (!res.ok) throw new Error("Failed to load text preview");
           return res.text();
@@ -375,7 +387,7 @@ export default function FileDetailsPage({
             "flex-1 w-full bg-bg-surface relative overflow-hidden",
             isFullscreen
               ? "h-[calc(100vh-48px)] min-h-0"
-              : "min-h-[550px] lg:min-h-[750px] lg:h-[calc(100vh-220px)]"
+              : "min-h-[380px] sm:min-h-[520px] lg:min-h-[750px] lg:h-[calc(100vh-220px)]"
           )}>
             {token ? (
               isExcel ? (
@@ -456,77 +468,188 @@ export default function FileDetailsPage({
           </div>
         </Card>
 
-        {/* METADATA CARD */}
-        <div className="flex flex-col gap-4">
-          <Card className="bg-bg-surface border-border-strong">
-            <CardHeader>
-              <CardTitle>Metadata</CardTitle>
+        {/* METADATA & SHARING CARD */}
+        <div className="flex flex-col gap-4 min-w-0">
+          <Card className="bg-bg-surface border-border-strong overflow-hidden shadow-sm">
+            <CardHeader className="py-3.5 px-4 bg-bg-raised/40 border-b border-border/70 flex flex-row items-center justify-between space-y-0">
+              <CardTitle className="text-xs font-semibold uppercase tracking-wider text-ink-muted flex items-center gap-1.5">
+                <Info className="h-3.5 w-3.5 text-accent" /> File Information
+              </CardTitle>
+              <Badge variant="muted" className="text-[10px] uppercase font-mono tracking-wider font-bold">
+                {file.kind}
+              </Badge>
             </CardHeader>
-            <CardContent className="grid grid-cols-2 gap-5">
-              <Field
-                label="Size"
-                value={formatBytes(file.sizeBytes)}
-                icon={Hash}
-              />
-              <Field
-                label="Type"
-                value={file.mimeType.split("/")[1]?.toUpperCase() || "Unknown"}
-                icon={Hash}
-              />
-              <Field
-                label="Uploaded"
-                value={formatRelativeTime(file.uploadedAt)}
-                icon={Calendar}
-              />
-              <Field
-                label="Downloads"
-                value={file.downloads.toLocaleString()}
-                icon={Download}
-              />
+            <CardContent className="p-4 flex flex-col gap-4">
+              <div className="grid grid-cols-2 gap-4">
+                <Field
+                  label="Size"
+                  value={
+                    <div className="flex flex-col min-w-0">
+                      <span className="font-semibold text-ink text-sm leading-none font-mono">
+                        {formatBytes(file.sizeBytes)}
+                      </span>
+                      <span className="text-[10px] text-ink-faint font-mono mt-1 truncate">
+                        {file.sizeBytes.toLocaleString()} bytes
+                      </span>
+                    </div>
+                  }
+                  icon={HardDrive}
+                />
+                <Field
+                  label="Format"
+                  value={
+                    <div className="flex flex-col min-w-0">
+                      <div className="flex items-center gap-1.5 min-w-0">
+                        <span
+                          className="font-semibold text-ink text-[13px] truncate"
+                          title={friendlyType.label}
+                        >
+                          {friendlyType.label}
+                        </span>
+                      </div>
+                      <div className="mt-1">
+                        <span className="inline-flex px-1.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-accent/15 text-accent-bright border border-accent/30 font-mono">
+                          {friendlyType.badge}
+                        </span>
+                      </div>
+                    </div>
+                  }
+                  icon={Hash}
+                />
+                <Field
+                  label="Uploaded"
+                  value={
+                    <div className="flex flex-col min-w-0">
+                      <span className="font-semibold text-ink text-sm leading-none">
+                        {formatRelativeTime(file.uploadedAt)}
+                      </span>
+                      <span className="text-[10px] text-ink-faint font-mono mt-1 truncate" title={formatDateTime(file.uploadedAt)}>
+                        {formatDate(file.uploadedAt)}
+                      </span>
+                    </div>
+                  }
+                  icon={Calendar}
+                />
+                <Field
+                  label="Downloads"
+                  value={
+                    <div className="flex flex-col min-w-0">
+                      <span className="font-semibold text-ink text-sm leading-none font-mono">
+                        {file.downloads.toLocaleString()}
+                      </span>
+                      <span className="text-[10px] text-ink-faint mt-1">
+                        Total retrievals
+                      </span>
+                    </div>
+                  }
+                  icon={Download}
+                />
+              </div>
+
+              {/* Location Path bar */}
+              <div className="pt-3 border-t border-border/60">
+                <div className="flex items-center justify-between text-[11px] text-ink-faint uppercase tracking-wider mb-1">
+                  <span className="flex items-center gap-1">
+                    <Folder className="h-3 w-3" /> Storage Location
+                  </span>
+                  <button
+                    onClick={() => {
+                      navigator.clipboard.writeText(file.path);
+                      toast.success("Path copied to clipboard");
+                    }}
+                    className="hover:text-ink transition-colors flex items-center gap-1 text-[10px] capitalize font-sans cursor-pointer"
+                  >
+                    <Copy className="h-2.5 w-2.5" /> Copy path
+                  </button>
+                </div>
+                <div className="p-2 rounded-lg bg-bg-raised border border-border/60 font-mono text-[11px] text-ink-muted truncate select-all" title={file.path}>
+                  {file.path}
+                </div>
+              </div>
             </CardContent>
           </Card>
 
-          <Card className="bg-bg-surface border-border-strong">
-            <CardHeader>
-              <CardTitle>Share settings</CardTitle>
+          {/* SHARE SETTINGS CARD */}
+          <Card className="bg-bg-surface border-border-strong overflow-hidden shadow-sm">
+            <CardHeader className="py-3.5 px-4 bg-bg-raised/40 border-b border-border/70 flex flex-row items-center justify-between space-y-0">
+              <CardTitle className="text-xs font-semibold uppercase tracking-wider text-ink-muted flex items-center gap-1.5">
+                <Globe className="h-3.5 w-3.5 text-accent" /> Share Settings
+              </CardTitle>
+              <Badge variant={file.shared ? "info" : "muted"}>
+                {file.shared ? "Public Link Active" : "Private Vault"}
+              </Badge>
             </CardHeader>
-            <CardContent className="flex flex-col gap-3">
-              <div className="flex items-center justify-between text-[13px]">
-                <span className="text-ink-muted">Visibility</span>
-                <Badge variant={file.shared ? "info" : "muted"}>
-                  {file.shared ? "Public" : "Private"}
-                </Badge>
+            <CardContent className="p-4 flex flex-col gap-3">
+              <div className="flex items-start gap-2.5 p-3 rounded-lg bg-bg-raised border border-border/60">
+                <div className={cn(
+                  "p-2 rounded-md shrink-0",
+                  file.shared ? "bg-accent/15 text-accent-bright" : "bg-bg-overlay text-ink-muted"
+                )}>
+                  {file.shared ? <Globe className="h-4 w-4" /> : <Lock className="h-4 w-4" />}
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="text-xs font-semibold text-ink">
+                    {file.shared ? "Public Access Enabled" : "Private & Restricted"}
+                  </p>
+                  <p className="text-[11px] text-ink-muted mt-0.5 leading-relaxed">
+                    {file.shared
+                      ? "Anyone on the web with this unique link can view and download this file."
+                      : "Only authenticated members with access to this vault can view and access this file."}
+                  </p>
+                </div>
               </div>
+
               {file.shared && (
-                <div className="mt-2 flex flex-col gap-1.5">
-                  <span className="text-[12px] text-ink-muted">
-                    Shareable Link
+                <div className="flex flex-col gap-1.5 animate-in fade-in duration-150">
+                  <span className="text-[11px] uppercase tracking-wider font-medium text-ink-faint">
+                    Public Share Link
                   </span>
                   <div className="flex items-center gap-2">
                     <input
                       type="text"
                       readOnly
                       value={`${typeof window !== "undefined" ? window.location.origin : ""}/s/${file.id}`}
-                      className="flex-1 rounded-md border border-border bg-bg px-2.5 py-1.5 text-[13px] text-ink outline-none min-w-0"
+                      className="flex-1 rounded-md border border-border bg-bg px-2.5 py-1.5 text-xs font-mono text-ink outline-none min-w-0 select-all"
                     />
                     <Button
                       size="sm"
                       variant="secondary"
                       onClick={handleCopyLink}
+                      className="shrink-0 text-xs"
                     >
-                      Copy
+                      <Copy className="h-3 w-3 mr-1" /> Copy
                     </Button>
+                    <a
+                      href={`/s/${file.id}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="p-1.5 rounded-md border border-border bg-bg-raised text-ink-muted hover:text-ink hover:bg-bg-overlay transition-colors inline-flex items-center"
+                      title="Open public share page"
+                    >
+                      <ExternalLink className="h-3.5 w-3.5" />
+                    </a>
                   </div>
                 </div>
               )}
+
               <Button
                 size="sm"
-                variant="secondary"
-                className="mt-1 w-full"
+                variant={file.shared ? "danger" : "primary"}
+                className="mt-1 w-full text-xs font-semibold cursor-pointer"
                 onClick={handleToggleShare}
                 disabled={toggleShareMutation.isPending}
               >
-                Toggle Sharing
+                {toggleShareMutation.isPending ? (
+                  "Updating Access..."
+                ) : file.shared ? (
+                  <>
+                    <Lock className="h-3.5 w-3.5 mr-1" /> Revoke Public Access
+                  </>
+                ) : (
+                  <>
+                    <Globe className="h-3.5 w-3.5 mr-1" /> Create Public Share Link
+                  </>
+                )}
               </Button>
             </CardContent>
           </Card>
@@ -582,17 +705,19 @@ function Field({
   label,
   value,
   icon: Icon,
+  className,
 }: {
   label: string;
   value: React.ReactNode;
   icon: any;
+  className?: string;
 }) {
   return (
-    <div>
-      <p className="flex items-center gap-1 text-[11px] uppercase tracking-wide text-ink-faint">
-        <Icon className="h-3 w-3" /> {label}
+    <div className={cn("min-w-0 flex flex-col justify-start", className)}>
+      <p className="flex items-center gap-1 text-[11px] uppercase tracking-wider font-medium text-ink-faint">
+        <Icon className="h-3 w-3 shrink-0 opacity-70" /> <span className="truncate">{label}</span>
       </p>
-      <div className="mt-1 text-[13px] font-medium text-ink">{value}</div>
+      <div className="mt-1 text-[13px] font-medium text-ink min-w-0 overflow-hidden">{value}</div>
     </div>
   );
 }
