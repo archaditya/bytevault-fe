@@ -2,7 +2,7 @@
 
 import { use, useEffect, useMemo, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { getAccessToken } from "@/lib/api-client";
+import { getAccessToken, fetchWithAuth } from "@/lib/api-client";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -149,9 +149,9 @@ export default function FileDetailsPage({
   }, [file, isExcel, isWord]);
 
   useEffect(() => {
-    if (isTextType && !isExcel && !isWord && token && file?.id) {
+    if (isTextType && !isExcel && !isWord && file?.id) {
       setLoadingText(true);
-      fetch(`/api/v1/files/${file.id}/download?token=${token}&inline=true`)
+      fetchWithAuth(`/api/v1/files/${file.id}/download?inline=true`)
         .then((res) => {
           if (!res.ok) throw new Error("Failed to load text preview");
           return res.text();

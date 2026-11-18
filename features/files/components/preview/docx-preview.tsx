@@ -3,6 +3,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import { Loader2, AlertCircle, Download, FileText, Lock } from "lucide-react";
 import { formatBytes } from "@/lib/utils";
+import { fetchWithAuth } from "@/lib/api-client";
 
 interface DocxPreviewProps {
   url: string;
@@ -36,7 +37,7 @@ export function DocxPreview({ url, filename, fileSize }: DocxPreviewProps) {
       setIsEncrypted(false);
 
       try {
-        const response = await fetch(url);
+        const response = await fetchWithAuth(url);
         if (!response.ok) {
           throw new Error(`Failed to load document (${response.status})`);
         }
@@ -72,8 +73,8 @@ export function DocxPreview({ url, filename, fileSize }: DocxPreviewProps) {
         if (containerRef.current && !isCancelled) {
           containerRef.current.innerHTML = "";
           await renderAsync(blob, containerRef.current, undefined, {
-            className: "docx-viewer-content",
-            inWrapper: true,
+            className: "docx",
+            inWrapper: false,
             ignoreWidth: false,
             ignoreHeight: false,
             breakPages: true,
@@ -185,10 +186,11 @@ export function DocxPreview({ url, filename, fileSize }: DocxPreviewProps) {
   }
 
   return (
-    <div className="w-full h-full max-h-[600px] overflow-auto rounded-xl border border-border bg-[#525659] p-4 shadow-inner">
+    <div className="w-full h-full min-h-[550px] max-h-[calc(100vh-220px)] overflow-auto rounded-xl border border-border bg-[#525659] p-4 sm:p-6 shadow-inner">
       <div
         ref={containerRef}
-        className="max-w-[850px] mx-auto bg-white text-black shadow-lg rounded-sm min-h-[500px] p-6 text-sm"
+        className="mx-auto flex flex-col items-center justify-start text-black [&_.docx]:text-black [&_.docx]:bg-white [&_.docx]:shadow-2xl [&_.docx]:mb-8 [&_p]:text-black [&_span]:text-black [&_td]:text-black [&_th]:text-black"
+        style={{ color: "#000000" }}
       />
     </div>
   );

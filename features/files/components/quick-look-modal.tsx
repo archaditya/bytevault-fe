@@ -23,7 +23,7 @@ import { DocxPreview } from "./preview/docx-preview";
 import { CodePreview } from "./preview/code-preview";
 import { Button } from "@/components/ui/button";
 import toast from "react-hot-toast";
-import { getAccessToken } from "@/lib/api-client";
+import { getAccessToken, fetchWithAuth } from "@/lib/api-client";
 
 interface QuickLookModalProps {
   files?: FileRecord[];
@@ -88,54 +88,39 @@ export function QuickLookModal({ files = [] }: QuickLookModalProps) {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [quickLookFile, handleClose, handleNext, handlePrev]);
 
-  if (!quickLookFile) return null;
-
-  const file = quickLookFile;
-  const token = typeof window !== "undefined" ? getAccessToken() || "" : "";
-  const tokenQuery = token ? `&token=${encodeURIComponent(token)}` : "";
-  const downloadUrl = `/api/v1/files/${file.id}/download${token ? `?token=${encodeURIComponent(token)}` : ""}`;
-  const previewUrl = `/api/v1/files/${file.id}/download?inline=true${tokenQuery}`;
-
-  const handleCopyLink = () => {
-    const shareUrl = `${window.location.origin}/s/file/${file.id}`;
-    navigator.clipboard.writeText(shareUrl);
-    toast.success("Share link copied to clipboard");
-  };
-
-  const handleOpenDetails = () => {
-    handleClose();
-    router.push(`/files/${file.id}`);
-  };
-
-  const ext = file.name.includes(".")
-    ? file.name.split(".").pop()?.toLowerCase() || ""
+  const ext = quickLookFile?.name?.includes(".")
+    ? quickLookFile.name.split(".").pop()?.toLowerCase() || ""
     : "";
 
-  const isImage = file.kind === "image" || file.mimeType.startsWith("image/");
-  const isVideo = file.kind === "video" || file.mimeType.startsWith("video/");
-  const isAudio = file.kind === "audio" || file.mimeType.startsWith("audio/");
-  const isPdf =
-    file.mimeType === "application/pdf" || file.name.toLowerCase().endsWith(".pdf");
+  const isImage = quickLookFile ? quickLookFile.kind === "image" || quickLookFile.mimeType.startsWith("image/") : false;
+  const isVideo = quickLookFile ? quickLookFile.kind === "video" || quickLookFile.mimeType.startsWith("video/") : false;
+  const isAudio = quickLookFile ? quickLookFile.kind === "audio" || quickLookFile.mimeType.startsWith("audio/") : false;
+  const isPdf = quickLookFile
+    ? quickLookFile.mimeType === "application/pdf" || quickLookFile.name.toLowerCase().endsWith(".pdf")
+    : false;
 
-  const isExcel =
-    ["xlsx", "xls", "csv", "tsv"].includes(ext) ||
-    file.mimeType?.toLowerCase().includes("spreadsheet") ||
-    file.mimeType?.toLowerCase().includes("excel") ||
-    file.mimeType?.toLowerCase().includes("csv");
+  const isExcel = quickLookFile
+    ? ["xlsx", "xls", "csv", "tsv"].includes(ext) ||
+      quickLookFile.mimeType?.toLowerCase().includes("spreadsheet") ||
+      quickLookFile.mimeType?.toLowerCase().includes("excel") ||
+      quickLookFile.mimeType?.toLowerCase().includes("csv")
+    : false;
 
-  const isWord =
-    ["docx", "doc"].includes(ext) ||
-    file.mimeType?.toLowerCase().includes("wordprocessingml") ||
-    file.mimeType?.toLowerCase().includes("msword");
+  const isWord = quickLookFile
+    ? ["docx", "doc"].includes(ext) ||
+      quickLookFile.mimeType?.toLowerCase().includes("wordprocessingml") ||
+      quickLookFile.mimeType?.toLowerCase().includes("msword")
+    : false;
 
   const isCodeOrText =
+    Boolean(quickLookFile) &&
     !isExcel &&
     !isWord &&
-    (file.kind === "code" ||
-      file.mimeType?.startsWith("text/") ||
-      file.mimeType?.includes("json") ||
-      file.mimeType?.includes("javascript") ||
-      file.mimeType?.includes("typescript") ||
+    (quickLookFile!.kind === "code" ||
+      quickLookFile!.mimeType?.startsWith("text/") ||
+      quickLookFile!.mimeType?.includes("json") ||
+      quickLookFile!.mimeType?.includes("javascript") ||
+      quickLookFile!.mimeType?.includes("typescript") ||
       [
         "txt", "md", "json", "js", "ts", "tsx", "jsx", "css", "html",
         "yaml", "yml", "go", "py", "sql", "sh", "env", "log"
@@ -145,10 +130,16 @@ export function QuickLookModal({ files = [] }: QuickLookModalProps) {
   const [loadingText, setLoadingText] = useState(false);
   const [isTruncated, setIsTruncated] = useState(false);
 
+  const token = typeof window !== "undefined" ? getAccessToken() || "" : "";
+  const tokenQuery = token ? `&token=${encodeURIComponent(token)}` : "";
+  const previewUrl = quickLookFile
+    ? `/api/v1/files/${quickLookFile.id}/download?inline=true${tokenQuery}`
+    : "";
+
   useEffect(() => {
-    if (isCodeOrText && file?.id) {
+    if (isCodeOrText && quickLookFile?.id && previewUrl) {
       setLoadingText(true);
-      fetch(previewUrl)
+      fetchWithAuth(previewUrl)
         .then((res) => {
           if (!res.ok) throw new Error("Failed to load text preview");
           return res.text();
@@ -172,7 +163,23 @@ export function QuickLookModal({ files = [] }: QuickLookModalProps) {
       setTextContent(null);
       setIsTruncated(false);
     }
-  }, [file?.id, isCodeOrText, previewUrl]);
+  }, [quickLookFile?.id, isCodeOrText, previewUrl]);
+
+  if (!quickLookFile) return null;
+
+  const file = quickLookFile;
+  const downloadUrl = `/api/v1/files/${file.id}/download${token ? `?token=${encodeURIComponent(token)}` : ""}`;
+
+  const handleCopyLink = () => {
+    const shareUrl = `${window.location.origin}/s/file/${file.id}`;
+    navigator.clipboard.writeText(shareUrl);
+    toast.success("Share link copied to clipboard");
+  };
+
+  const handleOpenDetails = () => {
+    handleClose();
+    router.push(`/files/${file.id}`);
+  };
 
   return (
     <div

@@ -12,6 +12,7 @@ import {
   Table as TableIcon,
 } from "lucide-react";
 import { formatBytes } from "@/lib/utils";
+import { fetchWithAuth } from "@/lib/api-client";
 
 interface ExcelPreviewProps {
   url: string;
@@ -47,7 +48,7 @@ export function ExcelPreview({ url, filename, fileSize }: ExcelPreviewProps) {
       setIsEncrypted(false);
 
       try {
-        const response = await fetch(url);
+        const response = await fetchWithAuth(url);
         if (!response.ok) {
           throw new Error(`Failed to load file (${response.status} ${response.statusText})`);
         }

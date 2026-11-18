@@ -168,3 +168,36 @@ export async function apiClient(path: string, options: RequestInit = {}): Promis
   }
   return json;
 }
+
+/**
+ * fetchWithAuth performs a binary / stream fetch with automatic Bearer token injection
+ * and 401 token refresh retry. Ideal for downloading blobs, preview streams, and files.
+ */
+export async function fetchWithAuth(url: string, init?: RequestInit): Promise<Response> {
+  let token = getAccessToken();
+  const headers = new Headers(init?.headers || {});
+
+  if (token && !headers.has("Authorization")) {
+    headers.set("Authorization", `Bearer ${token}`);
+  }
+
+  let res = await fetch(url, { ...init, headers });
+
+  if (res.status === 401 && refreshToken) {
+    const newToken = await runTokenRefresh();
+    if (newToken) {
+      headers.set("Authorization", `Bearer ${newToken}`);
+      let retryUrl = url;
+      try {
+        const u = new URL(url, typeof window !== "undefined" ? window.location.origin : "http://localhost");
+        if (u.searchParams.has("token")) {
+          u.searchParams.set("token", newToken);
+          retryUrl = u.pathname + u.search;
+        }
+      } catch {}
+      res = await fetch(retryUrl, { ...init, headers });
+    }
+  }
+
+  return res;
+}
