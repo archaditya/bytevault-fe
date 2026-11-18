@@ -161,9 +161,9 @@ export default function FileDetailsPage({
   }, [file, isExcel, isWord]);
 
   useEffect(() => {
-    if (isTextType && !isExcel && !isWord && file?.id) {
+    if (isTextType && !isExcel && !isWord && file?.id && previewUrl) {
       setLoadingText(true);
-      fetchWithAuth(`/api/v1/files/${file.id}/download?inline=true`)
+      fetchWithAuth(previewUrl)
         .then((res) => {
           if (!res.ok) throw new Error("Failed to load text preview");
           return res.text();

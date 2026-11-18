@@ -189,10 +189,11 @@ export async function fetchWithAuth(url: string, init?: RequestInit): Promise<Re
       headers.set("Authorization", `Bearer ${newToken}`);
       let retryUrl = url;
       try {
+        const isAbsolute = /^(?:[a-z]+:)?\/\//i.test(url);
         const u = new URL(url, typeof window !== "undefined" ? window.location.origin : "http://localhost");
         if (u.searchParams.has("token")) {
           u.searchParams.set("token", newToken);
-          retryUrl = u.pathname + u.search;
+          retryUrl = isAbsolute ? u.toString() : (u.pathname + u.search + u.hash);
         }
       } catch {}
       res = await fetch(retryUrl, { ...init, headers });
