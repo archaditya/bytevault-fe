@@ -186,10 +186,10 @@ export function DocxPreview({ url, filename, fileSize }: DocxPreviewProps) {
   }
 
   return (
-    <div className="w-full h-full min-h-[550px] max-h-[calc(100vh-220px)] overflow-auto rounded-xl border border-border bg-[#525659] p-4 sm:p-6 shadow-inner">
+    <div className="w-full h-full min-h-[350px] sm:min-h-[550px] max-h-[calc(100vh-220px)] overflow-auto rounded-xl border border-border bg-[#525659] p-2 sm:p-6 shadow-inner">
       <div
         ref={containerRef}
-        className="mx-auto flex flex-col items-center justify-start text-black [&_.docx]:text-black [&_.docx]:bg-white [&_.docx]:shadow-2xl [&_.docx]:mb-8 [&_p]:text-black [&_span]:text-black [&_td]:text-black [&_th]:text-black"
+        className="mx-auto flex flex-col items-center justify-start text-black [&_.docx]:text-black [&_.docx]:bg-white [&_.docx]:shadow-2xl [&_.docx]:mb-8 [&_.docx]:max-w-full [&_.docx]:overflow-x-auto [&_p]:text-black [&_span]:text-black [&_td]:text-black [&_th]:text-black"
         style={{ color: "#000000" }}
       />
     </div>

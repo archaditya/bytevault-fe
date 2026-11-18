@@ -34,14 +34,16 @@ export function CodePreview({
   return (
     <div className="flex flex-col h-full w-full rounded-xl border border-border bg-[#0d1117] text-[#c9d1d9] overflow-hidden shadow-sm font-mono text-xs">
       {/* Code Header Bar */}
-      <div className="flex items-center justify-between px-3.5 py-2 bg-[#161b22] border-b border-[#30363d] select-none">
-        <div className="flex items-center gap-2">
-          <Code2 className="h-4 w-4 text-accent-bright" />
-          <span className="font-semibold text-ink text-xs">{filename}</span>
-          <span className="px-1.5 py-0.5 rounded text-[10px] uppercase font-bold bg-accent/15 text-accent-bright border border-accent/30">
+      <div className="flex items-center justify-between px-3.5 py-2 bg-[#161b22] border-b border-[#30363d] select-none gap-2">
+        <div className="flex items-center gap-2 min-w-0 pr-1">
+          <Code2 className="h-4 w-4 text-accent-bright shrink-0" />
+          <span className="font-semibold text-ink text-xs truncate max-w-[110px] sm:max-w-xs" title={filename}>
+            {filename}
+          </span>
+          <span className="px-1.5 py-0.5 rounded text-[10px] uppercase font-bold bg-accent/15 text-accent-bright border border-accent/30 shrink-0">
             {language}
           </span>
-          <span className="text-[11px] text-[#8b949e]">({lines.length} lines)</span>
+          <span className="text-[11px] text-[#8b949e] shrink-0 hidden sm:inline">({lines.length} lines)</span>
         </div>
 
         <div className="flex items-center gap-2">
