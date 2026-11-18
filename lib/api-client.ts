@@ -184,19 +184,23 @@ export async function fetchWithAuth(url: string, init?: RequestInit): Promise<Re
   let res = await fetch(url, { ...init, headers });
 
   if (res.status === 401 && refreshToken) {
-    const newToken = await runTokenRefresh();
-    if (newToken) {
-      headers.set("Authorization", `Bearer ${newToken}`);
-      let retryUrl = url;
-      try {
-        const isAbsolute = /^(?:[a-z]+:)?\/\//i.test(url);
-        const u = new URL(url, typeof window !== "undefined" ? window.location.origin : "http://localhost");
-        if (u.searchParams.has("token")) {
-          u.searchParams.set("token", newToken);
-          retryUrl = isAbsolute ? u.toString() : (u.pathname + u.search + u.hash);
-        }
-      } catch {}
-      res = await fetch(retryUrl, { ...init, headers });
+    try {
+      const newToken = await runTokenRefresh();
+      if (newToken) {
+        headers.set("Authorization", `Bearer ${newToken}`);
+        let retryUrl = url;
+        try {
+          const isAbsolute = /^(?:[a-z]+:)?\/\//i.test(url);
+          const u = new URL(url, typeof window !== "undefined" ? window.location.origin : "http://localhost");
+          if (u.searchParams.has("token")) {
+            u.searchParams.set("token", newToken);
+            retryUrl = isAbsolute ? u.toString() : (u.pathname + u.search + u.hash);
+          }
+        } catch {}
+        res = await fetch(retryUrl, { ...init, headers });
+      }
+    } catch {
+      // If token refresh throws (network down / refresh token expired), return the original response
     }
   }
 
