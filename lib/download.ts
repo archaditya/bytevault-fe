@@ -12,8 +12,15 @@ export async function downloadFile(fileId: string, filename?: string): Promise<v
     token = await runTokenRefresh().catch(() => null);
   }
 
-  const tokenParam = token ? `?token=${encodeURIComponent(token)}` : "";
+  if (!token) {
+    toast.error("Session expired. Please log in again to download.");
+    return;
+  }
+
+  const tokenParam = `?token=${encodeURIComponent(token)}`;
   const downloadUrl = `/api/v1/files/${fileId}/download${tokenParam}`;
+
+  toast.success(`Starting download for ${filename || "file"}...`);
 
   const link = document.createElement("a");
   link.href = downloadUrl;
@@ -53,6 +60,7 @@ export async function downloadFilesAsZip(
   const toastId = toast.loading(`Preparing ZIP archive (0/${items.length})...`);
   const zip = new JSZip();
   const usedNames = new Set<string>();
+  const failedFiles: string[] = [];
 
   let successCount = 0;
 
@@ -86,12 +94,23 @@ export async function downloadFilesAsZip(
       successCount++;
     } catch (err) {
       console.error(`Failed to include file ${item.name} in ZIP:`, err);
+      failedFiles.push(item.name || `file_${item.id}`);
     }
   }
 
   if (successCount === 0) {
     toast.error("Failed to download selected files for ZIP archive", { id: toastId });
     return;
+  }
+
+  if (failedFiles.length > 0) {
+    const previewFailed = failedFiles.slice(0, 3).join(", ");
+    toast.error(
+      `${failedFiles.length} file(s) failed to download and were skipped: ${previewFailed}${
+        failedFiles.length > 3 ? "..." : ""
+      }`,
+      { duration: 5000 }
+    );
   }
 
   toast.loading(`Compressing ${successCount} file(s)...`, { id: toastId });
@@ -109,7 +128,7 @@ export async function downloadFilesAsZip(
     );
 
     const safeName = archiveName
-      ? archiveName.replace(/[^a-zA-Z0-9_-]/g, "_")
+      ? archiveName.trim().replace(/[\\/:*?"<>|]/g, "_")
       : `bytevault_archive_${new Date().toISOString().slice(0, 10)}`;
 
     const finalFileName = safeName.endsWith(".zip") ? safeName : `${safeName}.zip`;
