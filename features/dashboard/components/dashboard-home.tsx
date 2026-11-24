@@ -37,6 +37,7 @@ import {
 } from "@/services";
 import { FileRecord, FolderRecord } from "@/types";
 import { formatBytes, formatRelativeTime, cn } from "@/lib/utils";
+import { downloadFile } from "@/lib/download";
 import { FileKindIcon } from "@/components/shared/file-kind-icon";
 import { RichFilePreview } from "@/features/files/components/rich-file-preview";
 import { getFolderCategory } from "@/features/files/components/folder-card";
@@ -366,7 +367,7 @@ export function DashboardHome() {
         onClose={() => setContextMenu(null)}
         onQuickLook={(file) => setQuickLookFile(file)}
         onOpenFolder={(folder) => handleOpenFolder(folder)}
-        onDownload={(file) => window.open(`/api/v1/files/${file.id}/download`, "_blank")}
+        onDownload={(file) => downloadFile(file.id, file.name)}
         onShare={handleContextMenuShare}
         onDetails={(file) => router.push(`/files/${file.id}`)}
         onDelete={handleContextMenuDelete}
@@ -537,13 +538,7 @@ function RecentFileGridCard({
 
   const handleDownload = (e: React.MouseEvent) => {
     e.stopPropagation();
-    const link = document.createElement("a");
-    link.href = `/api/v1/files/${file.id}/download`;
-    link.download = file.name;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    toast.success(`Downloading ${file.name}`);
+    downloadFile(file.id, file.name);
   };
 
   const handleCopyLink = (e: React.MouseEvent) => {
@@ -686,13 +681,7 @@ function RecentFileListRow({
 
   const handleDownload = (e: React.MouseEvent) => {
     e.stopPropagation();
-    const link = document.createElement("a");
-    link.href = `/api/v1/files/${file.id}/download`;
-    link.download = file.name;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    toast.success(`Downloading ${file.name}`);
+    downloadFile(file.id, file.name);
   };
 
   return (

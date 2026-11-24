@@ -20,6 +20,7 @@ import { FolderSearch, Home, ChevronRight, ChevronLeft, Folder } from "lucide-re
 import { MoveItemModal } from "./move-item-modal";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { downloadFile, downloadFilesAsZip } from "@/lib/download";
 import toast from "react-hot-toast";
 import { useConfirm } from "@/components/ui/confirm-dialog";
 
@@ -294,23 +295,27 @@ export function FilesExplorer() {
     }
   };
 
-  const handleBatchDownload = () => {
-    const fileItems = selectedItems.filter((i) => i.type === "file");
-    if (fileItems.length === 0) {
+  const handleBatchDownload = async () => {
+    const selectedFileIds = new Set(
+      selectedItems.filter((i) => i.type === "file").map((i) => i.id)
+    );
+    if (selectedFileIds.size === 0) {
       toast("Select at least one file to download");
       return;
     }
-    toast.success(`Starting download for ${fileItems.length} file(s)`);
-    fileItems.forEach((item, idx) => {
-      setTimeout(() => {
-        const link = document.createElement("a");
-        link.href = `/api/v1/files/${item.id}/download`;
-        link.download = "";
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-      }, idx * 250);
-    });
+    const targetFiles = (loadedFiles || [])
+      .filter((f: FileRecord) => selectedFileIds.has(f.id))
+      .map((f: FileRecord) => ({ id: f.id, name: f.name, sizeBytes: f.sizeBytes }));
+
+    if (targetFiles.length === 0) {
+      toast.error("Selected files could not be found");
+      return;
+    }
+
+    const currentFolder = folderHistory[folderHistory.length - 1];
+    const archiveName = currentFolder?.name ? `${currentFolder.name}_archive` : "vault_archive";
+
+    await downloadFilesAsZip(targetFiles, archiveName);
   };
 
   const handleBatchShare = () => {
@@ -538,7 +543,7 @@ export function FilesExplorer() {
         onClose={() => setContextMenu(null)}
         onQuickLook={(file) => useFilesStore.getState().setQuickLookFile(file)}
         onOpenFolder={(folder) => pushFolder(folder.id, folder.name)}
-        onDownload={(file) => window.open(`/api/v1/files/${file.id}/download`, "_blank")}
+        onDownload={(file) => downloadFile(file.id, file.name)}
         onShare={handleContextMenuShare}
         onDetails={(file) => router.push(`/files/${file.id}`)}
         onDelete={handleContextMenuDelete}
