@@ -16,6 +16,7 @@ import { FileRecord } from "@/types";
 import { Card } from "@/components/ui/card";
 import { FileKindIcon } from "@/components/shared/file-kind-icon";
 import { formatBytes, formatRelativeTime, cn } from "@/lib/utils";
+import { downloadFile } from "@/lib/download";
 import { RichFilePreview } from "./rich-file-preview";
 import { MoveItemModal } from "./move-item-modal";
 import {
@@ -133,7 +134,7 @@ export function FileCard({
   const handleDownload = (e: React.MouseEvent) => {
     e.stopPropagation();
     e.preventDefault();
-    window.open(`/api/v1/files/${file.id}/download`, "_blank");
+    downloadFile(file.id, file.name);
   };
 
   const handleRenameSubmit = async (e: React.FormEvent) => {

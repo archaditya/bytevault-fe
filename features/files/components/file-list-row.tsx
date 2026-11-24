@@ -1,10 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { Star, Share2, Pencil, Trash2, Move } from "lucide-react";
+import { Star, Share2, Pencil, Trash2, Move, Download } from "lucide-react";
 import { FileRecord } from "@/types";
 import { FileKindIcon } from "@/components/shared/file-kind-icon";
 import { formatBytes, formatRelativeTime } from "@/lib/utils";
+import { downloadFile } from "@/lib/download";
 import { useFilesStore } from "@/store/files.store";
 import { useDeleteFileMutation, useRenameFileMutation } from "@/services";
 import { cn } from "@/lib/utils";
@@ -145,6 +146,17 @@ export function FileListRow({
         <span className="text-ink-muted">{formatRelativeTime(file.uploadedAt)}</span>
         <div className="flex items-center justify-end gap-1.5" onClick={(e) => e.stopPropagation()}>
           {file.shared && <Share2 className="h-3.5 w-3.5 text-info mr-1" />}
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              e.preventDefault();
+              downloadFile(file.id, file.name);
+            }}
+            className="p-1 text-ink-muted hover:text-ink transition-colors opacity-0 group-hover:opacity-100 rounded"
+            title="Download"
+          >
+            <Download className="h-3.5 w-3.5" />
+          </button>
           <button
             onClick={(e) => {
               e.stopPropagation();

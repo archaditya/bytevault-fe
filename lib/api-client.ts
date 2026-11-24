@@ -38,7 +38,7 @@ function onRefreshed(token: string) {
   refreshSubscribers = [];
 }
 
-async function runTokenRefresh(): Promise<string | null> {
+export async function runTokenRefresh(): Promise<string | null> {
   if (!refreshToken) return null;
   try {
     const res = await fetch("/api/v1/auth/refresh", {
